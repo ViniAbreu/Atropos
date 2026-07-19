@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{CBAF06AC-A200-4419-B6FB-9AB9E13AB3B4}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="AtroposCLI.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="AtroposVCL.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="AtroposCLI">
+        <MSBuild Projects="AtroposCLI.dproj"/>
+    </Target>
+    <Target Name="AtroposCLI:Clean">
+        <MSBuild Projects="AtroposCLI.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="AtroposCLI:Make">
+        <MSBuild Projects="AtroposCLI.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="AtroposVCL">
+        <MSBuild Projects="AtroposVCL.dproj"/>
+    </Target>
+    <Target Name="AtroposVCL:Clean">
+        <MSBuild Projects="AtroposVCL.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="AtroposVCL:Make">
+        <MSBuild Projects="AtroposVCL.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="AtroposCLI;AtroposVCL"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="AtroposCLI:Clean;AtroposVCL:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="AtroposCLI:Make;AtroposVCL:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

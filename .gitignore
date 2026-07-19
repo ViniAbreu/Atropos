@@ -80,3 +80,8 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
+
+# Code coverage reports
+**/UsesCleaner/
+*.html
+*.xml
