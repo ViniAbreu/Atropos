@@ -1,18 +1,19 @@
-﻿unit Atropos.Core.Modifier;
+unit Atropos.Core.Modifier;
 
 interface
 uses
-  Atropos.Core.Ports, Atropos.Core.Domain;
+  Atropos.Core.Ports, Atropos.Core.Domain, Atropos.Core.Config;
 
 type
   TApplyUsesChanges = class
   private
     FFileService: IFileService;
+    FConfig: TToolConfig;
     class function RemoveUnitSurgically(const ASource, AUnitToRemove: string): string;
     class function RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;
     class function AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
   public
-    constructor Create(AFileService: IFileService);
+    constructor Create(AFileService: IFileService; AConfig: TToolConfig);
     procedure Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);
   end;
 
@@ -22,9 +23,10 @@ uses
 
 
 
-constructor TApplyUsesChanges.Create(AFileService: IFileService);
+constructor TApplyUsesChanges.Create(AFileService: IFileService; AConfig: TToolConfig);
 begin
   FFileService := AFileService;
+  FConfig := AConfig;
 end;
 
 class function TApplyUsesChanges.RemoveUnitSurgically(const ASource, AUnitToRemove: string): string;
@@ -153,17 +155,23 @@ begin
   LContent := FFileService.ReadFileContent(AFilePath);
   
   
-  for LUnit in AAnalysisResult.UnusedUnits do
+  if FConfig.RemoveUnused then
   begin
-    LContent := RemoveUnitFromUsesClause(LContent, LUnit, True);
-    LContent := RemoveUnitFromUsesClause(LContent, LUnit, False);
+    for LUnit in AAnalysisResult.UnusedUnits do
+    begin
+      LContent := RemoveUnitFromUsesClause(LContent, LUnit, True);
+      LContent := RemoveUnitFromUsesClause(LContent, LUnit, False);
+    end;
   end;
   
   
-  for LUnit in AAnalysisResult.UnitsToMoveToImpl do
+  if FConfig.MoveToImplementation then
   begin
-    LContent := RemoveUnitFromUsesClause(LContent, LUnit, True);
-    LContent := AddUnitToImplementationUses(LContent, LUnit);
+    for LUnit in AAnalysisResult.UnitsToMoveToImpl do
+    begin
+      LContent := RemoveUnitFromUsesClause(LContent, LUnit, True);
+      LContent := AddUnitToImplementationUses(LContent, LUnit);
+    end;
   end;
   
   

@@ -1,8 +1,8 @@
-﻿unit Atropos.Application.AppService;
+unit Atropos.Application.AppService;
 
 interface
 uses
-  Atropos.Core.Ports;
+  Atropos.Core.Ports, Atropos.Core.Config, System.IOUtils;
 
 type
   TProgressEvent = reference to procedure(AMax, APosition: Integer);
@@ -16,6 +16,7 @@ type
     FReportGen: IReportGenerator;
     FDelphiEnvironment: IDelphiEnvironmentService;
     FResolver: IExternalUnitResolver;
+    FConfig: TToolConfig;
     
     FOnProgress: TProgressEvent;
     FOnLog: TLogEvent;
@@ -30,7 +31,8 @@ type
       const AFileService: IFileService;
       const AReportGen: IReportGenerator;
       const ADelphiEnvironment: IDelphiEnvironmentService;
-      const AResolver: IExternalUnitResolver);
+      const AResolver: IExternalUnitResolver;
+      const AConfig: TToolConfig);
       
     property OnProgress: TProgressEvent read FOnProgress write FOnProgress;
     property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -40,9 +42,7 @@ type
 
 implementation
 uses
-  Atropos.Core.Domain, Atropos.Core.Modifier, System.SysUtils, System.IOUtils;
-
-
+  Atropos.Core.Domain, Atropos.Core.Modifier, Atropos.Adapters.Logger, System.SysUtils;
 
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
@@ -50,7 +50,8 @@ constructor TProjectCleanerAppService.Create(
   const AFileService: IFileService;
   const AReportGen: IReportGenerator;
   const ADelphiEnvironment: IDelphiEnvironmentService;
-  const AResolver: IExternalUnitResolver);
+  const AResolver: IExternalUnitResolver;
+  const AConfig: TToolConfig);
 begin
   FProjectParser := AProjectParser;
   FASTParser := AASTParser;
@@ -58,6 +59,7 @@ begin
   FReportGen := AReportGen;
   FDelphiEnvironment := ADelphiEnvironment;
   FResolver := AResolver;
+  FConfig := AConfig;
 end;
 
 procedure TProjectCleanerAppService.Log(const AMsg: string);
@@ -87,6 +89,7 @@ var
   LDelphiPath: string;
   LAnalyzer: TAnalyzeUnitUses;
   LModifier: TApplyUsesChanges;
+  LLogger: ILogger;
   LResult: TUnitAnalysisResult;
   LSyntaxTree: IUnitSyntaxTree;
   LUnits: TArray<string>;
@@ -108,9 +111,18 @@ begin
   
   FResolver.Initialize(LSearchPaths, LDelphiPath, LBasePath);
   
-  LContext := TProjectContext.Create(FResolver);
-  LAnalyzer := TAnalyzeUnitUses.Create;
-  LModifier := TApplyUsesChanges.Create(FFileService);
+  if FConfig.EnableDebug then
+    LLogger := TAppLogger.Create(
+      procedure(const AMsg: string)
+      begin
+        Self.Log(AMsg);
+      end)
+  else
+    LLogger := nil;
+
+  LContext := TProjectContext.Create(FResolver, LLogger);
+  LAnalyzer := TAnalyzeUnitUses.Create(LLogger);
+  LModifier := TApplyUsesChanges.Create(FFileService, FConfig);
   try
     LUnits := FProjectParser.GetProjectUnits(ADprojPath);
     Progress(Length(LUnits), 0);
@@ -136,10 +148,14 @@ begin
       end;
       
       try
+        if Assigned(LLogger) then LLogger.Log('DEBUG: Parsing AST for ' + ExtractFileName(LUnitPath));
         LSyntaxTree := FASTParser.ParseFile(LUnitPath);
+        
+        if Assigned(LLogger) then LLogger.Log('DEBUG: Analyzing dependencies for ' + ExtractFileName(LUnitPath));
         LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
         
-        if (Length(LResult.UnusedUnits) > 0) or (Length(LResult.UnitsToMoveToImpl) > 0) then
+        if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
+          (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0)) then
         begin
           LModifier.Execute(LUnitPath, LResult);
           FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits, LResult.UnitsToMoveToImpl);

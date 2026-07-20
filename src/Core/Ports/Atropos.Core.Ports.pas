@@ -1,9 +1,13 @@
-﻿unit Atropos.Core.Ports;
+unit Atropos.Core.Ports;
 
 interface
 
 type
-  
+  ILogger = interface
+    ['{884D2B60-70E7-4581-BC77-62F16298BB38}']
+    procedure Log(const AMsg: string);
+  end;
+
   IUnitSyntaxTree = interface
     ['{BFA9B996-339A-40C6-90B1-50793D99E416}']
     function GetUnitName: string;

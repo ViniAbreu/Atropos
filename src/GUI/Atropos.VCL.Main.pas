@@ -3,7 +3,7 @@
 interface
 uses
   Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls, Winapi.Messages, Winapi.Windows, System.SysUtils, System.Classes, System.IOUtils,
-  Vcl.Controls, Atropos.Application.AppService, Atropos.Application.Factory;
+  Vcl.Controls, Atropos.Application.AppService, Atropos.Application.Factory, Atropos.Core.Config;
 
 type
   TMainForm = class(TForm)
@@ -14,6 +14,12 @@ type
     ProgressBar1: TProgressBar;
     MemoLog: TMemo;
     OpenDialog1: TOpenDialog;
+    GroupBoxOptions: TGroupBox;
+    ChkRemove: TCheckBox;
+    ChkMove: TCheckBox;
+    ChkFormat: TCheckBox;
+    ChkSort: TCheckBox;
+    ChkDebug: TCheckBox;
     procedure BtnBrowseClick(Sender: TObject);
     procedure BtnRunClick(Sender: TObject);
   private
@@ -63,9 +69,17 @@ begin
     procedure
     var
       LAppService: TProjectCleanerAppService;
+      LConfig: TToolConfig;
     begin
       try
-        LAppService := TAppServiceFactory.CreateDefault;
+        LConfig := TToolConfig.Default;
+        LConfig.RemoveUnused := MainForm.ChkRemove.Checked;
+        LConfig.MoveToImplementation := MainForm.ChkMove.Checked;
+        LConfig.FormatOneUnitPerLine := MainForm.ChkFormat.Checked;
+        LConfig.SortUsesAlphabetically := MainForm.ChkSort.Checked;
+        LConfig.EnableDebug := MainForm.ChkDebug.Checked;
+        
+        LAppService := TAppServiceFactory.CreateDefault(LConfig);
         try
           LAppService.OnLog := procedure(const AMsg: string)
           begin

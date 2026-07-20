@@ -1,20 +1,20 @@
-﻿unit Atropos.Application.Factory;
+unit Atropos.Application.Factory;
 
 interface
 uses
-  Atropos.Application.AppService;
+  Atropos.Application.AppService, Atropos.Core.Config;
 
 type
   TAppServiceFactory = class
   public
-    class function CreateDefault: TProjectCleanerAppService;
+    class function CreateDefault(const AConfig: TToolConfig): TProjectCleanerAppService;
   end;
 
 implementation
 uses
   Atropos.Core.Ports, Atropos.Adapters.ProjectParser, Atropos.Adapters.DelphiAST, Atropos.Adapters.FileSystem, Atropos.Adapters.ReportGenerator, Atropos.Adapters.ExternalUnitResolver, Atropos.Adapters.DelphiEnvironment;
 
-class function TAppServiceFactory.CreateDefault: TProjectCleanerAppService;
+class function TAppServiceFactory.CreateDefault(const AConfig: TToolConfig): TProjectCleanerAppService;
 var
   LASTParser: IASTParser;
 begin
@@ -26,7 +26,8 @@ begin
     TFileSystemAdapter.Create,
     TReportGeneratorAdapter.Create,
     TDelphiEnvironmentAdapter.Create,
-    TExternalUnitResolverAdapter.Create(LASTParser)
+    TExternalUnitResolverAdapter.Create(LASTParser),
+    AConfig
   );
 end;
 

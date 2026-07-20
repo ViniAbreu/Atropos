@@ -103,6 +103,8 @@
         </DCCReference>
         <DCCReference Include="src\Core\Ports\Atropos.Core.Ports.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Domain.pas"/>
+        <DCCReference Include="src\Core\Domain\Atropos.Core.Config.pas"/>
+        <DCCReference Include="src\Adapters\Logger\Atropos.Adapters.Logger.pas"/>
         <DCCReference Include="src\Core\Services\Atropos.Core.Modifier.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas"/>

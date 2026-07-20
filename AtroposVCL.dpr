@@ -5,6 +5,8 @@ uses
   Atropos.VCL.Main in 'src\GUI\Atropos.VCL.Main.pas' {MainForm},
   Atropos.Core.Ports in 'src\Core\Ports\Atropos.Core.Ports.pas',
   Atropos.Core.Domain in 'src\Core\Domain\Atropos.Core.Domain.pas',
+  Atropos.Core.Config in 'src\Core\Domain\Atropos.Core.Config.pas',
+  Atropos.Adapters.Logger in 'src\Adapters\Logger\Atropos.Adapters.Logger.pas',
   Atropos.Core.Modifier in 'src\Core\Services\Atropos.Core.Modifier.pas',
   Atropos.Adapters.ProjectParser in 'src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas',
   Atropos.Adapters.DelphiAST in 'src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas',

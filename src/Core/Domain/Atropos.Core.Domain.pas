@@ -1,4 +1,4 @@
-﻿unit Atropos.Core.Domain;
+unit Atropos.Core.Domain;
 
 interface
 uses
@@ -20,8 +20,9 @@ type
     FUnitExports: TObjectDictionary<string, TUnitExports>;
     FMissingUnits: TDictionary<string, Boolean>;
     FResolver: IExternalUnitResolver;
+    FLogger: ILogger;
   public
-    constructor Create(AResolver: IExternalUnitResolver = nil);
+    constructor Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
     destructor Destroy; override;
     procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>);
     function UnitExportsIdentifier(const AUnitName, AIdentifier: string): Boolean;
@@ -37,7 +38,10 @@ type
 
   
   TAnalyzeUnitUses = class
+  private
+    FLogger: ILogger;
   public
+    constructor Create(ALogger: ILogger = nil);
     function Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
   end;
 
@@ -61,11 +65,12 @@ end;
 
 
 
-constructor TProjectContext.Create(AResolver: IExternalUnitResolver = nil);
+constructor TProjectContext.Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
 begin
   FUnitExports := TObjectDictionary<string, TUnitExports>.Create([doOwnsValues]);
   FMissingUnits := TDictionary<string, Boolean>.Create;
   FResolver := AResolver;
+  FLogger := ALogger;
 end;
 
 destructor TProjectContext.Destroy;
@@ -152,11 +157,16 @@ begin
       
     Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
     if Result and (LowerCase(AUnitName) = 'system.classes') then
-      Writeln('DEBUG IDENT MATCH: System.Classes matched ', LBaseIdent, ' from original ', AIdentifier);
+      if Assigned(FLogger) then FLogger.Log('DEBUG IDENT MATCH: System.Classes matched ' + LBaseIdent + ' from original ' + AIdentifier);
   end;
 end;
 
 
+
+constructor TAnalyzeUnitUses.Create(ALogger: ILogger = nil);
+begin
+  FLogger := ALogger;
+end;
 
 function TAnalyzeUnitUses.Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
 var
@@ -200,14 +210,14 @@ begin
             Break;
           end;
 
-        Writeln('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
+        if Assigned(FLogger) then FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
         if LUsedInImpl then
           LMoved.Add(LUnitName)
         else
           LUnused.Add(LUnitName);
       end
       else
-        Writeln('DEBUG: ' + LUnitName + ' UsedInIntf: True');
+        if Assigned(FLogger) then FLogger.Log('DEBUG: ' + LUnitName + ' UsedInIntf: True');
     end;
 
     
@@ -223,6 +233,8 @@ begin
           LUsedInImpl := True;
           Break;
         end;
+      
+      if Assigned(FLogger) then FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
       
       if not LUsedInImpl then
         LUnused.Add(LUnitName);
