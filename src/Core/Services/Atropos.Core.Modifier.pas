@@ -1,4 +1,4 @@
-unit Atropos.Core.Modifier;
+﻿unit Atropos.Core.Modifier;
 
 interface
 uses

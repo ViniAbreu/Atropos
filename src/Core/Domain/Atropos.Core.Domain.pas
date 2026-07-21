@@ -1,4 +1,4 @@
-unit Atropos.Core.Domain;
+﻿unit Atropos.Core.Domain;
 
 interface
 uses

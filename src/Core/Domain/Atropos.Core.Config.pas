@@ -2,6 +2,7 @@ unit Atropos.Core.Config;
 
 interface
 
+
 type
   TToolConfig = record
   private

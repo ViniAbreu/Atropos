@@ -3,6 +3,18 @@ unit Atropos.Core.Ports;
 interface
 
 type
+  TBuildMetrics = record
+    Hints: Integer;
+    Warnings: Integer;
+    CompileTimeMs: Int64;
+    ExeSizeBytes: Int64;
+    Success: Boolean;
+    ErrorMessage: string;
+    RemovedUnitsCount: Integer;
+    MovedUnitsCount: Integer;
+    DelphiVersion: string;
+  end;
+
   ILogger = interface
     ['{884D2B60-70E7-4581-BC77-62F16298BB38}']
     procedure Log(const AMsg: string);
@@ -35,6 +47,8 @@ type
   IFileService = interface
     ['{0F09BA45-AE89-4D69-8C03-3D04620A8653}']
     procedure BackupFile(const AFilePath: string);
+    procedure RestoreBackups;
+    procedure CommitBackups;
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
   end;
@@ -43,6 +57,7 @@ type
   IReportGenerator = interface
     ['{DA4FE6FF-F3D3-433A-ADBE-BD2C344E0EFE}']
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
+    procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
     function GetReportContent: string;
   end;
 
@@ -57,6 +72,12 @@ type
   IDelphiEnvironmentService = interface
     ['{F4E5A5A7-1F4F-4C8E-9218-49A322C68A64}']
     function ResolveDelphiPath(const ADprojPath: string): string;
+  end;
+
+  
+  IBuildService = interface
+    ['{69A27F11-EAA0-4BB1-8F0E-0744743C3A00}']
+    function BuildProject(const AProjectPath: string): TBuildMetrics;
   end;
 
 implementation

@@ -1,8 +1,8 @@
-unit Atropos.Application.AppService;
+﻿unit Atropos.Application.AppService;
 
 interface
 uses
-  Atropos.Core.Ports, Atropos.Core.Config, System.IOUtils;
+  Atropos.Core.Ports, Atropos.Core.Config, Atropos.Adapters.Logger;
 
 type
   TProgressEvent = reference to procedure(AMax, APosition: Integer);
@@ -16,6 +16,7 @@ type
     FReportGen: IReportGenerator;
     FDelphiEnvironment: IDelphiEnvironmentService;
     FResolver: IExternalUnitResolver;
+    FBuildService: IBuildService;
     FConfig: TToolConfig;
     
     FOnProgress: TProgressEvent;
@@ -32,6 +33,7 @@ type
       const AReportGen: IReportGenerator;
       const ADelphiEnvironment: IDelphiEnvironmentService;
       const AResolver: IExternalUnitResolver;
+      const ABuildService: IBuildService;
       const AConfig: TToolConfig);
       
     property OnProgress: TProgressEvent read FOnProgress write FOnProgress;
@@ -42,7 +44,7 @@ type
 
 implementation
 uses
-  Atropos.Core.Domain, Atropos.Core.Modifier, Atropos.Adapters.Logger, System.SysUtils;
+  System.IOUtils, Atropos.Core.Domain, Atropos.Core.Modifier, System.SysUtils;
 
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
@@ -51,6 +53,7 @@ constructor TProjectCleanerAppService.Create(
   const AReportGen: IReportGenerator;
   const ADelphiEnvironment: IDelphiEnvironmentService;
   const AResolver: IExternalUnitResolver;
+  const ABuildService: IBuildService;
   const AConfig: TToolConfig);
 begin
   FProjectParser := AProjectParser;
@@ -59,6 +62,7 @@ begin
   FReportGen := AReportGen;
   FDelphiEnvironment := ADelphiEnvironment;
   FResolver := AResolver;
+  FBuildService := ABuildService;
   FConfig := AConfig;
 end;
 
@@ -95,7 +99,11 @@ var
   LUnits: TArray<string>;
   LUnit, LUnitPath, LFullPath, LBasePath: string;
   i: Integer;
+  LMetricsBefore, LMetricsAfter: TBuildMetrics;
+  LTotalRemoved, LTotalMoved: Integer;
 begin
+  LTotalRemoved := 0;
+  LTotalMoved := 0;
   LFullPath := TPath.GetFullPath(ADprojPath);
   Log('Analyzing project: ' + LFullPath);
   Log('Loading dependencies... Please wait.');
@@ -111,6 +119,19 @@ begin
   
   FResolver.Initialize(LSearchPaths, LDelphiPath, LBasePath);
   
+  Log('Running baseline build (Before)...');
+  LMetricsBefore := FBuildService.BuildProject(LFullPath);
+  if not LMetricsBefore.Success then
+  begin
+    Log('WARNING: Baseline build failed! Metrics will be collected, but rollback comparison might be inaccurate.');
+    Log('Error: ' + LMetricsBefore.ErrorMessage);
+  end
+  else
+  begin
+    Log(Format('Baseline build successful. Hints: %d, Warnings: %d', [LMetricsBefore.Hints, LMetricsBefore.Warnings]));
+    Log('Delphi Version: ' + LMetricsBefore.DelphiVersion);
+  end;
+
   if FConfig.EnableDebug then
     LLogger := TAppLogger.Create(
       procedure(const AMsg: string)
@@ -158,6 +179,8 @@ begin
           (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0)) then
         begin
           LModifier.Execute(LUnitPath, LResult);
+          Inc(LTotalRemoved, Length(LResult.UnusedUnits));
+          Inc(LTotalMoved, Length(LResult.UnitsToMoveToImpl));
           FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits, LResult.UnitsToMoveToImpl);
           Log('Cleaned: ' + ExtractFileName(LUnitPath));
         end;
@@ -169,6 +192,32 @@ begin
       Progress(Length(LUnits), i + 1);
     end;
     
+    if (LTotalRemoved > 0) or (LTotalMoved > 0) then
+    begin
+      Log('Modifications applied. Running final build (After)...');
+      LMetricsAfter := FBuildService.BuildProject(LFullPath);
+      LMetricsAfter.RemovedUnitsCount := LTotalRemoved;
+      LMetricsAfter.MovedUnitsCount := LTotalMoved;
+
+      if not LMetricsAfter.Success then
+      begin
+        Log('ERROR: Final build failed! Restoring backups (Auto-Rollback)...');
+        Log('Error: ' + LMetricsAfter.ErrorMessage);
+        FFileService.RestoreBackups;
+        Log('Rollback complete. Project restored to original state.');
+      end
+      else
+      begin
+        Log('Final build successful! Committing changes...');
+        FFileService.CommitBackups;
+        FReportGen.AddMetrics(LMetricsBefore, LMetricsAfter);
+      end;
+    end
+    else
+    begin
+      Log('No modifications were necessary.');
+    end;
+
     Log('');
     Log(FReportGen.GetReportContent);
     

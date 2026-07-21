@@ -1,4 +1,4 @@
-﻿unit Atropos.VCL.Main;
+unit Atropos.VCL.Main;
 
 interface
 uses

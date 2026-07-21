@@ -1,4 +1,4 @@
-﻿program AtroposCLI;
+program AtroposCLI;
 
 {$APPTYPE CONSOLE}
 
@@ -19,7 +19,8 @@ uses
   Atropos.Adapters.ExternalUnitResolver in 'src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas',
   Atropos.Adapters.DelphiEnvironment in 'src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas',
   Atropos.Application.AppService in 'src\Application\Atropos.Application.AppService.pas',
-  Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas';
+  Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
+  Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas';
 
  var
   LApp: TCLIApp;

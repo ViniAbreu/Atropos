@@ -2,105 +2,118 @@
 
 interface
 uses
-  System.Generics.Collections, Atropos.Core.Ports;
+  Atropos.Core.Ports, System.Generics.Collections;
 
 type
-  TReportItem = record
-    UnitName: string;
-    RemovedUses: TArray<string>;
-    MovedUses: TArray<string>;
-  end;
-
   TReportGeneratorAdapter = class(TInterfacedObject, IReportGenerator)
   private
-    FItems: TList<TReportItem>;
+    FReportLines: TList<string>;
+    FMetricsLines: TList<string>;
   public
     constructor Create;
     destructor Destroy; override;
-    
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
+    procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
     function GetReportContent: string;
-    
-    property Items: TList<TReportItem> read FItems;
   end;
 
 implementation
 uses
   System.SysUtils;
 
-
-
 constructor TReportGeneratorAdapter.Create;
 begin
-  FItems := TList<TReportItem>.Create;
+  FReportLines := TList<string>.Create;
+  FMetricsLines := TList<string>.Create;
 end;
 
 destructor TReportGeneratorAdapter.Destroy;
 begin
-  FItems.Free;
+  FMetricsLines.Free;
+  FReportLines.Free;
   inherited;
 end;
 
 procedure TReportGeneratorAdapter.AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
 var
-  LItem: TReportItem;
+  LUses: string;
 begin
-  LItem.UnitName := AUnitName;
-  LItem.RemovedUses := ARemovedUses;
-  LItem.MovedUses := AMovedUses;
-  FItems.Add(LItem);
+  if (Length(ARemovedUses) = 0) and (Length(AMovedUses) = 0) then
+    Exit;
+
+  FReportLines.Add('');
+  FReportLines.Add('File: ' + AUnitName);
+  
+  if Length(ARemovedUses) > 0 then
+  begin
+    FReportLines.Add('  Removed Uses:');
+    for LUses in ARemovedUses do
+      FReportLines.Add('    - ' + LUses);
+  end;
+  
+  if Length(AMovedUses) > 0 then
+  begin
+    FReportLines.Add('  Moved to Implementation Uses:');
+    for LUses in AMovedUses do
+      FReportLines.Add('    - ' + LUses);
+  end;
+end;
+
+procedure TReportGeneratorAdapter.AddMetrics(const ABefore, AAfter: TBuildMetrics);
+begin
+  FMetricsLines.Add('');
+  FMetricsLines.Add('Atropos - Metrics Report');
+  FMetricsLines.Add('===============================');
+  FMetricsLines.Add('Delphi Version: ' + ABefore.DelphiVersion);
+  FMetricsLines.Add('');
+  FMetricsLines.Add(Format('Units Removed: %d', [AAfter.RemovedUnitsCount]));
+  FMetricsLines.Add(Format('Units Moved to Implementation: %d', [AAfter.MovedUnitsCount]));
+  FMetricsLines.Add('');
+  FMetricsLines.Add('Compile Time (Before): ' + IntToStr(ABefore.CompileTimeMs) + ' ms');
+  FMetricsLines.Add('Compile Time (After): ' + IntToStr(AAfter.CompileTimeMs) + ' ms');
+  FMetricsLines.Add(Format('Delta Time: %d ms', [AAfter.CompileTimeMs - ABefore.CompileTimeMs]));
+  FMetricsLines.Add('');
+  FMetricsLines.Add(Format('Hints (Before/After): %d / %d', [ABefore.Hints, AAfter.Hints]));
+  FMetricsLines.Add(Format('Warnings (Before/After): %d / %d', [ABefore.Warnings, AAfter.Warnings]));
+  FMetricsLines.Add('');
+  
+  if (ABefore.ExeSizeBytes > 0) and (AAfter.ExeSizeBytes > 0) then
+  begin
+    FMetricsLines.Add(Format('Exe Size (Before/After): %d KB / %d KB', [ABefore.ExeSizeBytes div 1024, AAfter.ExeSizeBytes div 1024]));
+    FMetricsLines.Add(Format('Size Delta: %d KB', [(AAfter.ExeSizeBytes - ABefore.ExeSizeBytes) div 1024]));
+  end
+  else
+    FMetricsLines.Add('Exe Size: Could not determine (usually MSBuild /t:Build does not emit EXE path).');
 end;
 
 function TReportGeneratorAdapter.GetReportContent: string;
 var
-  LItem: TReportItem;
-  LUses: string;
-  LBuilder: TStringBuilder;
-  LHasChanges: Boolean;
+  LResult: TStringBuilder;
+  LLine: string;
 begin
-  if FItems.Count = 0 then
+  if (FReportLines.Count = 0) and (FMetricsLines.Count = 0) then
     Exit('No files were processed.');
 
-  LBuilder := TStringBuilder.Create;
+  LResult := TStringBuilder.Create;
   try
-    LBuilder.AppendLine('Atropos - Processing Report');
-    LBuilder.AppendLine('===============================');
-    
-    LHasChanges := False;
-    
-    for LItem in FItems do
+    for LLine in FMetricsLines do
+      LResult.AppendLine(LLine);
+      
+    if (FMetricsLines.Count > 0) and (FReportLines.Count > 0) then 
+      LResult.AppendLine('');
+
+    if FReportLines.Count > 0 then
     begin
-      if (Length(LItem.RemovedUses) = 0) and (Length(LItem.MovedUses) = 0) then
-        Continue;
-        
-      LHasChanges := True;
-      LBuilder.AppendLine('');
-      LBuilder.AppendLine('File: ' + LItem.UnitName);
-      
-      if Length(LItem.RemovedUses) > 0 then
-      begin
-        LBuilder.AppendLine('  Removed Uses:');
-        for LUses in LItem.RemovedUses do
-          LBuilder.AppendLine('    - ' + LUses);
-      end;
-      
-      if Length(LItem.MovedUses) > 0 then
-      begin
-        LBuilder.AppendLine('  Moved to Implementation Uses:');
-        for LUses in LItem.MovedUses do
-          LBuilder.AppendLine('    - ' + LUses);
-      end;
+      LResult.AppendLine('Atropos - Processing Report');
+      LResult.AppendLine('===============================');
+      for LLine in FReportLines do
+        LResult.AppendLine(LLine);
     end;
-    
-    if not LHasChanges then
-      Result := 'All files are clean. No units were removed or moved.'
-    else
-      Result := LBuilder.ToString;
+
+    Result := LResult.ToString;
   finally
-    LBuilder.Free;
+    LResult.Free;
   end;
 end;
 
 end.
-
-

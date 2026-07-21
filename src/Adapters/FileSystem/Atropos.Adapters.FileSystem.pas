@@ -2,12 +2,18 @@
 
 interface
 uses
-  Atropos.Core.Ports;
+  Atropos.Core.Ports, System.Generics.Collections;
 
 type
   TFileSystemAdapter = class(TInterfacedObject, IFileService)
+  private
+    FBackupList: TList<string>;
   public
+    constructor Create;
+    destructor Destroy; override;
     procedure BackupFile(const AFilePath: string);
+    procedure RestoreBackups;
+    procedure CommitBackups;
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
   end;
@@ -16,7 +22,16 @@ implementation
 uses
   System.SysUtils, System.IOUtils;
 
+constructor TFileSystemAdapter.Create;
+begin
+  FBackupList := TList<string>.Create;
+end;
 
+destructor TFileSystemAdapter.Destroy;
+begin
+  FBackupList.Free;
+  inherited;
+end;
 
 procedure TFileSystemAdapter.BackupFile(const AFilePath: string);
 var
@@ -27,6 +42,37 @@ begin
 
   LBackupPath := AFilePath + '.bak';
   TFile.Copy(AFilePath, LBackupPath, True);
+  if not FBackupList.Contains(AFilePath) then
+    FBackupList.Add(AFilePath);
+end;
+
+procedure TFileSystemAdapter.RestoreBackups;
+var
+  LPath, LBackupPath: string;
+begin
+  for LPath in FBackupList do
+  begin
+    LBackupPath := LPath + '.bak';
+    if TFile.Exists(LBackupPath) then
+    begin
+      TFile.Copy(LBackupPath, LPath, True);
+      TFile.Delete(LBackupPath);
+    end;
+  end;
+  FBackupList.Clear;
+end;
+
+procedure TFileSystemAdapter.CommitBackups;
+var
+  LPath, LBackupPath: string;
+begin
+  for LPath in FBackupList do
+  begin
+    LBackupPath := LPath + '.bak';
+    if TFile.Exists(LBackupPath) then
+      TFile.Delete(LBackupPath);
+  end;
+  FBackupList.Clear;
 end;
 
 function TFileSystemAdapter.ReadFileContent(const AFilePath: string): string;
