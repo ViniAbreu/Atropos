@@ -58,7 +58,9 @@ type
     ['{DA4FE6FF-F3D3-433A-ADBE-BD2C344E0EFE}']
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
-    function GetReportContent: string;
+    procedure SetAnalysisInfo(const AProjectName: string; AAnalysisTimeMs: Int64; AUnitsAnalyzed, ASearchPaths: Integer);
+    function GetReportContentTXT: string;
+    function GetReportContentHTML: string;
   end;
 
   

@@ -82,7 +82,7 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>(None)</Manifest_File>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
-        <DCC_UnitSearchPath>C:\Projetos\UsesTool\modules\DelphiAST\Source;C:\Projetos\UsesTool\modules\DelphiAST\Source\SimpleParser;third_party\DelphiAST\Source;third_party\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>C:\Projetos\UsesTool\modules\DelphiAST\Source;C:\Projetos\UsesTool\modules\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -108,6 +108,7 @@
         <DCCReference Include="src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.AppService.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.Factory.pas"/>
+        <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -1117,4 +1118,3 @@
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
     <Import Project="$(MSBuildProjectName).deployproj" Condition="Exists('$(MSBuildProjectName).deployproj')"/>
 </Project>
-

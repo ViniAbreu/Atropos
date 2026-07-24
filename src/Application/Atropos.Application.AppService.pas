@@ -44,7 +44,7 @@ type
 
 implementation
 uses
-  System.IOUtils, Atropos.Core.Domain, Atropos.Core.Modifier, System.SysUtils;
+  System.IOUtils, Atropos.Core.Domain, Atropos.Core.Modifier, System.SysUtils, System.Diagnostics;
 
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
@@ -101,7 +101,9 @@ var
   i: Integer;
   LMetricsBefore, LMetricsAfter: TBuildMetrics;
   LTotalRemoved, LTotalMoved: Integer;
+  LStopwatch: TStopwatch;
 begin
+  LStopwatch := TStopwatch.StartNew;
   LTotalRemoved := 0;
   LTotalMoved := 0;
   LFullPath := TPath.GetFullPath(ADprojPath);
@@ -210,6 +212,8 @@ begin
       begin
         Log('Final build successful! Committing changes...');
         FFileService.CommitBackups;
+        LStopwatch.Stop;
+        FReportGen.SetAnalysisInfo(ExtractFileName(LFullPath), LStopwatch.ElapsedMilliseconds, Length(LUnits), Length(LSearchPaths));
         FReportGen.AddMetrics(LMetricsBefore, LMetricsAfter);
       end;
     end
@@ -219,8 +223,14 @@ begin
     end;
 
     Log('');
-    Log(FReportGen.GetReportContent);
+    Log(FReportGen.GetReportContentTXT);
     
+    if FConfig.ExportTXT then
+      FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.txt'), FReportGen.GetReportContentTXT);
+
+    if FConfig.ExportHTML then
+      FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.html'), FReportGen.GetReportContentHTML);
+      
   finally
     LAnalyzer.Free;
     LContext.Free;

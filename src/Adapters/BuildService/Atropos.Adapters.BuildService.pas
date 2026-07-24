@@ -1,8 +1,8 @@
-unit Atropos.Adapters.BuildService;
+﻿unit Atropos.Adapters.BuildService;
 
 interface
 uses
-  Atropos.Core.Ports, System.SysUtils, System.Classes, Winapi.Windows, System.RegularExpressions, System.IOUtils;
+  Atropos.Core.Ports;
 
 type
   TBuildServiceAdapter = class(TInterfacedObject, IBuildService)
@@ -18,6 +18,8 @@ type
   end;
 
 implementation
+uses
+  System.SysUtils, System.Classes, Winapi.Windows, System.RegularExpressions, System.IOUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
 begin
@@ -148,6 +150,7 @@ var
   LErrFile: string;
   LRegEntry: string;
   LOutput: string;
+  LStartTick: Int64;
 begin
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
@@ -175,6 +178,7 @@ begin
 
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
+  LStartTick := GetTickCount64;
   if RunCmdAndCaptureOutput(LBdsCmd, LOutput) then
   begin
     if TFile.Exists(LErrFile) then
@@ -183,6 +187,7 @@ begin
       TFile.Delete(LErrFile);
       Result := ParseBuildOutput(LOutput, AProjectPath);
       Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
+      Result.CompileTimeMs := GetTickCount64 - LStartTick;
     end
     else
     begin

@@ -36,7 +36,11 @@ begin
     else if SameText(LParam, '--format') then
       AConfig.FormatOneUnitPerLine := True
     else if SameText(LParam, '--sort') then
-      AConfig.SortUsesAlphabetically := True;
+      AConfig.SortUsesAlphabetically := True
+    else if SameText(LParam, '-html') then
+      AConfig.ExportHTML := True
+    else if SameText(LParam, '-txt') then
+      AConfig.ExportTXT := True;
   end;
 end;
 
@@ -56,9 +60,11 @@ begin
       Writeln('Options:');
       Writeln('  --remove   Remove unused units');
       Writeln('  --move     Move units to implementation uses clause if applicable');
-      Writeln('  --format   Format uses clause one unit per line');
-      Writeln('  --sort     Sort uses clause alphabetically');
-      Writeln('  --debug    Enable verbose debug logging');
+      Writeln('  --format       Format uses clause one unit per line');
+      Writeln('  --sort         Sort uses clause alphabetically');
+      Writeln('  -html          Export report to HTML');
+      Writeln('  -txt           Export report to TXT');
+      Writeln('  --debug        Enable verbose debug logging');
       Exit;
     end;
 

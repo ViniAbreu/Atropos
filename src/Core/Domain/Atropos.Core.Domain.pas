@@ -29,7 +29,7 @@ type
     function HasUnit(const AUnitName: string): Boolean;
   end;
 
-  
+
   TUnitAnalysisResult = record
     UnitName: string;
     UnusedUnits: TArray<string>;
