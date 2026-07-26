@@ -1,4 +1,4 @@
-unit Atropos.VCL.Main;
+﻿unit Atropos.VCL.Main;
 
 interface
 uses
@@ -17,8 +17,6 @@ type
     GroupBoxOptions: TGroupBox;
     ChkRemove: TCheckBox;
     ChkMove: TCheckBox;
-    ChkFormat: TCheckBox;
-    ChkSort: TCheckBox;
     ChkDebug: TCheckBox;
     procedure BtnBrowseClick(Sender: TObject);
     procedure BtnRunClick(Sender: TObject);
@@ -75,8 +73,6 @@ begin
         LConfig := TToolConfig.Default;
         LConfig.RemoveUnused := MainForm.ChkRemove.Checked;
         LConfig.MoveToImplementation := MainForm.ChkMove.Checked;
-        LConfig.FormatOneUnitPerLine := MainForm.ChkFormat.Checked;
-        LConfig.SortUsesAlphabetically := MainForm.ChkSort.Checked;
         LConfig.EnableDebug := MainForm.ChkDebug.Checked;
         
         LAppService := TAppServiceFactory.CreateDefault(LConfig);

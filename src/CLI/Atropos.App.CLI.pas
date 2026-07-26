@@ -1,4 +1,4 @@
-﻿unit Atropos.App.CLI;
+unit Atropos.App.CLI;
 
 interface
 uses
@@ -33,10 +33,6 @@ begin
       AConfig.MoveToImplementation := True
     else if SameText(LParam, '--debug') then
       AConfig.EnableDebug := True
-    else if SameText(LParam, '--format') then
-      AConfig.FormatOneUnitPerLine := True
-    else if SameText(LParam, '--sort') then
-      AConfig.SortUsesAlphabetically := True
     else if SameText(LParam, '-html') then
       AConfig.ExportHTML := True
     else if SameText(LParam, '-txt') then
@@ -60,8 +56,6 @@ begin
       Writeln('Options:');
       Writeln('  --remove   Remove unused units');
       Writeln('  --move     Move units to implementation uses clause if applicable');
-      Writeln('  --format       Format uses clause one unit per line');
-      Writeln('  --sort         Sort uses clause alphabetically');
       Writeln('  -html          Export report to HTML');
       Writeln('  -txt           Export report to TXT');
       Writeln('  --debug        Enable verbose debug logging');

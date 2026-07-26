@@ -1,4 +1,4 @@
-﻿unit Atropos.Adapters.BuildService;
+unit Atropos.Adapters.BuildService;
 
 interface
 uses
@@ -150,7 +150,7 @@ var
   LErrFile: string;
   LRegEntry: string;
   LOutput: string;
-  LStartTick: Int64;
+  LStartTick: UInt64;
 begin
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
@@ -187,7 +187,7 @@ begin
       TFile.Delete(LErrFile);
       Result := ParseBuildOutput(LOutput, AProjectPath);
       Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
-      Result.CompileTimeMs := GetTickCount64 - LStartTick;
+      Result.CompileTimeMs := Int64(GetTickCount64 - LStartTick);
     end
     else
     begin

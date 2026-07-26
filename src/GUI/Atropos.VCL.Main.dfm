@@ -64,29 +64,13 @@ object MainForm: TMainForm
       Caption = 'Move to Implementation'
       TabOrder = 1
     end
-    object ChkFormat: TCheckBox
+    object ChkDebug: TCheckBox
       Left = 268
       Top = 18
-      Width = 80
-      Height = 17
-      Caption = 'Format'
-      TabOrder = 2
-    end
-    object ChkSort: TCheckBox
-      Left = 354
-      Top = 18
-      Width = 80
-      Height = 17
-      Caption = 'Sort'
-      TabOrder = 3
-    end
-    object ChkDebug: TCheckBox
-      Left = 440
-      Top = 18
-      Width = 120
+      Width = 125
       Height = 17
       Caption = 'Enable Debug Logging'
-      TabOrder = 4
+      TabOrder = 2
     end
   end
   object BtnRun: TButton
