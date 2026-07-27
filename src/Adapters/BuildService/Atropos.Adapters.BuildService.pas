@@ -1,6 +1,7 @@
 unit Atropos.Adapters.BuildService;
 
 interface
+
 uses
   Atropos.Core.Ports;
 
@@ -18,8 +19,13 @@ type
   end;
 
 implementation
+
 uses
-  System.SysUtils, System.Classes, Winapi.Windows, System.RegularExpressions, System.IOUtils;
+  System.SysUtils,
+  System.Classes,
+  Winapi.Windows,
+  System.RegularExpressions,
+  System.IOUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
 begin
@@ -30,7 +36,8 @@ end;
 function TBuildServiceAdapter.RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string): Boolean;
 var
   LSecurityAttributes: TSecurityAttributes;
-  LReadPipe, LWritePipe: THandle;
+  LReadPipe: THandle;
+  LWritePipe: THandle;
   LStartupInfo: TStartupInfo;
   LProcessInfo: TProcessInformation;
   LBuffer: array[0..4095] of AnsiChar;
@@ -39,7 +46,7 @@ var
   LMutableCmd: string;
 begin
   Result := False;
-  AOutput := '';
+  AOutput := EmptyStr;
 
   LSecurityAttributes.nLength := SizeOf(TSecurityAttributes);
   LSecurityAttributes.bInheritHandle := True;
@@ -90,41 +97,42 @@ end;
 function TBuildServiceAdapter.ParseBuildOutput(const AOutput, AProjectPath: string): TBuildMetrics;
 var
   LMatch: TMatch;
+  LExeDir: string;
+  LExePath: string;
 begin
   Result := Default(TBuildMetrics);
   
   Result.Hints := 0;
-  for LMatch in TRegEx.Matches(AOutput, '\[dcc32 Hint\]') do Inc(Result.Hints);
+  for LMatch in TRegEx.Matches(AOutput, '\[dcc32 Hint\]') do
+    Inc(Result.Hints);
   
   Result.Warnings := 0;
-  for LMatch in TRegEx.Matches(AOutput, '\[dcc32 Warning\]') do Inc(Result.Warnings);
+  for LMatch in TRegEx.Matches(AOutput, '\[dcc32 Warning\]') do
+    Inc(Result.Warnings);
 
-  Result.Success := not (TRegEx.IsMatch(AOutput, 'Build FAILED\.') or TRegEx.IsMatch(AOutput, '\[dcc32 (Error|Fatal Error)\]'));
+  Result.Success :=
+    not (TRegEx.IsMatch(AOutput, 'Build FAILED\.') or TRegEx.IsMatch(AOutput, '\[dcc32 (Error|Fatal Error)\]'));
   if not Result.Success then
   begin
     LMatch := TRegEx.Match(AOutput, '\[dcc32 (Error|Fatal Error)\][^\r\n]+');
+    Result.ErrorMessage := 'Unknown compilation error.';
     if LMatch.Success then
-      Result.ErrorMessage := LMatch.Value
-    else
-      Result.ErrorMessage := 'Unknown compilation error.';
+      Result.ErrorMessage := LMatch.Value;
   end;
 
   LMatch := TRegEx.Match(AOutput, '(?:Time Elapsed|Elapsed time:)\s*([0-9:\.]+)');
   if LMatch.Success then
-  begin
-    Result.CompileTimeMs := 0; 
-  end;
+    Result.CompileTimeMs := 0;
 
-  var LExeDir := TPath.GetDirectoryName(AProjectPath);
+  LExeDir := TPath.GetDirectoryName(AProjectPath);
   LMatch := TRegEx.Match(AOutput, '-E([^\s]+)');
   if LMatch.Success then
-    LExeDir := TPath.GetFullPath(TPath.Combine(LExeDir, Trim(LMatch.Groups[1].Value)));
+    LExeDir := TPath.GetFullPath(TPath.Combine(LExeDir, LMatch.Groups[1].Value.Trim));
 
-  var LExePath := TPath.Combine(LExeDir, TPath.GetFileNameWithoutExtension(AProjectPath) + '.exe');
+  LExePath := TPath.Combine(LExeDir, TPath.GetFileNameWithoutExtension(AProjectPath) + '.exe');
+  Result.ExeSizeBytes := 0;
   if TFile.Exists(LExePath) then
-    Result.ExeSizeBytes := TFile.GetSize(LExePath)
-  else
-    Result.ExeSizeBytes := 0;
+    Result.ExeSizeBytes := TFile.GetSize(LExePath);
 end;
 
 function TBuildServiceAdapter.GetDelphiFriendlyName(const ADelphiPath: string): string;
@@ -132,14 +140,21 @@ var
   LVersionNum: string;
 begin
   LVersionNum := ExtractFileName(ExcludeTrailingPathDelimiter(ADelphiPath));
-  if LVersionNum = '23.0' then Result := '12.1'
-  else if LVersionNum = '22.0' then Result := '11.0'
-  else if LVersionNum = '21.0' then Result := '10.4'
-  else if LVersionNum = '20.0' then Result := '10.3'
-  else if LVersionNum = '19.0' then Result := '10.2'
-  else if LVersionNum = '18.0' then Result := '10.1'
-  else if LVersionNum = '17.0' then Result := '10.0'
-  else Result := LVersionNum;
+  if LVersionNum = '23.0' then
+    Exit('12.1');
+  if LVersionNum = '22.0' then
+    Exit('11.0');
+  if LVersionNum = '21.0' then
+    Exit('10.4');
+  if LVersionNum = '20.0' then
+    Exit('10.3');
+  if LVersionNum = '19.0' then
+    Exit('10.2');
+  if LVersionNum = '18.0' then
+    Exit('10.1');
+  if LVersionNum = '17.0' then
+    Exit('10.0');
+  Result := LVersionNum;
 end;
 
 function TBuildServiceAdapter.BuildProject(const AProjectPath: string): TBuildMetrics;
@@ -157,7 +172,7 @@ begin
     raise Exception.Create('Delphi Environment Service is not assigned.');
 
   LDelphiPath := FEnvService.ResolveDelphiPath(AProjectPath);
-  if LDelphiPath = '' then
+  if LDelphiPath.IsEmpty then
   begin
     Result.Success := False;
     Result.ErrorMessage := 'Delphi path not found for project.';
@@ -179,27 +194,26 @@ begin
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
   LStartTick := GetTickCount64;
-  if RunCmdAndCaptureOutput(LBdsCmd, LOutput) then
-  begin
-    if TFile.Exists(LErrFile) then
-    begin
-      LOutput := TFile.ReadAllText(LErrFile);
-      TFile.Delete(LErrFile);
-      Result := ParseBuildOutput(LOutput, AProjectPath);
-      Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
-      Result.CompileTimeMs := Int64(GetTickCount64 - LStartTick);
-    end
-    else
-    begin
-      Result.Success := False;
-      Result.ErrorMessage := 'Failed to read bds.exe error file output.';
-    end;
-  end
-  else
+  if not RunCmdAndCaptureOutput(LBdsCmd, LOutput) then
   begin
     Result.Success := False;
     Result.ErrorMessage := 'Failed to execute bds.exe process.';
+    Exit;
   end;
+  
+  if not TFile.Exists(LErrFile) then
+  begin
+    Result.Success := False;
+    Result.ErrorMessage := 'Failed to read bds.exe error file output.';
+    Exit;
+  end;
+  
+  LOutput := TFile.ReadAllText(LErrFile);
+  TFile.Delete(LErrFile);
+  Result := ParseBuildOutput(LOutput, AProjectPath);
+  Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
+  Result.CompileTimeMs := Int64(GetTickCount64 - LStartTick);
 end;
 
 end.
+

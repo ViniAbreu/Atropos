@@ -2,10 +2,6 @@ unit Atropos.Core.Config;
 
 interface
 
-
-
-
-
 type
   TToolConfig = record
   private
@@ -22,6 +18,9 @@ type
     property ExportTXT: Boolean read FExportTXT write FExportTXT;
 
     class function Default: TToolConfig; static;
+    function WithMoveToImplementation(const AValue: Boolean): TToolConfig;
+    function WithRemoveUnused(const AValue: Boolean): TToolConfig;
+    function WithEnableDebug(const AValue: Boolean): TToolConfig;
   end;
 
 implementation
@@ -33,6 +32,24 @@ begin
   Result.FEnableDebug := False;
   Result.FExportHTML := False;
   Result.FExportTXT := False;
+end;
+
+function TToolConfig.WithMoveToImplementation(const AValue: Boolean): TToolConfig;
+begin
+  Result := Self;
+  Result.FMoveToImplementation := AValue;
+end;
+
+function TToolConfig.WithRemoveUnused(const AValue: Boolean): TToolConfig;
+begin
+  Result := Self;
+  Result.FRemoveUnused := AValue;
+end;
+
+function TToolConfig.WithEnableDebug(const AValue: Boolean): TToolConfig;
+begin
+  Result := Self;
+  Result.FEnableDebug := AValue;
 end;
 
 end.

@@ -1,6 +1,7 @@
 unit Atropos.Adapters.Logger;
 
 interface
+
 uses
   Atropos.Core.Ports;
 
@@ -16,7 +17,6 @@ type
   end;
 
 implementation
-
 
 constructor TAppLogger.Create(const AOnLog: TLogEvent);
 begin

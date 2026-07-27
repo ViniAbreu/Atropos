@@ -1,8 +1,10 @@
-﻿unit Atropos.Adapters.FileSystem;
+unit Atropos.Adapters.FileSystem;
 
 interface
+
 uses
-  Atropos.Core.Ports, System.Generics.Collections;
+  Atropos.Core.Ports,
+  System.Generics.Collections;
 
 type
   TFileSystemAdapter = class(TInterfacedObject, IFileService)
@@ -19,8 +21,10 @@ type
   end;
 
 implementation
+
 uses
-  System.SysUtils, System.IOUtils;
+  System.SysUtils,
+  System.IOUtils;
 
 constructor TFileSystemAdapter.Create;
 begin
@@ -48,7 +52,8 @@ end;
 
 procedure TFileSystemAdapter.RestoreBackups;
 var
-  LPath, LBackupPath: string;
+  LPath: string;
+  LBackupPath: string;
 begin
   for LPath in FBackupList do
   begin
@@ -64,7 +69,8 @@ end;
 
 procedure TFileSystemAdapter.CommitBackups;
 var
-  LPath, LBackupPath: string;
+  LPath: string;
+  LBackupPath: string;
 begin
   for LPath in FBackupList do
   begin
@@ -89,10 +95,7 @@ var
 begin
   LEncoding := nil;
   if TFile.Exists(AFilePath) then
-  begin
-    var LBytes := TFile.ReadAllBytes(AFilePath);
-    TEncoding.GetBufferEncoding(LBytes, LEncoding);
-  end;
+    TEncoding.GetBufferEncoding(TFile.ReadAllBytes(AFilePath), LEncoding);
 
   if LEncoding = nil then
     LEncoding := TEncoding.Default;
@@ -101,5 +104,3 @@ begin
 end;
 
 end.
-
-

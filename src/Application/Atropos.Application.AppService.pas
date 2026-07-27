@@ -1,8 +1,13 @@
-﻿unit Atropos.Application.AppService;
+unit Atropos.Application.AppService;
 
 interface
+
 uses
-  Atropos.Core.Ports, Atropos.Core.Config, Atropos.Adapters.Logger;
+  Atropos.Core.Ports,
+  Atropos.Core.Config,
+  Atropos.Adapters.Logger,
+  Atropos.Core.Domain,
+  Atropos.Core.Modifier;
 
 type
   TProgressEvent = reference to procedure(AMax, APosition: Integer);
@@ -25,6 +30,15 @@ type
     procedure Log(const AMsg: string);
     procedure Progress(AMax, APosition: Integer);
     function ResolvePath(const ABasePath, ARelativePath: string): string;
+
+    function RunBaselineBuild(const AFullPath: string): TBuildMetrics;
+    procedure ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
+    function RunFinalBuild(const AFullPath: string; ARemoved, AMoved: Integer): TBuildMetrics;
+    procedure CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
+    procedure RollbackChanges(const AErrorMessage: string);
+    procedure GenerateReports;
+    function SetupEnvironment(const AFullPath, ABasePath: string): Integer;
+    function CreateLogger: ILogger;
   public
     constructor Create(
       const AProjectParser: IProjectParser;
@@ -43,8 +57,11 @@ type
   end;
 
 implementation
+
 uses
-  System.IOUtils, Atropos.Core.Domain, Atropos.Core.Modifier, System.SysUtils, System.Diagnostics;
+  System.IOUtils,
+  System.SysUtils,
+  System.Diagnostics;
 
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
@@ -80,157 +97,200 @@ end;
 
 function TProjectCleanerAppService.ResolvePath(const ABasePath, ARelativePath: string): string;
 begin
+  Result := ARelativePath;
   if TPath.IsRelativePath(ARelativePath) then
-    Result := TPath.GetFullPath(TPath.Combine(ABasePath, ARelativePath))
-  else
-    Result := ARelativePath;
+    Result := TPath.GetFullPath(TPath.Combine(ABasePath, ARelativePath));
+end;
+
+function TProjectCleanerAppService.CreateLogger: ILogger;
+begin
+  Result := nil;
+  if FConfig.EnableDebug then
+  begin
+    Result := TAppLogger.Create(
+      procedure(const AMsg: string)
+      begin
+        Self.Log(AMsg);
+      end);
+  end;
+end;
+
+function TProjectCleanerAppService.SetupEnvironment(const AFullPath, ABasePath: string): Integer;
+var
+  LSearchPaths: TArray<string>;
+  LDelphiPath: string;
+begin
+  LDelphiPath := FDelphiEnvironment.ResolveDelphiPath(AFullPath);
+  if LDelphiPath.IsEmpty then
+    Log('WARNING: Delphi environment not found. Standard RTL/VCL units will not be resolved and will be ignored.');
+
+  LSearchPaths := FProjectParser.GetSearchPaths(AFullPath) + [ABasePath];
+  
+  FResolver.Initialize(LSearchPaths, LDelphiPath, ABasePath);
+  Result := Length(LSearchPaths);
+end;
+
+function TProjectCleanerAppService.RunBaselineBuild(const AFullPath: string): TBuildMetrics;
+begin
+  Log('Running baseline build (Before)...');
+  Result := FBuildService.BuildProject(AFullPath);
+  if not Result.Success then
+  begin
+    Log('WARNING: Baseline build failed! Metrics will be collected, but rollback comparison might be inaccurate.');
+    Log('Error: ' + Result.ErrorMessage);
+    Exit;
+  end;
+  
+  Log(Format('Baseline build successful. Hints: %d, Warnings: %d', [Result.Hints, Result.Warnings]));
+  Log('Delphi Version: ' + Result.DelphiVersion);
+end;
+
+procedure TProjectCleanerAppService.ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
+var
+  LUnits: TArray<string>;
+  LUnit: string;
+  LUnitPath: string;
+  i: Integer;
+  LResult: TUnitAnalysisResult;
+  LSyntaxTree: IUnitSyntaxTree;
+begin
+  ATotalRemoved := 0;
+  ATotalMoved := 0;
+  LUnits := FProjectParser.GetProjectUnits(ADprojPath);
+  AUnitCount := Length(LUnits);
+  Progress(AUnitCount, 0);
+  
+  if AUnitCount = 0 then
+  begin
+    Log('No units found in project.');
+    Exit;
+  end;
+
+  Log(Format('Found %d units to process.', [AUnitCount]));
+  
+  for i := 0 to High(LUnits) do
+  begin
+    LUnit := LUnits[i];
+    LUnitPath := ResolvePath(ABasePath, LUnit);
+    
+    if not TFile.Exists(LUnitPath) then
+    begin
+      Log('Warning: File not found -> ' + LUnitPath);
+      Progress(AUnitCount, i + 1);
+      Continue;
+    end;
+    
+    try
+      if Assigned(LLogger) then LLogger.Log('DEBUG: Parsing AST for ' + ExtractFileName(LUnitPath));
+      LSyntaxTree := FASTParser.ParseFile(LUnitPath);
+      
+      if Assigned(LLogger) then LLogger.Log('DEBUG: Analyzing dependencies for ' + ExtractFileName(LUnitPath));
+      LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
+      
+      if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
+        (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0)) then
+      begin
+        LModifier.Execute(LUnitPath, LResult);
+        Inc(ATotalRemoved, Length(LResult.UnusedUnits));
+        Inc(ATotalMoved, Length(LResult.UnitsToMoveToImpl));
+        FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits, LResult.UnitsToMoveToImpl);
+        Log('Cleaned: ' + ExtractFileName(LUnitPath));
+      end;
+    except
+      on E: Exception do
+        Log('Error processing ' + ExtractFileName(LUnitPath) + ': ' + E.Message);
+    end;
+    
+    Progress(AUnitCount, i + 1);
+  end;
+end;
+
+function TProjectCleanerAppService.RunFinalBuild(const AFullPath: string; ARemoved, AMoved: Integer): TBuildMetrics;
+begin
+  Log('Modifications applied. Running final build (After)...');
+  Result := FBuildService.BuildProject(AFullPath);
+  Result.RemovedUnitsCount := ARemoved;
+  Result.MovedUnitsCount := AMoved;
+end;
+
+procedure TProjectCleanerAppService.RollbackChanges(const AErrorMessage: string);
+begin
+  Log('ERROR: Final build failed! Restoring backups (Auto-Rollback)...');
+  Log('Error: ' + AErrorMessage);
+  FFileService.RestoreBackups;
+  Log('Rollback complete. Project restored to original state.');
+end;
+
+procedure TProjectCleanerAppService.CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
+begin
+  Log('Final build successful! Committing changes...');
+  FFileService.CommitBackups;
+  FReportGen.SetAnalysisInfo(ExtractFileName(AFullPath), ATimeMs, AUnitCount, ASearchPathCount);
+  FReportGen.AddMetrics(AMetricsBefore, AMetricsAfter);
+end;
+
+procedure TProjectCleanerAppService.GenerateReports;
+begin
+  Log('');
+  Log(FReportGen.GetReportContentTXT);
+  
+  if FConfig.ExportTXT then
+    FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.txt'), FReportGen.GetReportContentTXT);
+
+  if FConfig.ExportHTML then
+    FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.html'), FReportGen.GetReportContentHTML);
 end;
 
 procedure TProjectCleanerAppService.Execute(const ADprojPath: string);
 var
   LContext: TProjectContext;
-  LSearchPaths: TArray<string>;
-  LDelphiPath: string;
+  LLogger: ILogger;
   LAnalyzer: TAnalyzeUnitUses;
   LModifier: TApplyUsesChanges;
-  LLogger: ILogger;
-  LResult: TUnitAnalysisResult;
-  LSyntaxTree: IUnitSyntaxTree;
-  LUnits: TArray<string>;
-  LUnit, LUnitPath, LFullPath, LBasePath: string;
-  i: Integer;
-  LMetricsBefore, LMetricsAfter: TBuildMetrics;
-  LTotalRemoved, LTotalMoved: Integer;
+  LFullPath: string;
+  LBasePath: string;
+  LMetricsBefore: TBuildMetrics;
+  LMetricsAfter: TBuildMetrics;
+  LTotalRemoved: Integer;
+  LTotalMoved: Integer;
+  LUnitCount: Integer;
+  LSearchPathCount: Integer;
   LStopwatch: TStopwatch;
 begin
   LStopwatch := TStopwatch.StartNew;
-  LTotalRemoved := 0;
-  LTotalMoved := 0;
   LFullPath := TPath.GetFullPath(ADprojPath);
-  Log('Analyzing project: ' + LFullPath);
-  Log('Loading dependencies... Please wait.');
-
   LBasePath := TPath.GetDirectoryName(LFullPath);
   
-  LDelphiPath := FDelphiEnvironment.ResolveDelphiPath(LFullPath);
-  if LDelphiPath = '' then
-    Log('WARNING: Delphi environment not found. Standard RTL/VCL units will not be resolved and will be ignored.');
-
-  LSearchPaths := FProjectParser.GetSearchPaths(LFullPath);
-  LSearchPaths := LSearchPaths + [LBasePath];
+  Log('Analyzing project: ' + LFullPath);
+  Log('Loading dependencies... Please wait.');
   
-  FResolver.Initialize(LSearchPaths, LDelphiPath, LBasePath);
-  
-  Log('Running baseline build (Before)...');
-  LMetricsBefore := FBuildService.BuildProject(LFullPath);
-  if not LMetricsBefore.Success then
-  begin
-    Log('WARNING: Baseline build failed! Metrics will be collected, but rollback comparison might be inaccurate.');
-    Log('Error: ' + LMetricsBefore.ErrorMessage);
-  end
-  else
-  begin
-    Log(Format('Baseline build successful. Hints: %d, Warnings: %d', [LMetricsBefore.Hints, LMetricsBefore.Warnings]));
-    Log('Delphi Version: ' + LMetricsBefore.DelphiVersion);
-  end;
+  LSearchPathCount := SetupEnvironment(LFullPath, LBasePath);
+  LMetricsBefore := RunBaselineBuild(LFullPath);
 
-  if FConfig.EnableDebug then
-    LLogger := TAppLogger.Create(
-      procedure(const AMsg: string)
-      begin
-        Self.Log(AMsg);
-      end)
-  else
-    LLogger := nil;
-
+  LLogger := CreateLogger;
   LContext := TProjectContext.Create(FResolver, LLogger);
   LAnalyzer := TAnalyzeUnitUses.Create(LLogger);
   LModifier := TApplyUsesChanges.Create(FFileService, FConfig);
   try
-    LUnits := FProjectParser.GetProjectUnits(ADprojPath);
-    Progress(Length(LUnits), 0);
+    ProcessUnits(LBasePath, ADprojPath, LTotalRemoved, LTotalMoved, LUnitCount, LLogger, LContext, LAnalyzer, LModifier);
     
-    if Length(LUnits) = 0 then
-    begin
-      Log('No units found in project.');
-      Exit;
-    end;
-
-    Log(Format('Found %d units to process.', [Length(LUnits)]));
-    
-    for i := 0 to High(LUnits) do
-    begin
-      LUnit := LUnits[i];
-      LUnitPath := ResolvePath(LBasePath, LUnit);
-      
-      if not TFile.Exists(LUnitPath) then
-      begin
-        Log('Warning: File not found -> ' + LUnitPath);
-        Progress(Length(LUnits), i + 1);
-        Continue;
-      end;
-      
-      try
-        if Assigned(LLogger) then LLogger.Log('DEBUG: Parsing AST for ' + ExtractFileName(LUnitPath));
-        LSyntaxTree := FASTParser.ParseFile(LUnitPath);
-        
-        if Assigned(LLogger) then LLogger.Log('DEBUG: Analyzing dependencies for ' + ExtractFileName(LUnitPath));
-        LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
-        
-        if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
-          (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0)) then
-        begin
-          LModifier.Execute(LUnitPath, LResult);
-          Inc(LTotalRemoved, Length(LResult.UnusedUnits));
-          Inc(LTotalMoved, Length(LResult.UnitsToMoveToImpl));
-          FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits, LResult.UnitsToMoveToImpl);
-          Log('Cleaned: ' + ExtractFileName(LUnitPath));
-        end;
-      except
-        on E: Exception do
-          Log('Error processing ' + ExtractFileName(LUnitPath) + ': ' + E.Message);
-      end;
-      
-      Progress(Length(LUnits), i + 1);
-    end;
-    
-    if (LTotalRemoved > 0) or (LTotalMoved > 0) then
-    begin
-      Log('Modifications applied. Running final build (After)...');
-      LMetricsAfter := FBuildService.BuildProject(LFullPath);
-      LMetricsAfter.RemovedUnitsCount := LTotalRemoved;
-      LMetricsAfter.MovedUnitsCount := LTotalMoved;
-
-      if not LMetricsAfter.Success then
-      begin
-        Log('ERROR: Final build failed! Restoring backups (Auto-Rollback)...');
-        Log('Error: ' + LMetricsAfter.ErrorMessage);
-        FFileService.RestoreBackups;
-        Log('Rollback complete. Project restored to original state.');
-      end
-      else
-      begin
-        Log('Final build successful! Committing changes...');
-        FFileService.CommitBackups;
-        LStopwatch.Stop;
-        FReportGen.SetAnalysisInfo(ExtractFileName(LFullPath), LStopwatch.ElapsedMilliseconds, Length(LUnits), Length(LSearchPaths));
-        FReportGen.AddMetrics(LMetricsBefore, LMetricsAfter);
-      end;
-    end
-    else
+    if (LTotalRemoved = 0) and (LTotalMoved = 0) then
     begin
       Log('No modifications were necessary.');
+      GenerateReports;
+      Exit;
     end;
-
-    Log('');
-    Log(FReportGen.GetReportContentTXT);
     
-    if FConfig.ExportTXT then
-      FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.txt'), FReportGen.GetReportContentTXT);
-
-    if FConfig.ExportHTML then
-      FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.html'), FReportGen.GetReportContentHTML);
+    LMetricsAfter := RunFinalBuild(LFullPath, LTotalRemoved, LTotalMoved);
+    if not LMetricsAfter.Success then
+    begin
+      RollbackChanges(LMetricsAfter.ErrorMessage);
+      GenerateReports;
+      Exit;
+    end;
       
+    CommitChanges(LMetricsBefore, LMetricsAfter, LFullPath, LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
+    GenerateReports;
   finally
     LAnalyzer.Free;
     LContext.Free;
@@ -239,4 +299,3 @@ begin
 end;
 
 end.
-

@@ -15,14 +15,14 @@ object MainForm: TMainForm
     600
     400)
   TextHeight = 13
-  object LblProject: TLabel
+  object ProjectLabel: TLabel
     Left = 16
     Top = 16
     Width = 111
     Height = 13
     Caption = 'Projeto Delphi (.dproj):'
   end
-  object EdtProject: TEdit
+  object ProjectEdit: TEdit
     Left = 16
     Top = 35
     Width = 490
@@ -30,7 +30,7 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 0
   end
-  object BtnBrowse: TButton
+  object BrowseButton: TButton
     Left = 512
     Top = 33
     Width = 75
@@ -38,9 +38,9 @@ object MainForm: TMainForm
     Anchors = [akTop, akRight]
     Caption = 'Procurar...'
     TabOrder = 1
-    OnClick = BtnBrowseClick
+    OnClick = BrowseButtonClick
   end
-  object GroupBoxOptions: TGroupBox
+  object OptionsGroupBox: TGroupBox
     Left = 16
     Top = 64
     Width = 571
@@ -48,7 +48,7 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akRight]
     Caption = ' Op'#231#245'es de Limpeza e Ajuste '
     TabOrder = 2
-    object ChkRemove: TCheckBox
+    object RemoveCheckBox: TCheckBox
       Left = 16
       Top = 18
       Width = 100
@@ -56,7 +56,7 @@ object MainForm: TMainForm
       Caption = 'Remove Unused'
       TabOrder = 0
     end
-    object ChkMove: TCheckBox
+    object MoveCheckBox: TCheckBox
       Left = 122
       Top = 18
       Width = 140
@@ -64,7 +64,7 @@ object MainForm: TMainForm
       Caption = 'Move to Implementation'
       TabOrder = 1
     end
-    object ChkDebug: TCheckBox
+    object DebugCheckBox: TCheckBox
       Left = 268
       Top = 18
       Width = 125
@@ -73,16 +73,16 @@ object MainForm: TMainForm
       TabOrder = 2
     end
   end
-  object BtnRun: TButton
+  object RunButton: TButton
     Left = 16
     Top = 120
     Width = 120
     Height = 33
     Caption = 'Iniciar Limpeza'
     TabOrder = 3
-    OnClick = BtnRunClick
+    OnClick = RunButtonClick
   end
-  object ProgressBar1: TProgressBar
+  object ExecutionProgressBar: TProgressBar
     Left = 144
     Top = 126
     Width = 443
@@ -90,7 +90,7 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 5
   end
-  object MemoLog: TMemo
+  object LogMemo: TMemo
     Left = 16
     Top = 160
     Width = 571
@@ -106,7 +106,7 @@ object MainForm: TMainForm
     ScrollBars = ssVertical
     TabOrder = 4
   end
-  object OpenDialog1: TOpenDialog
+  object ProjectOpenDialog: TOpenDialog
     Filter = 'Projetos Delphi (*.dproj)|*.dproj'
     Left = 464
     Top = 8

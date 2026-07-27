@@ -1,12 +1,19 @@
-﻿unit Atropos.Adapters.DelphiEnvironment;
+unit Atropos.Adapters.DelphiEnvironment;
 
 interface
+
 uses
-  Atropos.Core.Ports;
+  Atropos.Core.Ports,
+  Xml.XMLIntf,
+  Xml.XMLDoc,
+  System.Win.Registry;
 
 type
   TDelphiEnvironmentAdapter = class(TInterfacedObject, IDelphiEnvironmentService)
   private
+    function FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
+    function TryReadRootDir(AReg: TRegistry; const AKeyPath: string; out ARootDir: string): Boolean;
+    function GetHighestVersionFromNode(AReg: TRegistry; const ANodePath: string; out ARootDir: string): Boolean;
     function InternalGetBDSVersion(const ADprojPath: string): string;
     function GetBDSVersionFromDproj(const ADprojPath: string): string;
     function GetRootDirFromRegistry(const AVersion: string): string;
@@ -15,65 +22,76 @@ type
   end;
 
 implementation
+
 uses
-  System.Classes, System.SysUtils, System.Win.Registry, Winapi.Windows, Xml.XMLIntf, Xml.XMLDoc, Winapi.ActiveX;
+  System.Classes,
+  System.SysUtils,
+  Winapi.Windows,
+  Winapi.ActiveX;
 
+function TDelphiEnvironmentAdapter.FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if not Assigned(ANode) then
+    Exit;
 
+  if SameText(ANode.LocalName, ANodeName) or SameText(ANode.NodeName, ANodeName) then
+  begin
+    AFoundNode := ANode;
+    Exit(True);
+  end;
+
+  if ANode.HasChildNodes then
+  begin
+    for i := 0 to ANode.ChildNodes.Count - 1 do
+    begin
+      if FindNodeRec(ANode.ChildNodes[i], ANodeName, AFoundNode) then
+        Exit(True);
+    end;
+  end;
+end;
 
 function TDelphiEnvironmentAdapter.InternalGetBDSVersion(const ADprojPath: string): string;
 var
   LDoc: IXMLDocument;
   LNode: IXMLNode;
-  
-  function FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
-  var
-    i: Integer;
-  begin
-    Result := False;
-    if not Assigned(ANode) then Exit;
-
-    if SameText(ANode.LocalName, ANodeName) or SameText(ANode.NodeName, ANodeName) then
-    begin
-      AFoundNode := ANode;
-      Exit(True);
-    end;
-
-    if ANode.HasChildNodes then
-    begin
-      for i := 0 to ANode.ChildNodes.Count - 1 do
-      begin
-        if FindNodeRec(ANode.ChildNodes[i], ANodeName, AFoundNode) then
-          Exit(True);
-      end;
-    end;
-  end;
-
 begin
-  Result := '';
+  Result := EmptyStr;
   try
     LDoc := LoadXMLDocument(ADprojPath);
     if FindNodeRec(LDoc.DocumentElement, 'ProjectVersion', LNode) then
     begin
       Result := LNode.Text;
-      if Result.StartsWith('19.2') then Result := '22.0'
-      else if Result.StartsWith('19.1') then Result := '21.0'
-      else if Result.StartsWith('18.8') then Result := '20.0'
-      else if Result.StartsWith('18.4') then Result := '19.0'
-      else if Result.StartsWith('18.2') then Result := '18.0'
-      else if Result.StartsWith('18.1') then Result := '17.0'
-      else if Result.StartsWith('17.2') then Result := '16.0'
-      else if Result.StartsWith('16.1') then Result := '15.0'
-      else Result := '';
+      if Result.StartsWith('19.2') then
+        Exit('22.0');
+      if Result.StartsWith('19.1') then
+        Exit('21.0');
+      if Result.StartsWith('18.8') then
+        Exit('20.0');
+      if Result.StartsWith('18.4') then
+        Exit('19.0');
+      if Result.StartsWith('18.2') then
+        Exit('18.0');
+      if Result.StartsWith('18.1') then
+        Exit('17.0');
+      if Result.StartsWith('17.2') then
+        Exit('16.0');
+      if Result.StartsWith('16.1') then
+        Exit('15.0');
+      Exit(EmptyStr);
     end;
   except
-    Result := '';
+    Result := EmptyStr;
   end;
 end;
 
 function TDelphiEnvironmentAdapter.GetBDSVersionFromDproj(const ADprojPath: string): string;
 begin
-  Result := '';
-  if not FileExists(ADprojPath) then Exit;
+  Result := EmptyStr;
+  if not FileExists(ADprojPath) then
+    Exit;
 
   CoInitialize(nil);
   try
@@ -83,104 +101,75 @@ begin
   end;
 end;
 
-function TDelphiEnvironmentAdapter.GetRootDirFromRegistry(const AVersion: string): string;
+function TDelphiEnvironmentAdapter.TryReadRootDir(AReg: TRegistry; const AKeyPath: string; out ARootDir: string): Boolean;
+begin
+  Result := False;
+  if AReg.OpenKeyReadOnly(AKeyPath) then
+  begin
+    ARootDir := AReg.ReadString('RootDir');
+    AReg.CloseKey;
+    Result := not ARootDir.IsEmpty;
+  end;
+end;
+
+function TDelphiEnvironmentAdapter.GetHighestVersionFromNode(AReg: TRegistry; const ANodePath: string; out ARootDir: string): Boolean;
 var
-  LReg: TRegistry;
   LKeys: TStringList;
   i: Integer;
   LHighestVersion: Double;
   LCurrentVersion: Double;
   LBestKey: string;
 begin
-  Result := '';
+  Result := False;
+  if not AReg.OpenKeyReadOnly(ANodePath) then
+    Exit;
+
+  LKeys := TStringList.Create;
+  try
+    AReg.GetKeyNames(LKeys);
+    LHighestVersion := 0;
+    LBestKey := EmptyStr;
+    
+    for i := 0 to LKeys.Count - 1 do
+    begin
+      if TryStrToFloat(LKeys[i], LCurrentVersion, TFormatSettings.Invariant) then
+      begin
+        if LCurrentVersion > LHighestVersion then
+        begin
+          LHighestVersion := LCurrentVersion;
+          LBestKey := LKeys[i];
+        end;
+      end;
+    end;
+    
+    if not LBestKey.IsEmpty then
+    begin
+      AReg.CloseKey;
+      Result := TryReadRootDir(AReg, ANodePath + '\' + LBestKey, ARootDir);
+    end;
+  finally
+    LKeys.Free;
+  end;
+end;
+
+function TDelphiEnvironmentAdapter.GetRootDirFromRegistry(const AVersion: string): string;
+var
+  LReg: TRegistry;
+begin
+  Result := EmptyStr;
   LReg := TRegistry.Create;
   try
     LReg.RootKey := HKEY_LOCAL_MACHINE;
     LReg.Access := KEY_READ or KEY_WOW64_64KEY; 
     
-    
-    if AVersion <> '' then
-    begin
-      if LReg.OpenKeyReadOnly('Software\Embarcadero\BDS\' + AVersion) then
-      begin
-        Result := LReg.ReadString('RootDir');
-        LReg.CloseKey;
-        if Result <> '' then Exit;
-      end;
-    end;
+    if not AVersion.IsEmpty and TryReadRootDir(LReg, 'Software\Embarcadero\BDS\' + AVersion, Result) then
+      Exit;
 
-    
-    if LReg.OpenKeyReadOnly('Software\Embarcadero\BDS') then
-    begin
-      LKeys := TStringList.Create;
-      try
-        LReg.GetKeyNames(LKeys);
-        LHighestVersion := 0;
-        LBestKey := '';
-        
-        for i := 0 to LKeys.Count - 1 do
-        begin
-          if TryStrToFloat(LKeys[i], LCurrentVersion, TFormatSettings.Invariant) then
-          begin
-            if LCurrentVersion > LHighestVersion then
-            begin
-              LHighestVersion := LCurrentVersion;
-              LBestKey := LKeys[i];
-            end;
-          end;
-        end;
-        
-        if LBestKey <> '' then
-        begin
-          LReg.CloseKey;
-          if LReg.OpenKeyReadOnly('Software\Embarcadero\BDS\' + LBestKey) then
-          begin
-            Result := LReg.ReadString('RootDir');
-            LReg.CloseKey;
-          end;
-        end;
-      finally
-        LKeys.Free;
-      end;
-    end;
+    if GetHighestVersionFromNode(LReg, 'Software\Embarcadero\BDS', Result) then
+      Exit;
 
-    
-    if Result = '' then
-    begin
-      if LReg.OpenKeyReadOnly('Software\WOW6432Node\Embarcadero\BDS') then
-      begin
-        LKeys := TStringList.Create;
-        try
-          LReg.GetKeyNames(LKeys);
-          LHighestVersion := 0;
-          LBestKey := '';
-          
-          for i := 0 to LKeys.Count - 1 do
-          begin
-            if TryStrToFloat(LKeys[i], LCurrentVersion, TFormatSettings.Invariant) then
-            begin
-              if LCurrentVersion > LHighestVersion then
-              begin
-                LHighestVersion := LCurrentVersion;
-                LBestKey := LKeys[i];
-              end;
-            end;
-          end;
-          
-          if LBestKey <> '' then
-          begin
-            LReg.CloseKey;
-            if LReg.OpenKeyReadOnly('Software\WOW6432Node\Embarcadero\BDS\' + LBestKey) then
-            begin
-              Result := LReg.ReadString('RootDir');
-              LReg.CloseKey;
-            end;
-          end;
-        finally
-          LKeys.Free;
-        end;
-      end;
-    end;
+    if GetHighestVersionFromNode(LReg, 'Software\WOW6432Node\Embarcadero\BDS', Result) then
+      Exit;
   finally
     LReg.Free;
   end;
@@ -193,7 +182,7 @@ begin
   LVersion := GetBDSVersionFromDproj(ADprojPath);
   Result := GetRootDirFromRegistry(LVersion);
   
-  if Result = '' then
+  if Result.IsEmpty then
     Result := GetEnvironmentVariable('BDS');
 end;
 

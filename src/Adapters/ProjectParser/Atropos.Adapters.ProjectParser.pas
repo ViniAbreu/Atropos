@@ -1,8 +1,11 @@
-﻿unit Atropos.Adapters.ProjectParser;
+unit Atropos.Adapters.ProjectParser;
 
 interface
+
 uses
-  System.Generics.Collections, Xml.XMLIntf, Atropos.Core.Ports;
+  System.Generics.Collections,
+  Xml.XMLIntf,
+  Atropos.Core.Ports;
 
 type
   TDprojParserAdapter = class(TInterfacedObject, IProjectParser)
@@ -18,17 +21,19 @@ type
   end;
 
 implementation
+
 uses
-  System.SysUtils, Winapi.ActiveX, Xml.XMLDoc;
-
-
+  System.SysUtils,
+  Winapi.ActiveX,
+  Xml.XMLDoc;
 
 function TDprojParserAdapter.FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
 var
   i: Integer;
 begin
   Result := False;
-  if not Assigned(ANode) then Exit;
+  if not Assigned(ANode) then
+    Exit;
 
   if SameText(ANode.LocalName, ANodeName) or SameText(ANode.NodeName, ANodeName) then
   begin
@@ -50,7 +55,8 @@ procedure TDprojParserAdapter.FindAllNodesRec(ANode: IXMLNode; const ANodeName: 
 var
   i: Integer;
 begin
-  if not Assigned(ANode) then Exit;
+  if not Assigned(ANode) then
+    Exit;
 
   if SameText(ANode.LocalName, ANodeName) or SameText(ANode.NodeName, ANodeName) then
     AList.Add(ANode);
@@ -67,8 +73,7 @@ var
   LDoc: IXMLDocument;
   LPaths: TList<string>;
   LNode: IXMLNode;
-  LRawPath, LPart: string;
-  LArr: TArray<string>;
+  LPart: string;
 begin
   Result := [];
   LPaths := TList<string>.Create;
@@ -76,12 +81,10 @@ begin
     LDoc := LoadXMLDocument(ADprojPath);
     if FindNodeRec(LDoc.DocumentElement, 'DCC_UnitSearchPath', LNode) then
     begin
-      LRawPath := LNode.Text;
-      LArr := LRawPath.Split([';']);
-      for LPart in LArr do
+      for LPart in LNode.Text.Split([';']) do
       begin
-        if (Trim(LPart) <> '') and (not LPart.Contains('$(DCC_UnitSearchPath)')) then
-          LPaths.Add(Trim(LPart));
+        if (not LPart.Trim.IsEmpty) and (not LPart.Contains('$(DCC_UnitSearchPath)')) then
+          LPaths.Add(LPart.Trim);
       end;
     end;
     Result := LPaths.ToArray;
@@ -93,7 +96,8 @@ end;
 function TDprojParserAdapter.GetSearchPaths(const ADprojPath: string): TArray<string>;
 begin
   Result := [];
-  if not FileExists(ADprojPath) then Exit;
+  if not FileExists(ADprojPath) then
+    Exit;
 
   CoInitialize(nil);
   try
@@ -136,7 +140,8 @@ end;
 function TDprojParserAdapter.GetProjectUnits(const ADprojPath: string): TArray<string>;
 begin
   Result := [];
-  if not FileExists(ADprojPath) then Exit;
+  if not FileExists(ADprojPath) then
+    Exit;
 
   CoInitialize(nil);
   try
@@ -147,5 +152,4 @@ begin
 end;
 
 end.
-
 

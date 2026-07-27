@@ -1,6 +1,7 @@
-﻿unit Atropos.Adapters.ExternalUnitResolver;
+unit Atropos.Adapters.ExternalUnitResolver;
 
 interface
+
 uses
   System.Generics.Collections,
   Atropos.Core.Ports;
@@ -27,10 +28,11 @@ type
   end;
 
 implementation
+
 uses
-  System.SysUtils, System.Types, System.IOUtils;
-
-
+  System.SysUtils,
+  System.Types,
+  System.IOUtils;
 
 constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser);
 begin
@@ -58,18 +60,15 @@ function TExternalUnitResolverAdapter.ResolvePath(const ABasePath, ARelativePath
 var
   LPath: string;
 begin
-  LPath := ARelativePath;
-  LPath := StringReplace(LPath, '$(BDS)', FDelphiPath, [rfReplaceAll, rfIgnoreCase]);
+  LPath := ARelativePath.Replace('$(BDS)', FDelphiPath, [rfReplaceAll, rfIgnoreCase]);
   
+  Result := LPath;
   if TPath.IsRelativePath(LPath) then
-    Result := TPath.GetFullPath(TPath.Combine(ABasePath, LPath))
-  else
-    Result := LPath;
+    Result := TPath.GetFullPath(TPath.Combine(ABasePath, LPath));
 end;
 
 procedure TExternalUnitResolverAdapter.ScanDirectoryForUnits(const ADirectory: string);
 var
-  LFiles: TStringDynArray;
   LFile: string;
   LFileName: string;
 begin
@@ -77,10 +76,9 @@ begin
     Exit;
     
   try
-    LFiles := TDirectory.GetFiles(ADirectory, '*.pas', TSearchOption.soAllDirectories);
-    for LFile in LFiles do
+    for LFile in TDirectory.GetFiles(ADirectory, '*.pas', TSearchOption.soAllDirectories) do
     begin
-      LFileName := LowerCase(TPath.GetFileNameWithoutExtension(LFile));
+      LFileName := TPath.GetFileNameWithoutExtension(LFile).ToLower;
       if not FUnitPathCache.ContainsKey(LFileName) then
         FUnitPathCache.Add(LFileName, LFile);
     end;
@@ -91,10 +89,11 @@ end;
 
 procedure TExternalUnitResolverAdapter.BuildCache;
 var
-  LPath, LResolvedPath: string;
+  LPath: string;
+  LResolvedPath: string;
 begin
-  if FIsCacheBuilt then Exit;
-  
+  if FIsCacheBuilt then
+    Exit;
   
   for LPath in FSearchPaths do
   begin
@@ -105,10 +104,9 @@ begin
       
     end;
   end;
-  
-  
+
   try
-    if (FDelphiPath <> '') and TDirectory.Exists(FDelphiPath) then
+    if (not FDelphiPath.IsEmpty) and TDirectory.Exists(FDelphiPath) then
     begin
       LResolvedPath := TPath.Combine(FDelphiPath, 'source');
       ScanDirectoryForUnits(LResolvedPath);
@@ -131,7 +129,7 @@ begin
   
   BuildCache;
   
-  LLowerName := LowerCase(AUnitName);
+  LLowerName := AUnitName.ToLower;
   if FUnitPathCache.TryGetValue(LLowerName, LFilePath) then
   begin
     try
@@ -149,5 +147,3 @@ begin
 end;
 
 end.
-
-

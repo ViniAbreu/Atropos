@@ -1,8 +1,11 @@
-﻿unit Atropos.Core.Modifier;
+unit Atropos.Core.Modifier;
 
 interface
+
 uses
-  Atropos.Core.Ports, Atropos.Core.Domain, Atropos.Core.Config;
+  Atropos.Core.Ports,
+  Atropos.Core.Domain,
+  Atropos.Core.Config;
 
 type
   TApplyUsesChanges = class
@@ -18,10 +21,10 @@ type
   end;
 
 implementation
+
 uses
-  System.RegularExpressions;
-
-
+  System.RegularExpressions,
+  System.SysUtils;
 
 constructor TApplyUsesChanges.Create(AFileService: IFileService; AConfig: TToolConfig);
 begin
@@ -37,10 +40,7 @@ var
 begin
   Result := ASource;
   LEscapedUnit := TRegEx.Escape(AUnitToRemove);
-  
-  
   LBoundary := '(?<![\w\.])' + LEscapedUnit + '(?![\w\.])';
-  
   
   LRegex := TRegEx.Create('(?i)' + LBoundary + '\s*,\s*');
   if LRegex.IsMatch(Result) then
@@ -48,7 +48,6 @@ begin
     Result := LRegex.Replace(Result, '');
     Exit;
   end;
-
   
   LRegex := TRegEx.Create('(?i),\s*' + LBoundary);
   if LRegex.IsMatch(Result) then
@@ -56,82 +55,87 @@ begin
     Result := LRegex.Replace(Result, '');
     Exit;
   end;
-
   
   LRegex := TRegEx.Create('(?i)' + LBoundary);
   if LRegex.IsMatch(Result) then
-  begin
     Result := LRegex.Replace(Result, '');
-  end;
 end;
 
 class function TApplyUsesChanges.RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;
 var
-  LUsesPos, LSemiPos, LSearchStart: Integer;
-  LUsesText, LNewUsesText: string;
-  LMatch, LSectionMatch: TMatch;
+  LUsesPos: Integer;
+  LSemiPos: Integer;
+  LSearchStart: Integer;
+  LNewUsesText: string;
+  LMatch: TMatch;
+  LSectionMatch: TMatch;
+  LImplMatch: TMatch;
   LRegex: TRegEx;
 begin
   Result := ASource;
   
   if AIsInterface then
-    LSectionMatch := TRegEx.Match(ASource, '^\s*interface\b', [roIgnoreCase, roMultiLine])
-  else
+    LSectionMatch := TRegEx.Match(ASource, '^\s*interface\b', [roIgnoreCase, roMultiLine]);
+  
+  if not AIsInterface then
     LSectionMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
     
-  if not LSectionMatch.Success then Exit;
+  if not LSectionMatch.Success then
+    Exit;
+
   LSearchStart := LSectionMatch.Index;
-  
-  
   LRegex := TRegEx.Create('^\s*uses\b', [roIgnoreCase, roMultiLine]);
   LMatch := LRegex.Match(ASource, LSearchStart);
-  if not LMatch.Success then Exit;
+  if not LMatch.Success then
+    Exit;
   
   LUsesPos := LMatch.Index;
-  
-  
   if AIsInterface then
   begin
-    var LImplMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
-    if LImplMatch.Success and (LUsesPos > LImplMatch.Index) then Exit; 
+    LImplMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
+    if LImplMatch.Success and (LUsesPos > LImplMatch.Index) then
+      Exit; 
   end;
 
   LSemiPos := Pos(';', ASource, LUsesPos);
-  if LSemiPos = 0 then Exit;
+  if LSemiPos = 0 then
+    Exit;
   
-  LUsesText := Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1);
-  LNewUsesText := RemoveUnitSurgically(LUsesText, AUnitToRemove);
+  LNewUsesText := RemoveUnitSurgically(Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1), AUnitToRemove);
   
   if TRegEx.IsMatch(LNewUsesText, '(?i)^\s*uses\s*;\s*$') then
-    LNewUsesText := '';
+    LNewUsesText := EmptyStr;
     
   Result := Copy(ASource, 1, LUsesPos - 1) + LNewUsesText + Copy(ASource, LSemiPos + 1, MaxInt);
 end;
 
 class function TApplyUsesChanges.AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
 var
-  LImplPos, LUsesPos, LSemiPos: Integer;
-  LMatch, LImplMatch: TMatch;
+  LImplPos: Integer;
+  LUsesPos: Integer;
+  LSemiPos: Integer;
+  LMatch: TMatch;
+  LImplMatch: TMatch;
   LRegex: TRegEx;
+  LUsesClauseText: string;
 begin
   Result := ASource;
   LImplMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
-  if not LImplMatch.Success then Exit;
+
+  if not LImplMatch.Success then
+    Exit;
   LImplPos := LImplMatch.Index;
-  
-  
+
   LRegex := TRegEx.Create('^\s*uses\b', [roIgnoreCase, roMultiLine]);
   LMatch := LRegex.Match(ASource, LImplPos);
   
   if LMatch.Success then
   begin
-    
     LUsesPos := LMatch.Index;
     LSemiPos := Pos(';', ASource, LUsesPos);
     if LSemiPos > 0 then
     begin
-      
-      var LUsesClauseText := Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1);
+      LUsesClauseText := Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1);
       if TRegEx.IsMatch(LUsesClauseText, '(?i)(?<![\w\.])' + TRegEx.Escape(AUnitToAdd) + '(?![\w\.])') then
         Exit; 
 
@@ -140,20 +144,16 @@ begin
     end;
   end;
   
-  
   Result := Copy(ASource, 1, LImplPos + LImplMatch.Length - 1) + sLineBreak + 'uses' + sLineBreak + '  ' + AUnitToAdd + ';' + Copy(ASource, LImplPos + LImplMatch.Length, MaxInt);
 end;
 
 procedure TApplyUsesChanges.Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);
 var
-  LContent, LUnit: string;
+  LContent: string;
+  LUnit: string;
 begin
-  
   FFileService.BackupFile(AFilePath);
-  
-  
   LContent := FFileService.ReadFileContent(AFilePath);
-  
   
   if FConfig.RemoveUnused then
   begin
@@ -164,7 +164,6 @@ begin
     end;
   end;
   
-  
   if FConfig.MoveToImplementation then
   begin
     for LUnit in AAnalysisResult.UnitsToMoveToImpl do
@@ -174,10 +173,8 @@ begin
     end;
   end;
   
-  
   FFileService.WriteFileContent(AFilePath, LContent);
 end;
 
 end.
-
 

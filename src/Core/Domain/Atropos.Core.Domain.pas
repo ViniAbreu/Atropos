@@ -1,8 +1,10 @@
-﻿unit Atropos.Core.Domain;
+unit Atropos.Core.Domain;
 
 interface
+
 uses
-  System.Generics.Collections, Atropos.Core.Ports;
+  System.Generics.Collections,
+  Atropos.Core.Ports;
 
 type
   
@@ -13,7 +15,6 @@ type
     constructor Create(const AUnitName: string);
     destructor Destroy; override;
   end;
-
   
   TProjectContext = class
   private
@@ -29,27 +30,25 @@ type
     function HasUnit(const AUnitName: string): Boolean;
   end;
 
-
   TUnitAnalysisResult = record
     UnitName: string;
     UnusedUnits: TArray<string>;
     UnitsToMoveToImpl: TArray<string>;
   end;
-
   
   TAnalyzeUnitUses = class
   private
     FLogger: ILogger;
+    function IsUnitUsed(AContext: TProjectContext; const AUnitName: string; const AIdents: TArray<string>): Boolean;
   public
     constructor Create(ALogger: ILogger = nil);
     function Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
   end;
 
 implementation
+
 uses
   System.SysUtils;
-
-
 
 constructor TUnitExports.Create(const AUnitName: string);
 begin
@@ -62,8 +61,6 @@ begin
   ExportedIdentifiers.Free;
   inherited;
 end;
-
-
 
 constructor TProjectContext.Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
 begin
@@ -87,8 +84,8 @@ var
 begin
   LExports := TUnitExports.Create(AUnitName);
   for LIdent in AIdentifiers do
-    LExports.ExportedIdentifiers.Add(LowerCase(LIdent));
-  FUnitExports.AddOrSetValue(LowerCase(AUnitName), LExports);
+    LExports.ExportedIdentifiers.Add(LIdent.ToLower);
+  FUnitExports.AddOrSetValue(AUnitName.ToLower, LExports);
 end;
 
 function TProjectContext.HasUnit(const AUnitName: string): Boolean;
@@ -96,7 +93,7 @@ var
   LLowerName: string;
   LExports: TArray<string>;
 begin
-  LLowerName := LowerCase(AUnitName);
+  LLowerName := AUnitName.ToLower;
   Result := FUnitExports.ContainsKey(LLowerName);
   
   if (not Result) and Assigned(FResolver) and not FMissingUnits.ContainsKey(LLowerName) then
@@ -104,10 +101,10 @@ begin
     if FResolver.TryResolveUnit(AUnitName, LExports) then
     begin
       RegisterUnitExports(AUnitName, LExports);
-      Result := True;
-    end
-    else
-      FMissingUnits.Add(LLowerName, True);
+      Exit(True);
+    end;
+    
+    FMissingUnits.Add(LLowerName, True);
   end;
 end;
 
@@ -118,63 +115,71 @@ var
   LPos: Integer;
   LPrefix: string;
 begin
-  Result := False;
-  if FUnitExports.TryGetValue(LowerCase(AUnitName), LExports) then
-  begin
-    LBaseIdent := LowerCase(AIdentifier);
+  if not FUnitExports.TryGetValue(AUnitName.ToLower, LExports) then
+    Exit(False);
 
-    
-    LPos := Pos('<', LBaseIdent);
-    if LPos > 0 then
-    begin
-      LBaseIdent := Copy(LBaseIdent, 1, LPos - 1);
-    end;
+  LBaseIdent := AIdentifier.ToLower;
+  LPos := Pos('<', LBaseIdent);
+  if LPos > 0 then
+    LBaseIdent := Copy(LBaseIdent, 1, LPos - 1);
       
+  LPos := LastDelimiter('.', LBaseIdent);
+  if LPos > 0 then
+  begin
+    LPrefix := Copy(LBaseIdent, 1, LPos - 1);
     
-    LPos := LastDelimiter('.', LBaseIdent);
-    if LPos > 0 then
-    begin
-      LPrefix := Copy(LBaseIdent, 1, LPos - 1);
+    if not AUnitName.ToLower.EndsWith(LPrefix) then
+      Exit(False);
       
-      if not LowerCase(AUnitName).EndsWith(LPrefix) then
-        Exit(False);
-        
-      LBaseIdent := Copy(LBaseIdent, LPos + 1, MaxInt);
-    end;
+    LBaseIdent := Copy(LBaseIdent, LPos + 1, MaxInt);
+  end;
+  
+  if LPrefix.IsEmpty then
+  begin
+    if (LBaseIdent = 'tlist') and (AUnitName.ToLower = 'system.classes') then
+      Exit(False);
+    if (LBaseIdent = 'tqueue') and (AUnitName.ToLower = 'system.contnrs') then
+      Exit(False);
+    if (LBaseIdent = 'tstack') and (AUnitName.ToLower = 'system.contnrs') then
+      Exit(False);
+  end;
     
-    
-    
-    
-    if LPrefix = '' then
-    begin
-      if (LBaseIdent = 'tlist') and (LowerCase(AUnitName) = 'system.classes') then
-        Exit(False);
-      if (LBaseIdent = 'tqueue') and (LowerCase(AUnitName) = 'system.contnrs') then
-        Exit(False);
-      if (LBaseIdent = 'tstack') and (LowerCase(AUnitName) = 'system.contnrs') then
-        Exit(False);
-    end;
-      
-    Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
-    if Result and (LowerCase(AUnitName) = 'system.classes') then
-      if Assigned(FLogger) then FLogger.Log('DEBUG IDENT MATCH: System.Classes matched ' + LBaseIdent + ' from original ' + AIdentifier);
+  Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
+  if Result and (AUnitName.ToLower = 'system.classes') then
+  begin
+    if Assigned(FLogger) then
+      FLogger.Log('DEBUG IDENT MATCH: System.Classes matched ' + LBaseIdent + ' from original ' + AIdentifier);
   end;
 end;
-
-
 
 constructor TAnalyzeUnitUses.Create(ALogger: ILogger = nil);
 begin
   FLogger := ALogger;
 end;
 
+function TAnalyzeUnitUses.IsUnitUsed(AContext: TProjectContext; const AUnitName: string; const AIdents: TArray<string>): Boolean;
+var
+  LIdent: string;
+begin
+  Result := False;
+  for LIdent in AIdents do
+  begin
+    if AContext.UnitExportsIdentifier(AUnitName, LIdent) then
+      Exit(True);
+  end;
+end;
+
 function TAnalyzeUnitUses.Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
 var
-  LIntfUses, LImplUses: TArray<string>;
-  LIntfIdents, LImplIdents: TArray<string>;
-  LUnused, LMoved: TList<string>;
-  LUnitName, LIdent: string;
-  LUsedInIntf, LUsedInImpl: Boolean;
+  LIntfUses: TArray<string>;
+  LImplUses: TArray<string>;
+  LIntfIdents: TArray<string>;
+  LImplIdents: TArray<string>;
+  LUnused: TList<string>;
+  LMoved: TList<string>;
+  LUnitName: string;
+  LUsedInIntf: Boolean;
+  LUsedInImpl: Boolean;
 begin
   Result.UnitName := ASyntaxTree.GetUnitName;
   LUnused := TList<string>.Create;
@@ -185,56 +190,40 @@ begin
     LIntfIdents := ASyntaxTree.GetIdentifiersUsedInInterface;
     LImplIdents := ASyntaxTree.GetIdentifiersUsedInImplementation;
 
-    
     for LUnitName in LIntfUses do
     begin
       if not AContext.HasUnit(LUnitName) then
         Continue;
 
-      LUsedInIntf := False;
-      LUsedInImpl := False;
-
-      for LIdent in LIntfIdents do
-        if AContext.UnitExportsIdentifier(LUnitName, LIdent) then
-        begin
-          LUsedInIntf := True;
-          Break;
-        end;
-
-      if not LUsedInIntf then
+      LUsedInIntf := IsUnitUsed(AContext, LUnitName, LIntfIdents);
+      if LUsedInIntf then
       begin
-        for LIdent in LImplIdents do
-          if AContext.UnitExportsIdentifier(LUnitName, LIdent) then
-          begin
-            LUsedInImpl := True;
-            Break;
-          end;
+        if Assigned(FLogger) then
+          FLogger.Log('DEBUG: ' + LUnitName + ' UsedInIntf: True');
+        Continue;
+      end;
 
-        if Assigned(FLogger) then FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
-        if LUsedInImpl then
-          LMoved.Add(LUnitName)
-        else
-          LUnused.Add(LUnitName);
-      end
-      else
-        if Assigned(FLogger) then FLogger.Log('DEBUG: ' + LUnitName + ' UsedInIntf: True');
+      LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents);
+      if Assigned(FLogger) then
+        FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
+      
+      if LUsedInImpl then
+      begin
+        LMoved.Add(LUnitName);
+        Continue;
+      end;
+      
+      LUnused.Add(LUnitName);
     end;
 
-    
     for LUnitName in LImplUses do
     begin
       if not AContext.HasUnit(LUnitName) then
         Continue;
 
-      LUsedInImpl := False;
-      for LIdent in LImplIdents do
-        if AContext.UnitExportsIdentifier(LUnitName, LIdent) then
-        begin
-          LUsedInImpl := True;
-          Break;
-        end;
-      
-      if Assigned(FLogger) then FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
+      LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents);
+      if Assigned(FLogger) then
+        FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
       
       if not LUsedInImpl then
         LUnused.Add(LUnitName);

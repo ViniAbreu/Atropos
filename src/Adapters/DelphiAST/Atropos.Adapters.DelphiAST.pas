@@ -1,8 +1,13 @@
-﻿unit Atropos.Adapters.DelphiAST;
+unit Atropos.Adapters.DelphiAST;
 
 interface
+
 uses
-  System.SysUtils, System.Generics.Collections, Atropos.Core.Ports, DelphiAST.Classes, DelphiAST.Consts;
+  System.SysUtils,
+  System.Generics.Collections,
+  Atropos.Core.Ports,
+  DelphiAST.Classes,
+  DelphiAST.Consts;
 
 type
   EASTParserException = class(Exception);
@@ -18,7 +23,8 @@ type
     
     procedure FindAllUses(ANode: TSyntaxNode; AList: TList<string>);
     procedure FindAllIdentifiers(ANode: TSyntaxNode; AList: TList<string>);
-    procedure FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; AInsideTypeDecl: Boolean = False; AInsideHelper: Boolean = False);
+    procedure FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; AInsideTypeDecl: Boolean = False;
+      AInsideHelper: Boolean = False);
   public
     constructor Create(const AFileName: string; ARoot: TSyntaxNode);
     destructor Destroy; override;
@@ -37,10 +43,15 @@ type
   end;
 
 implementation
+
 uses
-  DelphiAST;
-
-
+  DelphiAST,
+  System.JSON,
+  System.Net.HttpClient,
+  System.Classes,
+  System.IOUtils,
+  System.DateUtils,
+  System.StrUtils;
 
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
 var
@@ -60,8 +71,6 @@ begin
       raise EASTParserException.CreateFmt('Error parsing file "%s": %s', [AFilePath, E.Message]);
   end;
 end;
-
-
 
 constructor TDelphiASTSyntaxTree.Create(const AFileName: string; ARoot: TSyntaxNode);
 begin
@@ -99,17 +108,12 @@ begin
   begin
     for LChild in LUsesNode.ChildNodes do
     begin
-      if (LChild.Typ = ntUnit) then
+      if (LChild.Typ = ntUnit) and LChild.HasAttribute(anName) then
       begin
-        if LChild.HasAttribute(anName) then
-        begin
-          LUnitName := LChild.GetAttribute(anName);
-          if not LUnitName.ToLower.EndsWith('.dcu') then
-            AList.Add(LUnitName);
-        end;
+        LUnitName := LChild.GetAttribute(anName);
+        if not LUnitName.ToLower.EndsWith('.dcu') then
+          AList.Add(LUnitName);
       end;
-      
-      
     end;
   end;
 end;
@@ -118,20 +122,18 @@ procedure TDelphiASTSyntaxTree.FindAllIdentifiers(ANode: TSyntaxNode; AList: TLi
 var
   LChild: TSyntaxNode;
 begin
-  if not Assigned(ANode) then Exit;
-  
-  
-  if ANode.Typ = ntUses then Exit;
-  
+  if not Assigned(ANode) then
+    Exit;
+
+  if ANode.Typ = ntUses then
+    Exit;
   
   if ANode.HasAttribute(anName) and (ANode.Typ in [ntType, ntIdentifier, ntAttribute]) then
   begin
     AList.Add(ANode.GetAttribute(anName));
     if Assigned(ANode.ParentNode) and (ANode.ParentNode.Typ = ntGeneric) and
        (Length(ANode.ParentNode.ChildNodes) > 0) and (ANode.ParentNode.ChildNodes[0] = ANode) then
-    begin
       AList[AList.Count - 1] := AList[AList.Count - 1] + '<T>';
-    end;
   end;
   
   for LChild in ANode.ChildNodes do
@@ -141,24 +143,19 @@ end;
 procedure TDelphiASTSyntaxTree.FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; AInsideTypeDecl: Boolean = False; AInsideHelper: Boolean = False);
 var
   LChild: TSyntaxNode;
-  LIsTypeDecl, LIsHelper: Boolean;
+  LIsTypeDecl: Boolean;
+  LIsHelper: Boolean;
 begin
-  if not Assigned(ANode) then Exit;
+  if not Assigned(ANode) then
+    Exit;
   
-  if ANode.Typ = ntUses then Exit;
-  
+  if ANode.Typ = ntUses then
+    Exit;
   
   if ANode.HasAttribute(anName) and not (ANode.Typ in [ntUnit, ntUses, ntIdentifier, ntType]) then
   begin
-    if AInsideTypeDecl and not AInsideHelper and (ANode.Typ <> ntElement) then
-    begin
-      
-      
-    end
-    else
-    begin
+    if not (AInsideTypeDecl and not AInsideHelper and (ANode.Typ <> ntElement)) then
       AList.Add(ANode.GetAttribute(anName));
-    end;
   end;
     
   LIsTypeDecl := AInsideTypeDecl or (ANode.Typ = ntTypeDecl);
@@ -174,7 +171,8 @@ var
   LList: TList<string>;
 begin
   Result := [];
-  if not Assigned(FRoot) then Exit;
+  if not Assigned(FRoot) then
+    Exit;
   
   LNode := FRoot.FindNode(ANodeType);
   if Assigned(LNode) then
@@ -195,7 +193,8 @@ var
   LList: TList<string>;
 begin
   Result := [];
-  if not Assigned(FRoot) then Exit;
+  if not Assigned(FRoot) then
+    Exit;
   
   LNode := FRoot.FindNode(ANodeType);
   if Assigned(LNode) then
@@ -236,7 +235,8 @@ var
   LList: TList<string>;
 begin
   Result := [];
-  if not Assigned(FRoot) then Exit;
+  if not Assigned(FRoot) then
+    Exit;
   
   LNode := FRoot.FindNode(ntInterface);
   if Assigned(LNode) then
@@ -252,5 +252,4 @@ begin
 end;
 
 end.
-
 

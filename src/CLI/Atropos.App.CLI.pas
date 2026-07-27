@@ -1,6 +1,7 @@
 unit Atropos.App.CLI;
 
 interface
+
 uses
   Atropos.Core.Config;
 
@@ -14,8 +15,12 @@ type
   end;
 
 implementation
+
 uses
-  Atropos.Application.AppService, Atropos.Application.Factory, System.SysUtils, System.IOUtils;
+  Atropos.Application.AppService,
+  Atropos.Application.Factory,
+  System.SysUtils,
+  System.IOUtils;
 
 procedure TCLIApp.ParseParams(var AConfig: TToolConfig);
 var
@@ -25,18 +30,42 @@ begin
   for i := 1 to ParamCount do
   begin
     LParam := ParamStr(i);
+    
     if SameText(LParam, '-dproj') and (i < ParamCount) then
-      FDprojPath := ParamStr(i + 1)
-    else if SameText(LParam, '--remove') then
-      AConfig.RemoveUnused := True
-    else if SameText(LParam, '--move') then
-      AConfig.MoveToImplementation := True
-    else if SameText(LParam, '--debug') then
-      AConfig.EnableDebug := True
-    else if SameText(LParam, '-html') then
-      AConfig.ExportHTML := True
-    else if SameText(LParam, '-txt') then
+    begin
+      FDprojPath := ParamStr(i + 1);
+      Continue;
+    end;
+    
+    if SameText(LParam, '--remove') then
+    begin
+      AConfig.RemoveUnused := True;
+      Continue;
+    end;
+    
+    if SameText(LParam, '--move') then
+    begin
+      AConfig.MoveToImplementation := True;
+      Continue;
+    end;
+    
+    if SameText(LParam, '--debug') then
+    begin
+      AConfig.EnableDebug := True;
+      Continue;
+    end;
+    
+    if SameText(LParam, '-html') then
+    begin
+      AConfig.ExportHTML := True;
+      Continue;
+    end;
+    
+    if SameText(LParam, '-txt') then
+    begin
       AConfig.ExportTXT := True;
+      Continue;
+    end;
   end;
 end;
 
@@ -49,7 +78,7 @@ begin
     LConfig := TToolConfig.Default;
     ParseParams(LConfig);
     
-    if FDprojPath = '' then
+    if FDprojPath.IsEmpty then
     begin
       Writeln('Atropos CLI v1.0');
       Writeln('Usage: AtroposCLI -dproj <path_to_dproj> [options]');
@@ -71,9 +100,9 @@ begin
     LAppService := TAppServiceFactory.CreateDefault(LConfig);
     try
       LAppService.OnLog := procedure(const AMsg: string)
-      begin
-        Writeln(AMsg);
-      end;
+        begin
+          Writeln(AMsg);
+        end;
       
       LAppService.Execute(FDprojPath);
     finally
@@ -87,5 +116,3 @@ begin
 end;
 
 end.
-
-

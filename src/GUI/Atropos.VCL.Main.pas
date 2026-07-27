@@ -1,31 +1,41 @@
 ﻿unit Atropos.VCL.Main;
 
 interface
+
 uses
-  Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls, Winapi.Messages, Winapi.Windows, System.SysUtils, System.Classes, System.IOUtils,
-  Vcl.Controls, Atropos.Application.AppService, Atropos.Application.Factory, Atropos.Core.Config;
+  Vcl.Forms,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Vcl.ComCtrls,
+  Winapi.Messages,
+  Winapi.Windows,
+  System.SysUtils,
+  System.Classes,
+  System.IOUtils,
+  Vcl.Controls,
+  Atropos.Application.AppService,
+  Atropos.Application.Factory,
+  Atropos.Core.Config;
 
 type
   TMainForm = class(TForm)
-    LblProject: TLabel;
-    EdtProject: TEdit;
-    BtnBrowse: TButton;
-    BtnRun: TButton;
-    ProgressBar1: TProgressBar;
-    MemoLog: TMemo;
-    OpenDialog1: TOpenDialog;
-    GroupBoxOptions: TGroupBox;
-    ChkRemove: TCheckBox;
-    ChkMove: TCheckBox;
-    ChkDebug: TCheckBox;
-    procedure BtnBrowseClick(Sender: TObject);
-    procedure BtnRunClick(Sender: TObject);
+    ProjectLabel: TLabel;
+    ProjectEdit: TEdit;
+    BrowseButton: TButton;
+    RunButton: TButton;
+    ExecutionProgressBar: TProgressBar;
+    LogMemo: TMemo;
+    ProjectOpenDialog: TOpenDialog;
+    OptionsGroupBox: TGroupBox;
+    RemoveCheckBox: TCheckBox;
+    MoveCheckBox: TCheckBox;
+    DebugCheckBox: TCheckBox;
+    procedure BrowseButtonClick(Sender: TObject);
+    procedure RunButtonClick(Sender: TObject);
   private
     procedure LogMessage(const AMsg: string);
     procedure UpdateProgress(AMax, APosition: Integer);
     procedure ExecuteProcess(const ADprojPath: string);
-  public
-    
   end;
 
 var
@@ -35,10 +45,10 @@ implementation
 
 {$R *.dfm}
 
-procedure TMainForm.BtnBrowseClick(Sender: TObject);
+procedure TMainForm.BrowseButtonClick(Sender: TObject);
 begin
-  if OpenDialog1.Execute then
-    EdtProject.Text := OpenDialog1.FileName;
+  if ProjectOpenDialog.Execute then
+    ProjectEdit.Text := ProjectOpenDialog.FileName;
 end;
 
 procedure TMainForm.LogMessage(const AMsg: string);
@@ -46,8 +56,8 @@ begin
   TThread.Queue(nil,
     procedure
     begin
-      MemoLog.Lines.Add(AMsg);
-      SendMessage(MemoLog.Handle, EM_LINESCROLL, 0, MemoLog.Lines.Count);
+      LogMemo.Lines.Add(AMsg);
+      SendMessage(LogMemo.Handle, EM_LINESCROLL, 0, LogMemo.Lines.Count);
     end);
 end;
 
@@ -56,8 +66,8 @@ begin
   TThread.Queue(nil,
     procedure
     begin
-      ProgressBar1.Max := AMax;
-      ProgressBar1.Position := APosition;
+      ExecutionProgressBar.Max := AMax;
+      ExecutionProgressBar.Position := APosition;
     end);
 end;
 
@@ -71,21 +81,21 @@ begin
     begin
       try
         LConfig := TToolConfig.Default;
-        LConfig.RemoveUnused := MainForm.ChkRemove.Checked;
-        LConfig.MoveToImplementation := MainForm.ChkMove.Checked;
-        LConfig.EnableDebug := MainForm.ChkDebug.Checked;
+        LConfig.RemoveUnused := MainForm.RemoveCheckBox.Checked;
+        LConfig.MoveToImplementation := MainForm.MoveCheckBox.Checked;
+        LConfig.EnableDebug := MainForm.DebugCheckBox.Checked;
         
         LAppService := TAppServiceFactory.CreateDefault(LConfig);
         try
           LAppService.OnLog := procedure(const AMsg: string)
-          begin
-            LogMessage(AMsg);
-          end;
+            begin
+              LogMessage(AMsg);
+            end;
           
           LAppService.OnProgress := procedure(AMax, APosition: Integer)
-          begin
-            UpdateProgress(AMax, APosition);
-          end;
+            begin
+              UpdateProgress(AMax, APosition);
+            end;
           
           LAppService.Execute(ADprojPath);
           
@@ -95,8 +105,8 @@ begin
           TThread.Queue(nil,
             procedure
             begin
-              BtnRun.Enabled := True;
-              BtnBrowse.Enabled := True;
+              RunButton.Enabled := True;
+              BrowseButton.Enabled := True;
             end);
         end;
       except
@@ -106,29 +116,28 @@ begin
           TThread.Queue(nil,
             procedure
             begin
-              BtnRun.Enabled := True;
-              BtnBrowse.Enabled := True;
+              RunButton.Enabled := True;
+              BrowseButton.Enabled := True;
             end);
         end;
       end;
     end).Start;
 end;
 
-procedure TMainForm.BtnRunClick(Sender: TObject);
+procedure TMainForm.RunButtonClick(Sender: TObject);
 begin
-  if not FileExists(EdtProject.Text) then
+  if not FileExists(ProjectEdit.Text) then
   begin
     ShowMessage('Selecione um projeto válido!');
     Exit;
   end;
   
-  MemoLog.Clear;
-  BtnRun.Enabled := False;
-  BtnBrowse.Enabled := False;
-  ProgressBar1.Position := 0;
+  LogMemo.Clear;
+  RunButton.Enabled := False;
+  BrowseButton.Enabled := False;
+  ExecutionProgressBar.Position := 0;
   
-  ExecuteProcess(EdtProject.Text);
+  ExecuteProcess(ProjectEdit.Text);
 end;
 
 end.
-
