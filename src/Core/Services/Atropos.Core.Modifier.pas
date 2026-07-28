@@ -12,9 +12,16 @@ type
   private
     FFileService: IFileService;
     FConfig: TToolConfig;
-    class function RemoveUnitSurgically(const ASource, AUnitToRemove: string): string;
+    class function RemoveUnitSafely(const ASource, AUnitToRemove: string): string;
     class function RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;
     class function AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
+    class function GetDirectiveLevel(const ASource: string; AStartPos, AEndPos: Integer): Integer;
+    class function GetDirectiveBlockStart(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
+    class function GetDirectiveBlockEnd(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
+    class function InjectUnconditionalUses(const ASource, AUnitToAdd: string; AWordPos: Integer): string;
+    class function RewriteConditionalUses(const ASource, AUnitToAdd: string; AImplPos, AWordPos, ASemiPos: Integer): string;
+    class function SanitizeUsesKeyword(const ASource: string; AWordPos, ASemiPos: Integer; out ANewSemiPos: Integer): string;
+    class function RelocateSemicolon(const ASource: string; AImplPos, ASemiPos: Integer): string;
   public
     constructor Create(AFileService: IFileService; AConfig: TToolConfig);
     procedure Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);
@@ -32,7 +39,7 @@ begin
   FConfig := AConfig;
 end;
 
-class function TApplyUsesChanges.RemoveUnitSurgically(const ASource, AUnitToRemove: string): string;
+class function TApplyUsesChanges.RemoveUnitSafely(const ASource, AUnitToRemove: string): string;
 var
   LEscapedUnit: string;
   LRegex: TRegEx;
@@ -101,7 +108,7 @@ begin
   if LSemiPos = 0 then
     Exit;
   
-  LNewUsesText := RemoveUnitSurgically(Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1), AUnitToRemove);
+  LNewUsesText := RemoveUnitSafely(Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1), AUnitToRemove);
   
   if TRegEx.IsMatch(LNewUsesText, '(?i)^\s*uses\s*;\s*$') then
     LNewUsesText := EmptyStr;
@@ -109,11 +116,145 @@ begin
   Result := Copy(ASource, 1, LUsesPos - 1) + LNewUsesText + Copy(ASource, LSemiPos + 1, MaxInt);
 end;
 
+class function TApplyUsesChanges.GetDirectiveLevel(const ASource: string; AStartPos, AEndPos: Integer): Integer;
+var
+  LMatches: TMatchCollection;
+  LMatch: TMatch;
+  LVal: string;
+begin
+  Result := 0;
+  LMatches := TRegEx.Matches(Copy(ASource, AStartPos, AEndPos - AStartPos + 1), '\{\$(IFDEF|IFNDEF|IF|ENDIF|IFEND)\b', [roIgnoreCase]);
+  for LMatch in LMatches do
+  begin
+    LVal := LMatch.Value.ToUpper;
+    if LVal.StartsWith('{$IFDEF') or LVal.StartsWith('{$IFNDEF') or LVal.StartsWith('{$IF') then
+    begin
+      Inc(Result);
+      Continue;
+    end;
+      
+    if LVal.StartsWith('{$ENDIF') or LVal.StartsWith('{$IFEND') then
+      Dec(Result);
+  end;
+end;
+
+class function TApplyUsesChanges.GetDirectiveBlockStart(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
+var
+  LMatches: TMatchCollection;
+  LMatch: TMatch;
+  LVal: string;
+  LDepth: Integer;
+begin
+  Result := ATargetPos;
+  LDepth := 0;
+  LMatches := TRegEx.Matches(Copy(ASource, AStartPos, ATargetPos - AStartPos + 1), '\{\$(IFDEF|IFNDEF|IF|ENDIF|IFEND)\b', [roIgnoreCase]);
+  for LMatch in LMatches do
+  begin
+    LVal := LMatch.Value.ToUpper;
+    if LVal.StartsWith('{$IFDEF') or LVal.StartsWith('{$IFNDEF') or LVal.StartsWith('{$IF') then
+    begin
+      if LDepth = 0 then
+        Result := AStartPos + LMatch.Index - 1;
+      Inc(LDepth);
+      Continue;
+    end;
+    
+    if LVal.StartsWith('{$ENDIF') or LVal.StartsWith('{$IFEND') then
+    begin
+      Dec(LDepth);
+      if LDepth = 0 then
+        Result := ATargetPos;
+    end;
+  end;
+end;
+
+class function TApplyUsesChanges.GetDirectiveBlockEnd(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
+var
+  LMatches: TMatchCollection;
+  LMatch: TMatch;
+  LVal: string;
+  LDepth: Integer;
+begin
+  Result := ATargetPos;
+  LDepth := GetDirectiveLevel(ASource, AStartPos, ATargetPos);
+  if LDepth = 0 then
+    Exit;
+    
+  LMatches := TRegEx.Matches(Copy(ASource, ATargetPos + 1, MaxInt), '\{\$(IFDEF|IFNDEF|IF|ENDIF|IFEND)\b', [roIgnoreCase]);
+  for LMatch in LMatches do
+  begin
+    LVal := LMatch.Value.ToUpper;
+    if LVal.StartsWith('{$IFDEF') or LVal.StartsWith('{$IFNDEF') or LVal.StartsWith('{$IF') then
+    begin
+      Inc(LDepth);
+      Continue;
+    end;
+    
+    if LVal.StartsWith('{$ENDIF') or LVal.StartsWith('{$IFEND') then
+    begin
+      Dec(LDepth);
+      if LDepth = 0 then
+      begin
+        Result := ATargetPos + LMatch.Index + Pos('}', Copy(ASource, ATargetPos + LMatch.Index, MaxInt)) - 1;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+class function TApplyUsesChanges.InjectUnconditionalUses(const ASource, AUnitToAdd: string; AWordPos: Integer): string;
+begin
+  Result := Copy(ASource, 1, AWordPos + 3) + ' ' + AUnitToAdd + ',' + Copy(ASource, AWordPos + 4, MaxInt);
+end;
+
+class function TApplyUsesChanges.SanitizeUsesKeyword(const ASource: string; AWordPos, ASemiPos: Integer; out ANewSemiPos: Integer): string;
+var
+  LTextBetween: string;
+begin
+  LTextBetween := Copy(ASource, AWordPos + 4, ASemiPos - (AWordPos + 4));
+  if TRegEx.IsMatch(LTextBetween, '[a-zA-Z_]') then
+  begin
+    Result := Copy(ASource, 1, AWordPos - 1) + ',' + Copy(ASource, AWordPos + 4, MaxInt);
+    ANewSemiPos := ASemiPos - 3;
+    Exit;
+  end;
+  
+  Result := Copy(ASource, 1, AWordPos - 1) + Copy(ASource, AWordPos + 4, MaxInt);
+  ANewSemiPos := ASemiPos - 4;
+end;
+
+class function TApplyUsesChanges.RelocateSemicolon(const ASource: string; AImplPos, ASemiPos: Integer): string;
+var
+  LSearchPos: Integer;
+begin
+  Result := ASource;
+  if GetDirectiveLevel(Result, AImplPos, ASemiPos) = 0 then
+    Exit;
+    
+  LSearchPos := GetDirectiveBlockEnd(Result, AImplPos, ASemiPos);
+    
+  Delete(Result, ASemiPos, 1);
+  Insert(';', Result, LSearchPos);
+end;
+
+class function TApplyUsesChanges.RewriteConditionalUses(const ASource, AUnitToAdd: string; AImplPos, AWordPos, ASemiPos: Integer): string;
+var
+  LInsertPos: Integer;
+  LNewSemiPos: Integer;
+begin
+  LInsertPos := GetDirectiveBlockStart(ASource, AImplPos, AWordPos);
+    
+  Result := SanitizeUsesKeyword(ASource, AWordPos, ASemiPos, LNewSemiPos);
+  Result := RelocateSemicolon(Result, AImplPos, LNewSemiPos);
+  Insert(sLineBreak + 'uses ' + AUnitToAdd + sLineBreak, Result, LInsertPos);
+end;
+
 class function TApplyUsesChanges.AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
 var
   LImplPos: Integer;
   LUsesPos: Integer;
   LSemiPos: Integer;
+  LWordPos: Integer;
   LMatch: TMatch;
   LImplMatch: TMatch;
   LRegex: TRegEx;
@@ -129,22 +270,38 @@ begin
   LRegex := TRegEx.Create('^\s*uses\b', [roIgnoreCase, roMultiLine]);
   LMatch := LRegex.Match(ASource, LImplPos);
   
-  if LMatch.Success then
+  if not LMatch.Success then
   begin
-    LUsesPos := LMatch.Index;
-    LSemiPos := Pos(';', ASource, LUsesPos);
-    if LSemiPos > 0 then
-    begin
-      LUsesClauseText := Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1);
-      if TRegEx.IsMatch(LUsesClauseText, '(?i)(?<![\w\.])' + TRegEx.Escape(AUnitToAdd) + '(?![\w\.])') then
-        Exit; 
-
-      Result := Copy(ASource, 1, LSemiPos - 1) + ', ' + AUnitToAdd + Copy(ASource, LSemiPos, MaxInt);
-      Exit;
-    end;
+    Result := Copy(ASource, 1, LImplPos + LImplMatch.Length - 1) + sLineBreak + 'uses' + sLineBreak + '  ' + AUnitToAdd + ';' + Copy(ASource, LImplPos + LImplMatch.Length, MaxInt);
+    Exit;
   end;
   
-  Result := Copy(ASource, 1, LImplPos + LImplMatch.Length - 1) + sLineBreak + 'uses' + sLineBreak + '  ' + AUnitToAdd + ';' + Copy(ASource, LImplPos + LImplMatch.Length, MaxInt);
+  LUsesPos := LMatch.Index;
+  LSemiPos := Pos(';', ASource, LUsesPos);
+  
+  if LSemiPos = 0 then
+    Exit;
+
+  LUsesClauseText := Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1);
+  if TRegEx.IsMatch(LUsesClauseText, '(?i)(?<![\w\.])' + TRegEx.Escape(AUnitToAdd) + '(?![\w\.])') then
+  begin
+    Result := RemoveUnitSafely(Result, AUnitToAdd);
+    LMatch := LRegex.Match(Result, LImplPos);
+    if not LMatch.Success then
+      Exit;
+      
+    LUsesPos := LMatch.Index;
+    LSemiPos := Pos(';', Result, LUsesPos);
+  end;
+  
+  LWordPos := LUsesPos + LMatch.Length - 4; 
+  if GetDirectiveLevel(Result, LImplPos, LWordPos) = 0 then
+  begin
+    Result := InjectUnconditionalUses(Result, AUnitToAdd, LWordPos);
+    Exit;
+  end;
+  
+  Result := RewriteConditionalUses(Result, AUnitToAdd, LImplPos, LWordPos, LSemiPos);
 end;
 
 procedure TApplyUsesChanges.Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);

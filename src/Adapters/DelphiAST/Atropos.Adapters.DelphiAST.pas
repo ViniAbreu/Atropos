@@ -23,6 +23,11 @@ type
     
     procedure FindAllUses(ANode: TSyntaxNode; AList: TList<string>);
     procedure FindAllIdentifiers(ANode: TSyntaxNode; AList: TList<string>);
+    
+    function ExtractNodeName(ANode: TSyntaxNode): string;
+    function CanExportNode(ANode: TSyntaxNode; AInsideTypeDecl, AInsideHelper: Boolean): Boolean;
+    function IsHelperNode(ANode: TSyntaxNode): Boolean;
+    
     procedure FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; AInsideTypeDecl: Boolean = False;
       AInsideHelper: Boolean = False);
   public
@@ -118,16 +123,19 @@ end;
 procedure TDelphiASTSyntaxTree.FindAllIdentifiers(ANode: TSyntaxNode; AList: TList<string>);
 var
   LChild: TSyntaxNode;
+  LName: string;
 begin
   if not Assigned(ANode) then
     Exit;
 
   if ANode.Typ = ntUses then
     Exit;
+    
+  LName := ExtractNodeName(ANode);
   
-  if ANode.HasAttribute(anName) and not (ANode.Typ in [ntUnit, ntUses]) then
+  if not LName.IsEmpty and not (ANode.Typ in [ntUnit, ntUses, ntLiteral]) then
   begin
-    AList.Add(ANode.GetAttribute(anName));
+    AList.Add(LName);
     if Assigned(ANode.ParentNode) and (ANode.ParentNode.Typ = ntGeneric) and
        (Length(ANode.ParentNode.ChildNodes) > 0) and (ANode.ParentNode.ChildNodes[0] = ANode) then
       AList[AList.Count - 1] := AList[AList.Count - 1] + '<T>';
@@ -137,26 +145,102 @@ begin
     FindAllIdentifiers(LChild, AList);
 end;
 
+function TDelphiASTSyntaxTree.ExtractNodeName(ANode: TSyntaxNode): string;
+var
+  LChild: TSyntaxNode;
+begin
+  if not Assigned(ANode) then
+  begin
+    Result := EmptyStr;
+    Exit;
+  end;
+
+  Result := ANode.GetAttribute(anName);
+  if not Result.IsEmpty then
+    Exit;
+
+  if ANode is TValuedSyntaxNode then
+  begin
+    Result := TValuedSyntaxNode(ANode).Value;
+    if not Result.IsEmpty then
+      Exit;
+  end;
+
+  LChild := ANode.FindNode(ntName);
+  if Assigned(LChild) then
+  begin
+    Result := ExtractNodeName(LChild);
+    if not Result.IsEmpty then
+      Exit;
+  end;
+
+  LChild := ANode.FindNode(ntIdentifier);
+  if Assigned(LChild) then
+  begin
+    Result := ExtractNodeName(LChild);
+  end;
+end;
+
+function TDelphiASTSyntaxTree.CanExportNode(ANode: TSyntaxNode; AInsideTypeDecl, AInsideHelper: Boolean): Boolean;
+begin
+  Result := False;
+  if ANode.Typ in [ntUnit, ntUses, ntType] then
+    Exit;
+    
+  if AInsideTypeDecl and not AInsideHelper then
+  begin
+    if ANode.Typ = ntElement then
+    begin
+      Result := True;
+      Exit;
+    end;
+    
+    if (ANode.Typ = ntIdentifier) and Assigned(ANode.ParentNode) and 
+       (ANode.ParentNode.Typ = ntType) and (ANode.ParentNode.GetAttribute(anName) = 'enum') then
+    begin
+      Result := True;
+      Exit;
+    end;
+    
+    Exit;
+  end;
+  
+  if ANode.Typ = ntIdentifier then
+    Exit;
+    
+  Result := True;
+end;
+
+function TDelphiASTSyntaxTree.IsHelperNode(ANode: TSyntaxNode): Boolean;
+begin
+  Result := Assigned(ANode.FindNode(ntHelper));
+  if not Result and (ANode.Typ = ntTypeDecl) then
+    Result := Assigned(ANode.FindNode([ntType, ntHelper]));
+end;
+
 procedure TDelphiASTSyntaxTree.FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; AInsideTypeDecl: Boolean = False; AInsideHelper: Boolean = False);
 var
   LChild: TSyntaxNode;
   LIsTypeDecl: Boolean;
   LIsHelper: Boolean;
+  LName: string;
 begin
   if not Assigned(ANode) then
     Exit;
   
   if ANode.Typ = ntUses then
     Exit;
+    
+  LName := ExtractNodeName(ANode);
   
-  if ANode.HasAttribute(anName) and not (ANode.Typ in [ntUnit, ntUses, ntIdentifier, ntType]) then
-  begin
-    if not (AInsideTypeDecl and not AInsideHelper and (ANode.Typ <> ntElement)) then
-      AList.Add(ANode.GetAttribute(anName));
-  end;
+  if not LName.IsEmpty and CanExportNode(ANode, AInsideTypeDecl, AInsideHelper) then
+    AList.Add(LName);
     
   LIsTypeDecl := AInsideTypeDecl or (ANode.Typ = ntTypeDecl);
   LIsHelper := AInsideHelper or (ANode.Typ = ntHelper);
+  
+  if (ANode.Typ in [ntTypeDecl, ntType]) and not LIsHelper then
+    LIsHelper := IsHelperNode(ANode);
   
   for LChild in ANode.ChildNodes do
     FindExportedIdentifiers(LChild, AList, LIsTypeDecl, LIsHelper);
