@@ -24,14 +24,13 @@ type
     destructor Destroy; override;
     
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, AProjectBasePath: string);
-    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>): Boolean;
+    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
   end;
 
 implementation
 
 uses
   System.SysUtils,
-  System.Types,
   System.IOUtils;
 
 constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser);
@@ -118,7 +117,7 @@ begin
   FIsCacheBuilt := True;
 end;
 
-function TExternalUnitResolverAdapter.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>): Boolean;
+function TExternalUnitResolverAdapter.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
 var
   LLowerName: string;
   LFilePath: string;
@@ -126,6 +125,7 @@ var
 begin
   Result := False;
   AExports := [];
+  AHasInit := False;
   
   BuildCache;
   
@@ -137,6 +137,7 @@ begin
       if Assigned(LSyntaxTree) then
       begin
         AExports := LSyntaxTree.GetExportedIdentifiers;
+        AHasInit := LSyntaxTree.HasInitializationSection;
         Result := True;
       end;
     except

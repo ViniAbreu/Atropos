@@ -35,6 +35,7 @@ type
     function GetIdentifiersUsedInInterface: TArray<string>;
     function GetIdentifiersUsedInImplementation: TArray<string>;
     function GetExportedIdentifiers: TArray<string>;
+    function HasInitializationSection: Boolean;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser)
@@ -47,11 +48,7 @@ implementation
 uses
   DelphiAST,
   System.JSON,
-  System.Net.HttpClient,
-  System.Classes,
-  System.IOUtils,
-  System.DateUtils,
-  System.StrUtils;
+  System.Classes;
 
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
 var
@@ -128,7 +125,7 @@ begin
   if ANode.Typ = ntUses then
     Exit;
   
-  if ANode.HasAttribute(anName) and (ANode.Typ in [ntType, ntIdentifier, ntAttribute]) then
+  if ANode.HasAttribute(anName) and not (ANode.Typ in [ntUnit, ntUses]) then
   begin
     AList.Add(ANode.GetAttribute(anName));
     if Assigned(ANode.ParentNode) and (ANode.ParentNode.Typ = ntGeneric) and
@@ -249,6 +246,13 @@ begin
       LList.Free;
     end;
   end;
+end;
+
+function TDelphiASTSyntaxTree.HasInitializationSection: Boolean;
+begin
+  Result := False;
+  if Assigned(FRoot) then
+    Result := Assigned(FRoot.FindNode(ntInitialization));
 end;
 
 end.

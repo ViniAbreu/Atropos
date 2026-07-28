@@ -12,7 +12,8 @@ type
   public
     UnitName: string;
     ExportedIdentifiers: TList<string>;
-    constructor Create(const AUnitName: string);
+    HasInitialization: Boolean;
+    constructor Create(const AUnitName: string; AHasInit: Boolean = False);
     destructor Destroy; override;
   end;
   
@@ -25,9 +26,10 @@ type
   public
     constructor Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
     destructor Destroy; override;
-    procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>);
+    procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False);
     function UnitExportsIdentifier(const AUnitName, AIdentifier: string): Boolean;
     function HasUnit(const AUnitName: string): Boolean;
+    function UnitHasInitialization(const AUnitName: string): Boolean;
   end;
 
   TUnitAnalysisResult = record
@@ -50,9 +52,10 @@ implementation
 uses
   System.SysUtils;
 
-constructor TUnitExports.Create(const AUnitName: string);
+constructor TUnitExports.Create(const AUnitName: string; AHasInit: Boolean = False);
 begin
   UnitName := AUnitName;
+  HasInitialization := AHasInit;
   ExportedIdentifiers := TList<string>.Create;
 end;
 
@@ -77,12 +80,12 @@ begin
   inherited;
 end;
 
-procedure TProjectContext.RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>);
+procedure TProjectContext.RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False);
 var
   LExports: TUnitExports;
   LIdent: string;
 begin
-  LExports := TUnitExports.Create(AUnitName);
+  LExports := TUnitExports.Create(AUnitName, AHasInit);
   for LIdent in AIdentifiers do
     LExports.ExportedIdentifiers.Add(LIdent.ToLower);
   FUnitExports.AddOrSetValue(AUnitName.ToLower, LExports);
@@ -92,20 +95,30 @@ function TProjectContext.HasUnit(const AUnitName: string): Boolean;
 var
   LLowerName: string;
   LExports: TArray<string>;
+  LHasInit: Boolean;
 begin
   LLowerName := AUnitName.ToLower;
   Result := FUnitExports.ContainsKey(LLowerName);
   
   if (not Result) and Assigned(FResolver) and not FMissingUnits.ContainsKey(LLowerName) then
   begin
-    if FResolver.TryResolveUnit(AUnitName, LExports) then
+    if FResolver.TryResolveUnit(AUnitName, LExports, LHasInit) then
     begin
-      RegisterUnitExports(AUnitName, LExports);
+      RegisterUnitExports(AUnitName, LExports, LHasInit);
       Exit(True);
     end;
     
     FMissingUnits.Add(LLowerName, True);
   end;
+end;
+
+function TProjectContext.UnitHasInitialization(const AUnitName: string): Boolean;
+var
+  LExports: TUnitExports;
+begin
+  Result := False;
+  if FUnitExports.TryGetValue(AUnitName.ToLower, LExports) then
+    Result := LExports.HasInitialization;
 end;
 
 function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string): Boolean;
@@ -195,6 +208,13 @@ begin
       if not AContext.HasUnit(LUnitName) then
         Continue;
 
+      if AContext.UnitHasInitialization(LUnitName) then
+      begin
+        if Assigned(FLogger) then
+          FLogger.Log('DEBUG: ' + LUnitName + ' HasInitialization: True (Skipping)');
+        Continue;
+      end;
+
       LUsedInIntf := IsUnitUsed(AContext, LUnitName, LIntfIdents);
       if LUsedInIntf then
       begin
@@ -220,6 +240,13 @@ begin
     begin
       if not AContext.HasUnit(LUnitName) then
         Continue;
+
+      if AContext.UnitHasInitialization(LUnitName) then
+      begin
+        if Assigned(FLogger) then
+          FLogger.Log('DEBUG: ' + LUnitName + ' HasInitialization: True (Skipping)');
+        Continue;
+      end;
 
       LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents);
       if Assigned(FLogger) then

@@ -185,6 +185,9 @@ procedure TReportGeneratorAdapter.AddUnitProcessed(const AUnitName: string; cons
 var
   LUses: string;
 begin
+  if (Length(ARemovedUses) = 0) and (Length(AMovedUses) = 0) then
+    Exit;
+    
   FReportLines.Add('File: ' + AUnitName);
   
   if Length(ARemovedUses) > 0 then

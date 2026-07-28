@@ -28,6 +28,7 @@ type
     function GetIdentifiersUsedInInterface: TArray<string>;
     function GetIdentifiersUsedInImplementation: TArray<string>;
     function GetExportedIdentifiers: TArray<string>;
+    function HasInitializationSection: Boolean;
   end;
   
   IProjectParser = interface
@@ -62,7 +63,7 @@ type
   IExternalUnitResolver = interface
     ['{946BA138-661C-4B6A-91C9-57BAE3DB3D98}']
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
-    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>): Boolean;
+    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
   end;
 
   IDelphiEnvironmentService = interface
