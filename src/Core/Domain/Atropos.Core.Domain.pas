@@ -126,42 +126,23 @@ var
   LExports: TUnitExports;
   LBaseIdent: string;
   LPos: Integer;
-  LPrefix: string;
 begin
-  if not FUnitExports.TryGetValue(AUnitName.ToLower, LExports) then
-    Exit(False);
-
-  LBaseIdent := AIdentifier.ToLower;
-  LPos := Pos('<', LBaseIdent);
-  if LPos > 0 then
-    LBaseIdent := Copy(LBaseIdent, 1, LPos - 1);
-      
-  LPos := LastDelimiter('.', LBaseIdent);
-  if LPos > 0 then
+  Result := False;
+  if FUnitExports.TryGetValue(LowerCase(AUnitName), LExports) then
   begin
-    LPrefix := Copy(LBaseIdent, 1, LPos - 1);
+    LBaseIdent := LowerCase(AIdentifier);
     
-    if not AUnitName.ToLower.EndsWith(LPrefix) then
-      Exit(False);
+    // Remover argumentos genéricos (ex: TArray<string> -> tarray)
+    LPos := Pos('<', LBaseIdent);
+    if LPos > 0 then
+      LBaseIdent := Copy(LBaseIdent, 1, LPos - 1);
       
-    LBaseIdent := Copy(LBaseIdent, LPos + 1, MaxInt);
-  end;
-  
-  if LPrefix.IsEmpty then
-  begin
-    if (LBaseIdent = 'tlist') and (AUnitName.ToLower = 'system.classes') then
-      Exit(False);
-    if (LBaseIdent = 'tqueue') and (AUnitName.ToLower = 'system.contnrs') then
-      Exit(False);
-    if (LBaseIdent = 'tstack') and (AUnitName.ToLower = 'system.contnrs') then
-      Exit(False);
-  end;
-    
-  Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
-  if Result and (AUnitName.ToLower = 'system.classes') then
-  begin
-    if Assigned(FLogger) then
-      FLogger.Log('DEBUG IDENT MATCH: System.Classes matched ' + LBaseIdent + ' from original ' + AIdentifier);
+    // Remover prefixos de namespace/unit (ex: SysUtils.Exception -> exception)
+    LPos := LastDelimiter('.', LBaseIdent);
+    if LPos > 0 then
+      LBaseIdent := Copy(LBaseIdent, LPos + 1, MaxInt);
+      
+    Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
   end;
 end;
 

@@ -5,7 +5,6 @@ interface
 uses
   Atropos.Core.Ports,
   Xml.XMLIntf,
-  Xml.XMLDoc,
   System.Win.Registry;
 
 type
@@ -27,7 +26,8 @@ uses
   System.Classes,
   System.SysUtils,
   Winapi.Windows,
-  Winapi.ActiveX;
+  Winapi.ActiveX,
+  Xml.XMLDoc;
 
 function TDelphiEnvironmentAdapter.FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
 var
