@@ -1,7 +1,6 @@
-unit Atropos.App.CLI;
+﻿unit Atropos.App.CLI;
 
 interface
-
 uses
   Atropos.Core.Config;
 
@@ -15,12 +14,8 @@ type
   end;
 
 implementation
-
-uses
-  Atropos.Application.AppService,
-  Atropos.Application.Factory,
-  System.SysUtils,
-  System.IOUtils;
+uses System.SysUtils, System.IOUtils, Atropos.Application.Factory,
+  Atropos.Application.AppService;
 
 procedure TCLIApp.ParseParams(var AConfig: TToolConfig);
 var

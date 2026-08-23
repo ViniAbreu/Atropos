@@ -1,10 +1,9 @@
-unit Atropos.Adapters.FileSystem;
+﻿unit Atropos.Adapters.FileSystem;
 
 interface
-
 uses
   Atropos.Core.Ports,
-  System.Generics.Collections;
+  System.Generics.Collections, System.SysUtils;
 
 type
   TFileSystemAdapter = class(TInterfacedObject, IFileService)
@@ -21,9 +20,7 @@ type
   end;
 
 implementation
-
 uses
-  System.SysUtils,
   System.IOUtils;
 
 constructor TFileSystemAdapter.Create;

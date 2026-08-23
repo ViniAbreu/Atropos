@@ -1,10 +1,9 @@
-unit Atropos.Adapters.ExternalUnitResolver;
+﻿unit Atropos.Adapters.ExternalUnitResolver;
 
 interface
-
 uses
   System.Generics.Collections,
-  Atropos.Core.Ports;
+  Atropos.Core.Ports, System.SysUtils;
 
 type
   TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver)
@@ -24,13 +23,11 @@ type
     destructor Destroy; override;
     
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, AProjectBasePath: string);
-    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
+    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
 
 implementation
-
 uses
-  System.SysUtils,
   System.IOUtils;
 
 constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser);
@@ -117,7 +114,7 @@ begin
   FIsCacheBuilt := True;
 end;
 
-function TExternalUnitResolverAdapter.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
+function TExternalUnitResolverAdapter.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
 var
   LLowerName: string;
   LFilePath: string;
@@ -126,12 +123,16 @@ begin
   Result := False;
   AExports := [];
   AHasInit := False;
+  AIsNative := False;
   
   BuildCache;
   
   LLowerName := AUnitName.ToLower;
   if FUnitPathCache.TryGetValue(LLowerName, LFilePath) then
   begin
+    if (not FDelphiPath.IsEmpty) and LFilePath.ToLower.StartsWith(FDelphiPath.ToLower) then
+      AIsNative := True;
+      
     try
       LSyntaxTree := FASTParser.ParseFile(LFilePath);
       if Assigned(LSyntaxTree) then

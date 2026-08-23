@@ -3,6 +3,12 @@ unit Atropos.Core.Ports;
 interface
 
 type
+  TInlineHint = record
+    HintType: string;
+    FilePath: string;
+    UnitNeeded: string;
+  end;
+
   TBuildMetrics = record
     Hints: Integer;
     Warnings: Integer;
@@ -13,6 +19,8 @@ type
     RemovedUnitsCount: Integer;
     MovedUnitsCount: Integer;
     DelphiVersion: string;
+    ResolvedInlineHintsCount: Integer;
+    InlineHints: TArray<TInlineHint>;
   end;
 
   ILogger = interface
@@ -63,7 +71,7 @@ type
   IExternalUnitResolver = interface
     ['{946BA138-661C-4B6A-91C9-57BAE3DB3D98}']
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
-    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
+    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
 
   IDelphiEnvironmentService = interface

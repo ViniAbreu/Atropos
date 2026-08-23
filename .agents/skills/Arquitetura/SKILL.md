@@ -27,7 +27,8 @@ Sempre que estiver escrevendo, refatorando ou analisando código neste projeto, 
 
 ## 4. Object Calisthenics
 - **Apenas um nível de indentação por método:** Se precisar de mais, extraia para outro método.
-- **Não use `else`:** Aplique *early return* (cláusulas de guarda / guard clauses).
+- **Tolerância Zero para `else`:** NENHUM fluxo lógico deve usar `else`. Aplique *early return* (cláusulas de guarda / guard clauses) com `Exit()` ou `Continue` de forma absoluta.
+- **Proibição Estrita de Sub-funções (Nested Routines):** Toda lógica auxiliar deve ser declarada como um método privado (ou helper) da classe, nunca aninhada dentro de outra função ou procedure.
 - **Envolva tipos primitivos e strings:** Crie Value Objects para representar domínios específicos (ex: `TUnitPath` ao invés de apenas `string` caso possua regras atreladas).
 - **Coleções de Primeira Classe (First Class Collections):** Qualquer array ou lista genérica que exija manipulação de lógica de negócio deve ser encapsulada em uma classe própria.
 - **Um ponto (ou acesso) por linha:** Respeite a Lei de Demeter (não acesse `A.B.C.D()`).

@@ -1,9 +1,8 @@
-unit Atropos.Adapters.BuildService;
+﻿unit Atropos.Adapters.BuildService;
 
 interface
-
 uses
-  Atropos.Core.Ports;
+  Atropos.Core.Ports, System.SysUtils;
 
 type
   TBuildServiceAdapter = class(TInterfacedObject, IBuildService)
@@ -19,13 +18,8 @@ type
   end;
 
 implementation
-
-uses
-  System.SysUtils,
-  System.Classes,
-  Winapi.Windows,
-  System.RegularExpressions,
-  System.IOUtils;
+uses System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions,
+  Winapi.Windows;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
 begin
@@ -99,22 +93,44 @@ var
   LMatch: TMatch;
   LExeDir: string;
   LExePath: string;
+  LHintsList: TList<TInlineHint>;
+  LHint: TInlineHint;
+  LRegexPattern: string;
+  LProjDir: string;
 begin
   Result := Default(TBuildMetrics);
+  LProjDir := TPath.GetDirectoryName(AProjectPath);
   
   Result.Hints := 0;
-  for LMatch in TRegEx.Matches(AOutput, '\[dcc32 Hint\]') do
+  for LMatch in TRegEx.Matches(AOutput, '\[dcc[a-zA-Z0-9]* Hint\]') do
     Inc(Result.Hints);
   
   Result.Warnings := 0;
-  for LMatch in TRegEx.Matches(AOutput, '\[dcc32 Warning\]') do
+  for LMatch in TRegEx.Matches(AOutput, '\[dcc[a-zA-Z0-9]* Warning\]') do
     Inc(Result.Warnings);
 
+  LHintsList := TList<TInlineHint>.Create;
+  try
+    LRegexPattern := '([^\s\[\]][^\r\n\[\]]*?\.pas).*?(H2443|H2445).*?unit ''([^'']+)''';
+    for LMatch in TRegEx.Matches(AOutput, LRegexPattern) do
+    begin
+      LHint.FilePath := LMatch.Groups[1].Value.Trim;
+      if TPath.IsRelativePath(LHint.FilePath) then
+        LHint.FilePath := TPath.GetFullPath(TPath.Combine(LProjDir, LHint.FilePath));
+      LHint.HintType := LMatch.Groups[2].Value;
+      LHint.UnitNeeded := LMatch.Groups[3].Value;
+      LHintsList.Add(LHint);
+    end;
+    Result.InlineHints := LHintsList.ToArray;
+  finally
+    LHintsList.Free;
+  end;
+
   Result.Success :=
-    not (TRegEx.IsMatch(AOutput, 'Build FAILED\.') or TRegEx.IsMatch(AOutput, '\[dcc32 (Error|Fatal Error)\]'));
+    not (TRegEx.IsMatch(AOutput, 'Build FAILED\.') or TRegEx.IsMatch(AOutput, '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\]'));
   if not Result.Success then
   begin
-    LMatch := TRegEx.Match(AOutput, '\[dcc32 (Error|Fatal Error)\][^\r\n]+');
+    LMatch := TRegEx.Match(AOutput, '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\][^\r\n]+');
     Result.ErrorMessage := 'Unknown compilation error.';
     if LMatch.Success then
       Result.ErrorMessage := LMatch.Value;

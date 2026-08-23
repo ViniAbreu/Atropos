@@ -1,7 +1,6 @@
-unit Atropos.Adapters.ProjectParser;
+﻿unit Atropos.Adapters.ProjectParser;
 
 interface
-
 uses
   System.Generics.Collections,
   Xml.XMLIntf,
@@ -21,11 +20,8 @@ type
   end;
 
 implementation
-
-uses
-  System.SysUtils,
-  Winapi.ActiveX,
-  Xml.XMLDoc;
+uses System.SysUtils, Xml.XMLDoc,
+  Winapi.ActiveX;
 
 function TDprojParserAdapter.FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
 var

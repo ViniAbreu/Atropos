@@ -1,10 +1,9 @@
-unit Atropos.Adapters.ReportGenerator;
+﻿unit Atropos.Adapters.ReportGenerator;
 
 interface
-
 uses
   Atropos.Core.Ports,
-  System.Generics.Collections;
+  System.Generics.Collections, System.SysUtils;
 
 type
   TReportGeneratorAdapter = class(TInterfacedObject, IReportGenerator)
@@ -17,7 +16,7 @@ type
     FAnalysisTimeMs: Int64;
     FUnitsAnalyzed: Integer;
     FSearchPaths: Integer;
-    function FormatDeltaPct(ADiff: Double; ALowerIsBetter: Boolean): string;
+    function FormatDeltaPct(ADiff: Double; AIsTimeMetric: Boolean): string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -29,10 +28,7 @@ type
   end;
 
 implementation
-
-uses
-  System.SysUtils,
-  System.Math,
+uses System.Math,
   System.StrUtils;
 
 const
@@ -58,13 +54,13 @@ const
     '    .info-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; flex: 1.5; display: flex; flex-direction: column; justify-content: center; border-left: 4px solid var(--accent-blue); }' + sLineBreak +
     '    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }' + sLineBreak +
     '    .info-item { display: flex; flex-direction: column; }' + sLineBreak +
-    '    .info-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }' + sLineBreak +
-    '    .info-value { font-size: 1.1rem; font-weight: 600; color: var(--text-main); }' + sLineBreak +
+    '    .info-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; white-space: nowrap; }' + sLineBreak +
+    '    .info-value { font-size: 1.1rem; font-weight: 600; color: var(--text-main); white-space: nowrap; }' + sLineBreak +
     '    .metrics-grid { display: flex; flex: 3; gap: 15px; }' + sLineBreak +
     '    .metric-card { background-color: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; flex: 1; display: flex; flex-direction: column; }' + sLineBreak +
-    '    .metric-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }' + sLineBreak +
-    '    .metric-value { font-size: 1.8rem; font-weight: 600; color: var(--text-main); }' + sLineBreak +
-    '    .metric-delta { font-size: 0.85rem; margin-top: 5px; }' + sLineBreak +
+    '    .metric-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }' + sLineBreak +
+    '    .metric-value { font-size: 1.8rem; font-weight: 600; color: var(--text-main); white-space: nowrap; }' + sLineBreak +
+    '    .metric-delta { font-size: 0.85rem; margin-top: 5px; white-space: nowrap; }' + sLineBreak +
     '    .delta-positive { color: var(--status-passed); }' + sLineBreak +
     '    .delta-negative { color: var(--status-failed); }' + sLineBreak +
     '    .issues-section { display: flex; flex-direction: column; flex: 1; overflow: hidden; }' + sLineBreak +
@@ -137,6 +133,11 @@ const
     '          <div class="metric-title">Moved Units</div>' + sLineBreak +
     '          <div class="metric-value">{{MOVED_COUNT}}</div>' + sLineBreak +
     '          <div class="metric-delta delta-positive">{{MOVED_COUNT}} moved to implementation</div>' + sLineBreak +
+    '        </div>' + sLineBreak +
+    '        <div class="metric-card">' + sLineBreak +
+    '          <div class="metric-title">Hints removed</div>' + sLineBreak +
+    '          <div class="metric-value">{{HINTS_FIXED_COUNT}}</div>' + sLineBreak +
+    '          <div class="metric-delta delta-positive">{{HINTS_FIXED_COUNT}} fixed</div>' + sLineBreak +
     '        </div>' + sLineBreak +
     '        <div class="metric-card">' + sLineBreak +
     '          <div class="metric-title">Compile Time</div>' + sLineBreak +
@@ -234,14 +235,17 @@ begin
   Result := Format('%.2d:%.2d.%.3d', [LMin, LSec, LMillis]);
 end;
 
-function TReportGeneratorAdapter.FormatDeltaPct(ADiff: Double; ALowerIsBetter: Boolean): string;
+function TReportGeneratorAdapter.FormatDeltaPct(ADiff: Double; AIsTimeMetric: Boolean): string;
+var
+  LAbsDiff: Double;
 begin
-  if SameValue(ADiff, 0.0, 0.001) then
+  LAbsDiff := Abs(ADiff);
+  if LAbsDiff < 0.05 then
     Exit(EmptyStr);
 
-  Result := Format(' (%.1f%% %s)', [Abs(ADiff), IfThen(ALowerIsBetter, 'slower', 'larger')]);
+  Result := Format(' (%.1f%% %s)', [LAbsDiff, IfThen(AIsTimeMetric, 'slower', 'larger')]);
   if ADiff < 0 then
-    Result := Format(' (%.1f%% %s)', [Abs(ADiff), IfThen(ALowerIsBetter, 'faster', 'smaller')]);
+    Result := Format(' (%.1f%% %s)', [LAbsDiff, IfThen(AIsTimeMetric, 'faster', 'smaller')]);
 end;
 
 function TReportGeneratorAdapter.GetReportContentTXT: string;
@@ -257,7 +261,7 @@ begin
   LResult := TStringBuilder.Create;
   try
     LResult.AppendLine('Atropos - Optimization Report');
-    LResult.AppendLine('===============================');
+    LResult.AppendLine('========================================================');
     LResult.AppendLine('Project: ' + FProjectName);
     LResult.AppendLine('Analysis Time: ' + FormatTimeMs(FAnalysisTimeMs));
     LResult.AppendLine('Units Analyzed: ' + FUnitsAnalyzed.ToString);
@@ -267,11 +271,12 @@ begin
     if FHasMetrics then
     begin
       LResult.AppendLine('Atropos - Metrics Report');
-      LResult.AppendLine('===============================');
+      LResult.AppendLine('========================================================');
       LResult.AppendLine('Delphi Version: ' + FMetricsBefore.DelphiVersion);
       LResult.AppendLine('');
       LResult.AppendLine('Cleaned Units (Removed Uses): ' + FMetricsAfter.RemovedUnitsCount.ToString);
       LResult.AppendLine('Moved Units (To Implementation): ' + FMetricsAfter.MovedUnitsCount.ToString);
+      LResult.AppendLine('Hints removed: ' + FMetricsAfter.ResolvedInlineHintsCount.ToString);
       LResult.AppendLine('');
       LResult.AppendLine('Compile Time (Before): ' + FormatTimeMs(FMetricsBefore.CompileTimeMs));
       LResult.AppendLine('Compile Time (After): ' + FormatTimeMs(FMetricsAfter.CompileTimeMs));
@@ -310,7 +315,7 @@ begin
     if FReportLines.Count > 0 then
     begin
       LResult.AppendLine('Atropos - Processing Report (Unit Dependency Issues)');
-      LResult.AppendLine('===============================');
+      LResult.AppendLine('========================================================');
       for LLine in FReportLines do
         LResult.AppendLine(LLine);
     end;
@@ -341,7 +346,9 @@ begin
   LHtml := HTML_BASE_TEMPLATE;
   LHtml := LHtml.Replace('{{PROJECT_NAME}}', FProjectName);
   LHtml := LHtml.Replace('{{DELPHI_VERSION}}', IfThen(FHasMetrics, FMetricsBefore.DelphiVersion, 'Unknown'));
+  
   LHtml := LHtml.Replace('{{ANALYSIS_TIME}}', FormatTimeMs(FAnalysisTimeMs));
+    
   LHtml := LHtml.Replace('{{UNITS_ANALYZED}}', FUnitsAnalyzed.ToString);
   LHtml := LHtml.Replace('{{SEARCH_PATHS}}', FSearchPaths.ToString);
 
@@ -356,25 +363,26 @@ begin
     LMetricsHtml := HTML_METRICS_TEMPLATE;
     LMetricsHtml := LMetricsHtml.Replace('{{CLEANED_COUNT}}', FMetricsAfter.RemovedUnitsCount.ToString);
     LMetricsHtml := LMetricsHtml.Replace('{{MOVED_COUNT}}', FMetricsAfter.MovedUnitsCount.ToString);
+    LMetricsHtml := LMetricsHtml.Replace('{{HINTS_FIXED_COUNT}}', FMetricsAfter.ResolvedInlineHintsCount.ToString);
+    
     LMetricsHtml := LMetricsHtml.Replace('{{COMPILE_TIME}}', FormatTimeMs(FMetricsAfter.CompileTimeMs));
-    
-    if LTimeDelta < 0 then
-    begin
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-positive');
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('%.2fs', [LTimeDelta]));
-    end;
-    
-    if LTimeDelta > 0 then
-    begin
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-negative');
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('+%.2fs', [LTimeDelta]));
-    end;
     
     if SameValue(LTimeDelta, 0.0, 0.001) then
     begin
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', '');
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', '0s');
+    end
+    else if LTimeDelta < 0 then
+    begin
+      LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-positive');
+      LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('%.2fs', [LTimeDelta]));
+    end
+    else if LTimeDelta > 0 then
+    begin
+      LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-negative');
+      LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('+%.2fs', [LTimeDelta]));
     end;
+    
     LMetricsHtml := LMetricsHtml.Replace('{{TIME_PCT}}', FormatDeltaPct(LTimeDelta / (FMetricsBefore.CompileTimeMs / 1000.0) * 100, True));
     
     if (FMetricsBefore.ExeSizeBytes = 0) and (FMetricsAfter.ExeSizeBytes = 0) then
@@ -389,25 +397,24 @@ begin
     begin
       LMetricsHtml := LMetricsHtml.Replace('{{EXE_SIZE}}', Format('%.1f', [FMetricsAfter.ExeSizeBytes / (1024.0 * 1024.0)]));
       
-      if LSizeDelta < 0 then
-      begin
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-positive');
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('%.2f', [LSizeDelta]));
-      end;
-      
-      if LSizeDelta > 0 then
-      begin
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-negative');
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('+%.2f', [LSizeDelta]));
-      end;
-      
-      if SameValue(LSizeDelta, 0.0, 0.001) then
+      if SameValue(LSizeDelta, 0.0, 0.01) then
       begin
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', '');
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', '0');
+        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', '');
+      end
+      else if LSizeDelta < 0 then
+      begin
+        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-positive');
+        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('%.2f', [LSizeDelta]));
+        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta / (FMetricsBefore.ExeSizeBytes / (1024.0*1024.0)) * 100, False));
+      end
+      else if LSizeDelta > 0 then
+      begin
+        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-negative');
+        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('+%.2f', [LSizeDelta]));
+        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta / (FMetricsBefore.ExeSizeBytes / (1024.0*1024.0)) * 100, False));
       end;
-      
-      LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta / (FMetricsBefore.ExeSizeBytes / (1024.0*1024.0)) * 100, True));
     end;
   end;
 

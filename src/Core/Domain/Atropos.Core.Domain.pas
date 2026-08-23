@@ -1,10 +1,9 @@
 unit Atropos.Core.Domain;
 
 interface
-
 uses
   System.Generics.Collections,
-  Atropos.Core.Ports;
+  Atropos.Core.Ports, System.SysUtils;
 
 type
   
@@ -13,7 +12,8 @@ type
     UnitName: string;
     ExportedIdentifiers: TList<string>;
     HasInitialization: Boolean;
-    constructor Create(const AUnitName: string; AHasInit: Boolean = False);
+    IsNative: Boolean;
+    constructor Create(const AUnitName: string; AHasInit: Boolean = False; AIsNative: Boolean = False);
     destructor Destroy; override;
   end;
   
@@ -26,7 +26,7 @@ type
   public
     constructor Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
     destructor Destroy; override;
-    procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False);
+    procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False; AIsNative: Boolean = False);
     function UnitExportsIdentifier(const AUnitName, AIdentifier: string): Boolean;
     function HasUnit(const AUnitName: string): Boolean;
     function UnitHasInitialization(const AUnitName: string): Boolean;
@@ -49,13 +49,11 @@ type
 
 implementation
 
-uses
-  System.SysUtils;
-
-constructor TUnitExports.Create(const AUnitName: string; AHasInit: Boolean = False);
+constructor TUnitExports.Create(const AUnitName: string; AHasInit: Boolean = False; AIsNative: Boolean = False);
 begin
   UnitName := AUnitName;
   HasInitialization := AHasInit;
+  IsNative := AIsNative;
   ExportedIdentifiers := TList<string>.Create;
 end;
 
@@ -80,12 +78,12 @@ begin
   inherited;
 end;
 
-procedure TProjectContext.RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False);
+procedure TProjectContext.RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False; AIsNative: Boolean = False);
 var
   LExports: TUnitExports;
   LIdent: string;
 begin
-  LExports := TUnitExports.Create(AUnitName, AHasInit);
+  LExports := TUnitExports.Create(AUnitName, AHasInit, AIsNative);
   for LIdent in AIdentifiers do
     LExports.ExportedIdentifiers.Add(LIdent.ToLower);
   FUnitExports.AddOrSetValue(AUnitName.ToLower, LExports);
@@ -96,15 +94,16 @@ var
   LLowerName: string;
   LExports: TArray<string>;
   LHasInit: Boolean;
+  LIsNative: Boolean;
 begin
   LLowerName := AUnitName.ToLower;
   Result := FUnitExports.ContainsKey(LLowerName);
   
   if (not Result) and Assigned(FResolver) and not FMissingUnits.ContainsKey(LLowerName) then
   begin
-    if FResolver.TryResolveUnit(AUnitName, LExports, LHasInit) then
+    if FResolver.TryResolveUnit(AUnitName, LExports, LHasInit, LIsNative) then
     begin
-      RegisterUnitExports(AUnitName, LExports, LHasInit);
+      RegisterUnitExports(AUnitName, LExports, LHasInit, LIsNative);
       Exit(True);
     end;
     
@@ -118,7 +117,12 @@ var
 begin
   Result := False;
   if FUnitExports.TryGetValue(AUnitName.ToLower, LExports) then
-    Result := LExports.HasInitialization;
+  begin
+    if LExports.IsNative then
+      Result := False
+    else
+      Result := LExports.HasInitialization;
+  end;
 end;
 
 function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string): Boolean;
@@ -190,23 +194,13 @@ begin
         Continue;
 
       if AContext.UnitHasInitialization(LUnitName) then
-      begin
-        if Assigned(FLogger) then
-          FLogger.Log('DEBUG: ' + LUnitName + ' HasInitialization: True (Skipping)');
         Continue;
-      end;
 
       LUsedInIntf := IsUnitUsed(AContext, LUnitName, LIntfIdents);
       if LUsedInIntf then
-      begin
-        if Assigned(FLogger) then
-          FLogger.Log('DEBUG: ' + LUnitName + ' UsedInIntf: True');
         Continue;
-      end;
 
       LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents);
-      if Assigned(FLogger) then
-        FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
       
       if LUsedInImpl then
       begin
@@ -223,15 +217,9 @@ begin
         Continue;
 
       if AContext.UnitHasInitialization(LUnitName) then
-      begin
-        if Assigned(FLogger) then
-          FLogger.Log('DEBUG: ' + LUnitName + ' HasInitialization: True (Skipping)');
         Continue;
-      end;
 
       LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents);
-      if Assigned(FLogger) then
-        FLogger.Log('DEBUG: ' + LUnitName + ' UsedInImpl: ' + BoolToStr(LUsedInImpl, True));
       
       if not LUsedInImpl then
         LUnused.Add(LUnitName);

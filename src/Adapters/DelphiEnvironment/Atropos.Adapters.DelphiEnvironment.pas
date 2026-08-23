@@ -1,7 +1,6 @@
-unit Atropos.Adapters.DelphiEnvironment;
+﻿unit Atropos.Adapters.DelphiEnvironment;
 
 interface
-
 uses
   Atropos.Core.Ports,
   Xml.XMLIntf,
@@ -21,13 +20,8 @@ type
   end;
 
 implementation
-
-uses
-  System.Classes,
-  System.SysUtils,
-  Winapi.Windows,
-  Winapi.ActiveX,
-  Xml.XMLDoc;
+uses System.Classes, System.SysUtils, Xml.XMLDoc, Winapi.ActiveX,
+  Winapi.Windows;
 
 function TDelphiEnvironmentAdapter.FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
 var

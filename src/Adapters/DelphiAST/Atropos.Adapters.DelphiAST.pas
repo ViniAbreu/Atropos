@@ -1,13 +1,14 @@
 unit Atropos.Adapters.DelphiAST;
 
 interface
-
 uses
   System.SysUtils,
   System.Generics.Collections,
   Atropos.Core.Ports,
   DelphiAST.Classes,
-  DelphiAST.Consts;
+  DelphiAST.Consts, DelphiAST,
+  System.JSON,
+  System.Classes;
 
 type
   EASTParserException = class(Exception);
@@ -49,11 +50,6 @@ type
   end;
 
 implementation
-
-uses
-  DelphiAST,
-  System.JSON,
-  System.Classes;
 
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
 var
@@ -184,7 +180,8 @@ end;
 function TDelphiASTSyntaxTree.CanExportNode(ANode: TSyntaxNode; AInsideTypeDecl, AInsideHelper: Boolean): Boolean;
 begin
   Result := False;
-  if ANode.Typ in [ntUnit, ntUses, ntType] then
+  // Exclude node types that clearly do not export identifiers at the root level
+  if ANode.Typ in [ntUnit, ntUses, ntType, ntParameter, ntParameters, ntReturnType] then
     Exit;
     
   if AInsideTypeDecl and not AInsideHelper then

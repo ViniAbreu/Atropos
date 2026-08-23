@@ -1,11 +1,10 @@
-unit Atropos.Core.Modifier;
+﻿unit Atropos.Core.Modifier;
 
 interface
-
 uses
   Atropos.Core.Ports,
   Atropos.Core.Domain,
-  Atropos.Core.Config;
+  Atropos.Core.Config, System.SysUtils;
 
 type
   TApplyUsesChanges = class
@@ -13,7 +12,7 @@ type
     FFileService: IFileService;
     FConfig: TToolConfig;
     class function RemoveUnitSafely(const ASource, AUnitToRemove: string): string;
-    class function RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;
+    class function AddUnitToUsesClause(const ASource, AUnitToAdd: string; AIsInterface: Boolean): string;
     class function AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
     class function GetDirectiveLevel(const ASource: string; AStartPos, AEndPos: Integer): Integer;
     class function GetDirectiveBlockStart(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
@@ -25,13 +24,13 @@ type
   public
     constructor Create(AFileService: IFileService; AConfig: TToolConfig);
     procedure Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);
+    class function RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;
+    class function AddUnitToInterfaceUses(const ASource, AUnitToAdd: string): string;
   end;
 
 implementation
-
 uses
-  System.RegularExpressions,
-  System.SysUtils;
+  System.RegularExpressions;
 
 constructor TApplyUsesChanges.Create(AFileService: IFileService; AConfig: TToolConfig);
 begin
@@ -249,30 +248,39 @@ begin
   Insert(sLineBreak + 'uses ' + AUnitToAdd + sLineBreak, Result, LInsertPos);
 end;
 
-class function TApplyUsesChanges.AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
+class function TApplyUsesChanges.AddUnitToUsesClause(const ASource, AUnitToAdd: string; AIsInterface: Boolean): string;
 var
-  LImplPos: Integer;
+  LSectionPos: Integer;
   LUsesPos: Integer;
   LSemiPos: Integer;
   LWordPos: Integer;
   LMatch: TMatch;
-  LImplMatch: TMatch;
+  LSectionMatch: TMatch;
+  LNextSectionMatch: TMatch;
   LRegex: TRegEx;
   LUsesClauseText: string;
 begin
   Result := ASource;
-  LImplMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
+  
+  LSectionMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
+  if AIsInterface then
+    LSectionMatch := TRegEx.Match(ASource, '^\s*interface\b', [roIgnoreCase, roMultiLine]);
 
-  if not LImplMatch.Success then
+  if not LSectionMatch.Success then
     Exit;
-  LImplPos := LImplMatch.Index;
+  LSectionPos := LSectionMatch.Index;
 
   LRegex := TRegEx.Create('^\s*uses\b', [roIgnoreCase, roMultiLine]);
-  LMatch := LRegex.Match(ASource, LImplPos);
+  LMatch := LRegex.Match(ASource, LSectionPos);
   
-  if not LMatch.Success then
+  if AIsInterface then
+    LNextSectionMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
+
+  if (not LMatch.Success) or (AIsInterface and LNextSectionMatch.Success and (LMatch.Index > LNextSectionMatch.Index)) then
   begin
-    Result := Copy(ASource, 1, LImplPos + LImplMatch.Length - 1) + sLineBreak + 'uses' + sLineBreak + '  ' + AUnitToAdd + ';' + Copy(ASource, LImplPos + LImplMatch.Length, MaxInt);
+    Result := Copy(ASource, 1, LSectionPos + LSectionMatch.Length - 1) + sLineBreak + 
+      'uses' + sLineBreak + '  ' + AUnitToAdd + ';' + 
+      Copy(ASource, LSectionPos + LSectionMatch.Length, MaxInt);
     Exit;
   end;
   
@@ -285,8 +293,11 @@ begin
   LUsesClauseText := Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1);
   if TRegEx.IsMatch(LUsesClauseText, '(?i)(?<![\w\.])' + TRegEx.Escape(AUnitToAdd) + '(?![\w\.])') then
   begin
+    if AIsInterface then
+      Exit;
+
     Result := RemoveUnitSafely(Result, AUnitToAdd);
-    LMatch := LRegex.Match(Result, LImplPos);
+    LMatch := LRegex.Match(Result, LSectionPos);
     if not LMatch.Success then
       Exit;
       
@@ -295,13 +306,23 @@ begin
   end;
   
   LWordPos := LUsesPos + LMatch.Length - 4; 
-  if GetDirectiveLevel(Result, LImplPos, LWordPos) = 0 then
+  if GetDirectiveLevel(Result, LSectionPos, LWordPos) = 0 then
   begin
     Result := InjectUnconditionalUses(Result, AUnitToAdd, LWordPos);
     Exit;
   end;
   
-  Result := RewriteConditionalUses(Result, AUnitToAdd, LImplPos, LWordPos, LSemiPos);
+  Result := RewriteConditionalUses(Result, AUnitToAdd, LSectionPos, LWordPos, LSemiPos);
+end;
+
+class function TApplyUsesChanges.AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
+begin
+  Result := AddUnitToUsesClause(ASource, AUnitToAdd, False);
+end;
+
+class function TApplyUsesChanges.AddUnitToInterfaceUses(const ASource, AUnitToAdd: string): string;
+begin
+  Result := AddUnitToUsesClause(ASource, AUnitToAdd, True);
 end;
 
 procedure TApplyUsesChanges.Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);

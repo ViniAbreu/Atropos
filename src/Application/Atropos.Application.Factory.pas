@@ -1,7 +1,6 @@
-unit Atropos.Application.Factory;
+﻿unit Atropos.Application.Factory;
 
 interface
-
 uses
   Atropos.Application.AppService,
   Atropos.Core.Config;
@@ -13,16 +12,8 @@ type
   end;
 
 implementation
-
-uses
-  Atropos.Core.Ports,
-  Atropos.Adapters.ProjectParser,
-  Atropos.Adapters.DelphiAST,
-  Atropos.Adapters.FileSystem,
-  Atropos.Adapters.ReportGenerator,
-  Atropos.Adapters.ExternalUnitResolver,
-  Atropos.Adapters.DelphiEnvironment,
-  Atropos.Adapters.BuildService;
+uses Atropos.Adapters.BuildService, Atropos.Adapters.DelphiEnvironment, Atropos.Adapters.ExternalUnitResolver, Atropos.Adapters.ReportGenerator, Atropos.Adapters.FileSystem, Atropos.Adapters.DelphiAST, Atropos.Adapters.ProjectParser,
+  Atropos.Core.Ports;
 
 class function TAppServiceFactory.CreateDefault(const AConfig: TToolConfig): TProjectCleanerAppService;
 var

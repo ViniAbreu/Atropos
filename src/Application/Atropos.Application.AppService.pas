@@ -1,13 +1,12 @@
 unit Atropos.Application.AppService;
 
 interface
-
 uses
   Atropos.Core.Ports,
   Atropos.Core.Config,
   Atropos.Adapters.Logger,
   Atropos.Core.Domain,
-  Atropos.Core.Modifier;
+  Atropos.Core.Modifier, System.SysUtils;
 
 type
   TProgressEvent = reference to procedure(AMax, APosition: Integer);
@@ -34,6 +33,7 @@ type
     function RunBaselineBuild(const AFullPath: string): TBuildMetrics;
     procedure ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
     function RunFinalBuild(const AFullPath: string; ARemoved, AMoved: Integer): TBuildMetrics;
+    function ProcessInlineHints(const AHints: TArray<TInlineHint>; LModifier: TApplyUsesChanges): Integer;
     procedure CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
     procedure RollbackChanges(const AErrorMessage: string);
     procedure GenerateReports;
@@ -57,11 +57,8 @@ type
   end;
 
 implementation
-
-uses
-  System.IOUtils,
-  System.SysUtils,
-  System.Diagnostics;
+uses System.Diagnostics,
+  System.IOUtils;
 
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
@@ -181,10 +178,8 @@ begin
     end;
     
     try
-      if Assigned(LLogger) then LLogger.Log('DEBUG: Parsing AST for ' + ExtractFileName(LUnitPath));
       LSyntaxTree := FASTParser.ParseFile(LUnitPath);
       
-      if Assigned(LLogger) then LLogger.Log('DEBUG: Analyzing dependencies for ' + ExtractFileName(LUnitPath));
       LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
       
       if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
@@ -211,6 +206,28 @@ begin
   Result := FBuildService.BuildProject(AFullPath);
   Result.RemovedUnitsCount := ARemoved;
   Result.MovedUnitsCount := AMoved;
+end;
+
+function TProjectCleanerAppService.ProcessInlineHints(const AHints: TArray<TInlineHint>; LModifier: TApplyUsesChanges): Integer;
+var
+  LHint: TInlineHint;
+  LContent: string;
+begin
+  Result := 0;
+  for LHint in AHints do
+  begin
+    if not TFile.Exists(LHint.FilePath) then 
+      Continue;
+    
+    LContent := FFileService.ReadFileContent(LHint.FilePath);
+    
+    LContent := TApplyUsesChanges.RemoveUnitFromUsesClause(LContent, LHint.UnitNeeded, False);
+    LContent := TApplyUsesChanges.AddUnitToInterfaceUses(LContent, LHint.UnitNeeded);
+    
+    FFileService.WriteFileContent(LHint.FilePath, LContent);
+    Log('Fixed ' + LHint.HintType + ' in ' + ExtractFileName(LHint.FilePath) + ': injected ' + LHint.UnitNeeded);
+    Inc(Result);
+  end;
 end;
 
 procedure TProjectCleanerAppService.RollbackChanges(const AErrorMessage: string);
@@ -251,6 +268,7 @@ var
   LBasePath: string;
   LMetricsBefore: TBuildMetrics;
   LMetricsAfter: TBuildMetrics;
+  LVerifyMetrics: TBuildMetrics;
   LTotalRemoved: Integer;
   LTotalMoved: Integer;
   LUnitCount: Integer;
@@ -287,6 +305,26 @@ begin
       RollbackChanges(LMetricsAfter.ErrorMessage);
       GenerateReports;
       Exit;
+    end;
+    
+    if Length(LMetricsAfter.InlineHints) > 0 then
+    begin
+      Log(Format('Found %d inline hints (H2443/H2445). Applying post-operative fixes...', [Length(LMetricsAfter.InlineHints)]));
+      LMetricsAfter.ResolvedInlineHintsCount := ProcessInlineHints(LMetricsAfter.InlineHints, LModifier);
+      
+      if LMetricsAfter.ResolvedInlineHintsCount > 0 then
+      begin
+        Log('Re-verifying build after post-operative fixes...');
+        LVerifyMetrics := RunFinalBuild(LFullPath, LTotalRemoved, LTotalMoved);
+        if not LVerifyMetrics.Success then
+        begin
+          RollbackChanges('Verification build failed after resolving inline hints: ' + LVerifyMetrics.ErrorMessage);
+          GenerateReports;
+          Exit;
+        end;
+        LVerifyMetrics.ResolvedInlineHintsCount := LMetricsAfter.ResolvedInlineHintsCount;
+        LMetricsAfter := LVerifyMetrics;
+      end;
     end;
       
     CommitChanges(LMetricsBefore, LMetricsAfter, LFullPath, LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
