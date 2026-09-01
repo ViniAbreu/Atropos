@@ -3,7 +3,7 @@
 interface
 uses
   Atropos.Core.Ports,
-  System.Generics.Collections, System.SysUtils;
+  System.Generics.Collections;
 
 type
   TReportGeneratorAdapter = class(TInterfacedObject, IReportGenerator)
@@ -28,8 +28,8 @@ type
   end;
 
 implementation
-uses System.Math,
-  System.StrUtils;
+uses System.Math, System.StrUtils,
+  System.SysUtils;
 
 const
   HTML_BASE_TEMPLATE = 

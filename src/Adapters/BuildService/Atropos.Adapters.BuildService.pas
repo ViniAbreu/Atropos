@@ -2,7 +2,7 @@
 
 interface
 uses
-  Atropos.Core.Ports, System.SysUtils;
+  Atropos.Core.Ports;
 
 type
   TBuildServiceAdapter = class(TInterfacedObject, IBuildService)
@@ -18,8 +18,8 @@ type
   end;
 
 implementation
-uses System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions,
-  Winapi.Windows;
+uses System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, Winapi.Windows,
+  System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
 begin

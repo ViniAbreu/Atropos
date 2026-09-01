@@ -22,7 +22,7 @@ uses
   Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
   Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas';
 
- var
+var
   LApp: TCLIApp;
 begin
   try

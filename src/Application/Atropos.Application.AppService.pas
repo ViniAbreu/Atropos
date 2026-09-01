@@ -1,4 +1,4 @@
-unit Atropos.Application.AppService;
+﻿unit Atropos.Application.AppService;
 
 interface
 uses
@@ -6,7 +6,8 @@ uses
   Atropos.Core.Config,
   Atropos.Adapters.Logger,
   Atropos.Core.Domain,
-  Atropos.Core.Modifier, System.SysUtils;
+  Atropos.Core.Modifier,
+  System.Generics.Collections;
 
 type
   TProgressEvent = reference to procedure(AMax, APosition: Integer);
@@ -57,8 +58,8 @@ type
   end;
 
 implementation
-uses System.Diagnostics,
-  System.IOUtils;
+uses System.Diagnostics, System.IOUtils, System.Threading,
+  System.SysUtils;
 
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;

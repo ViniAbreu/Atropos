@@ -3,7 +3,7 @@
 interface
 uses
   Atropos.Core.Ports,
-  System.Generics.Collections, System.SysUtils;
+  System.Generics.Collections;
 
 type
   TFileSystemAdapter = class(TInterfacedObject, IFileService)
@@ -20,8 +20,8 @@ type
   end;
 
 implementation
-uses
-  System.IOUtils;
+uses System.IOUtils,
+  System.SysUtils;
 
 constructor TFileSystemAdapter.Create;
 begin

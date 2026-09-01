@@ -11,6 +11,7 @@ type
   public
     UnitName: string;
     ExportedIdentifiers: TList<string>;
+    ExportedHelpers: TObjectDictionary<string, TList<string>>;
     HasInitialization: Boolean;
     IsNative: Boolean;
     constructor Create(const AUnitName: string; AHasInit: Boolean = False; AIsNative: Boolean = False);
@@ -27,7 +28,7 @@ type
     constructor Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
     destructor Destroy; override;
     procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False; AIsNative: Boolean = False);
-    function UnitExportsIdentifier(const AUnitName, AIdentifier: string): Boolean;
+    function UnitExportsIdentifier(const AUnitName, AIdentifier: string; const AAllUsedIdents: TArray<string>): Boolean;
     function HasUnit(const AUnitName: string): Boolean;
     function UnitHasInitialization(const AUnitName: string): Boolean;
   end;
@@ -55,10 +56,12 @@ begin
   HasInitialization := AHasInit;
   IsNative := AIsNative;
   ExportedIdentifiers := TList<string>.Create;
+  ExportedHelpers := TObjectDictionary<string, TList<string>>.Create([doOwnsValues]);
 end;
 
 destructor TUnitExports.Destroy;
 begin
+  ExportedHelpers.Free;
   ExportedIdentifiers.Free;
   inherited;
 end;
@@ -82,10 +85,32 @@ procedure TProjectContext.RegisterUnitExports(const AUnitName: string; const AId
 var
   LExports: TUnitExports;
   LIdent: string;
+  LParts: TArray<string>;
+  LMethod, LTarget: string;
+  LList: TList<string>;
 begin
   LExports := TUnitExports.Create(AUnitName, AHasInit, AIsNative);
   for LIdent in AIdentifiers do
-    LExports.ExportedIdentifiers.Add(LIdent.ToLower);
+  begin
+    if LIdent.StartsWith('!HELPER:') then
+    begin
+      LParts := LIdent.Split([':']);
+      if Length(LParts) >= 3 then
+      begin
+        LMethod := LParts[1].ToLower;
+        LTarget := LParts[2].ToLower;
+        if not LExports.ExportedHelpers.TryGetValue(LMethod, LList) then
+        begin
+          LList := TList<string>.Create;
+          LExports.ExportedHelpers.Add(LMethod, LList);
+        end;
+        if not LList.Contains(LTarget) then
+          LList.Add(LTarget);
+      end;
+    end
+    else
+      LExports.ExportedIdentifiers.Add(LIdent.ToLower);
+  end;
   FUnitExports.AddOrSetValue(AUnitName.ToLower, LExports);
 end;
 
@@ -125,11 +150,14 @@ begin
   end;
 end;
 
-function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string): Boolean;
+function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string; const AAllUsedIdents: TArray<string>): Boolean;
 var
   LExports: TUnitExports;
   LBaseIdent: string;
   LPos: Integer;
+  LTargetTypes: TList<string>;
+  LTarget: string;
+  LUsedLower: string;
 begin
   Result := False;
   if FUnitExports.TryGetValue(LowerCase(AUnitName), LExports) then
@@ -147,6 +175,24 @@ begin
       LBaseIdent := Copy(LBaseIdent, LPos + 1, MaxInt);
       
     Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
+    
+    if not Result then
+    begin
+      if LExports.ExportedHelpers.TryGetValue(LBaseIdent, LTargetTypes) then
+      begin
+        for LTarget in LTargetTypes do
+        begin
+          if (LTarget = 'string') or (LTarget = 'integer') or (LTarget = 'tobject') then
+            Exit(True);
+            
+          for LUsedLower in AAllUsedIdents do
+          begin
+            if LowerCase(LUsedLower) = LTarget then
+              Exit(True);
+          end;
+        end;
+      end;
+    end;
   end;
 end;
 
@@ -162,8 +208,12 @@ begin
   Result := False;
   for LIdent in AIdents do
   begin
-    if AContext.UnitExportsIdentifier(AUnitName, LIdent) then
+    if AContext.UnitExportsIdentifier(AUnitName, LIdent, AIdents) then
+    begin
+      if Assigned(FLogger) then
+        FLogger.Log(Format('DEBUG-MATCH: [%s] matched with exported identifier [%s]', [AUnitName, LIdent]));
       Exit(True);
+    end;
   end;
 end;
 

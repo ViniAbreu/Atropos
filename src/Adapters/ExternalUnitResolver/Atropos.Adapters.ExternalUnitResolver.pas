@@ -3,7 +3,7 @@
 interface
 uses
   System.Generics.Collections,
-  Atropos.Core.Ports, System.SysUtils;
+  Atropos.Core.Ports;
 
 type
   TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver)
@@ -27,8 +27,8 @@ type
   end;
 
 implementation
-uses
-  System.IOUtils;
+uses System.IOUtils,
+  System.SysUtils;
 
 constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser);
 begin

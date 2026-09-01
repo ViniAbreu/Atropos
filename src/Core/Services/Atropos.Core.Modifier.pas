@@ -4,7 +4,7 @@ interface
 uses
   Atropos.Core.Ports,
   Atropos.Core.Domain,
-  Atropos.Core.Config, System.SysUtils;
+  Atropos.Core.Config;
 
 type
   TApplyUsesChanges = class
@@ -29,8 +29,8 @@ type
   end;
 
 implementation
-uses
-  System.RegularExpressions;
+uses System.RegularExpressions,
+  System.SysUtils;
 
 constructor TApplyUsesChanges.Create(AFileService: IFileService; AConfig: TToolConfig);
 begin
