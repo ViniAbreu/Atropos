@@ -42,7 +42,9 @@ uses
   Atropos.Application.ExecutionConfig in '..\src\Application\Atropos.Application.ExecutionConfig.pas',
   Atropos.Tests.ExecutionConfig in 'src\Atropos.Tests.ExecutionConfig.pas',
   Atropos.Application.ExecutionLifecycle in '..\src\Application\Atropos.Application.ExecutionLifecycle.pas',
-  Atropos.Tests.ExecutionLifecycle in 'src\Atropos.Tests.ExecutionLifecycle.pas';
+  Atropos.Tests.ExecutionLifecycle in 'src\Atropos.Tests.ExecutionLifecycle.pas',
+  Atropos.Application.CommandLine in '..\src\Application\Atropos.Application.CommandLine.pas',
+  Atropos.Tests.CommandLine in 'src\Atropos.Tests.CommandLine.pas';
 
 var
   Runner: ITestRunner;

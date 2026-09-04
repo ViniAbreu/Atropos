@@ -24,6 +24,7 @@ $units = @(
     'Atropos.Core.Domain', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
     'Atropos.Application.ExecutionLifecycle',
+    'Atropos.Application.CommandLine',
     'Atropos.Adapters.BuildService', 'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ReportGenerator',

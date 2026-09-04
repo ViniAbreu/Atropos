@@ -39,7 +39,7 @@ type
     procedure GenerateReports;
     function SetupEnvironment(const AFullPath, ABasePath: string): Integer;
     function CreateLogger: ILogger;
-    procedure ExecuteSafely(const ADprojPath: string);
+    function ExecuteSafely(const ADprojPath: string): Boolean;
   public
     constructor Create(
       const AProjectParser: IProjectParser;
@@ -54,7 +54,7 @@ type
     property OnProgress: TProgressEvent read FOnProgress write FOnProgress;
     property OnLog: TLogEvent read FOnLog write FOnLog;
 
-    procedure Execute(const ADprojPath: string);
+    function Execute(const ADprojPath: string): Boolean;
   end;
 
 implementation
@@ -283,7 +283,7 @@ begin
     FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.html'), FReportGen.GetReportContentHTML);
 end;
 
-procedure TProjectCleanerAppService.ExecuteSafely(const ADprojPath: string);
+function TProjectCleanerAppService.ExecuteSafely(const ADprojPath: string): Boolean;
 var
   LContext: TProjectContext;
   LLogger: ILogger;
@@ -313,7 +313,7 @@ begin
   begin
     Log('Analysis aborted because the baseline build is not healthy. No files were changed.');
     GenerateReports;
-    Exit;
+    Exit(False);
   end;
 
   LLogger := CreateLogger;
@@ -328,7 +328,7 @@ begin
       Log('No modifications were necessary.');
       FFileService.CommitBackups;
       GenerateReports;
-      Exit;
+      Exit(True);
     end;
     
     LMetricsAfter := RunFinalBuild(LFullPath, LTotalRemoved, LTotalMoved);
@@ -336,7 +336,7 @@ begin
     begin
       RollbackChanges(LMetricsAfter.ErrorMessage);
       GenerateReports;
-      Exit;
+      Exit(False);
     end;
     
     if Length(LMetricsAfter.InlineHints) > 0 then
@@ -352,7 +352,7 @@ begin
         begin
           RollbackChanges('Verification build failed after resolving inline hints: ' + LVerifyMetrics.ErrorMessage);
           GenerateReports;
-          Exit;
+          Exit(False);
         end;
         LVerifyMetrics.ResolvedInlineHintsCount := LMetricsAfter.ResolvedInlineHintsCount;
         LMetricsAfter := LVerifyMetrics;
@@ -361,6 +361,7 @@ begin
       
     CommitChanges(LMetricsBefore, LMetricsAfter, LFullPath, LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
     GenerateReports;
+    Result := True;
   finally
     LAnalyzer.Free;
     LContext.Free;
@@ -368,10 +369,10 @@ begin
   end;
 end;
 
-procedure TProjectCleanerAppService.Execute(const ADprojPath: string);
+function TProjectCleanerAppService.Execute(const ADprojPath: string): Boolean;
 begin
   try
-    ExecuteSafely(ADprojPath);
+    Result := ExecuteSafely(ADprojPath);
   except
     FFileService.RestoreBackups;
     raise;
