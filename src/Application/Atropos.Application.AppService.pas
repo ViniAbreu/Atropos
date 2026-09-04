@@ -4,7 +4,6 @@ interface
 uses
   Atropos.Core.Ports,
   Atropos.Core.Config,
-  Atropos.Adapters.Logger,
   Atropos.Core.Domain,
   Atropos.Core.Modifier,
   System.Generics.Collections;
@@ -40,6 +39,7 @@ type
     procedure GenerateReports;
     function SetupEnvironment(const AFullPath, ABasePath: string): Integer;
     function CreateLogger: ILogger;
+    procedure ExecuteSafely(const ADprojPath: string);
   public
     constructor Create(
       const AProjectParser: IProjectParser;
@@ -60,6 +60,26 @@ type
 implementation
 uses System.Diagnostics, System.IOUtils, System.Threading,
   System.SysUtils;
+
+type
+  TApplicationLogger = class(TInterfacedObject, ILogger)
+  private
+    FOnLog: TLogEvent;
+  public
+    constructor Create(const AOnLog: TLogEvent);
+    procedure Log(const AMsg: string);
+  end;
+
+constructor TApplicationLogger.Create(const AOnLog: TLogEvent);
+begin
+  FOnLog := AOnLog;
+end;
+
+procedure TApplicationLogger.Log(const AMsg: string);
+begin
+  if Assigned(FOnLog) then
+    FOnLog(AMsg);
+end;
 
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
@@ -105,7 +125,7 @@ begin
   Result := nil;
   if FConfig.EnableDebug then
   begin
-    Result := TAppLogger.Create(
+    Result := TApplicationLogger.Create(
       procedure(const AMsg: string)
       begin
         Self.Log(AMsg);
@@ -180,21 +200,24 @@ begin
     
     try
       LSyntaxTree := FASTParser.ParseFile(LUnitPath);
-      
       LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
-      
-      if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
-        (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0)) then
-      begin
-        LModifier.Execute(LUnitPath, LResult);
-        Inc(ATotalRemoved, Length(LResult.UnusedUnits));
-        Inc(ATotalMoved, Length(LResult.UnitsToMoveToImpl));
-        FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits, LResult.UnitsToMoveToImpl);
-        Log('Cleaned: ' + ExtractFileName(LUnitPath));
-      end;
     except
       on E: Exception do
+      begin
         Log('Error processing ' + ExtractFileName(LUnitPath) + ': ' + E.Message);
+        Progress(AUnitCount, i + 1);
+        Continue;
+      end;
+    end;
+
+    if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
+      (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0)) then
+    begin
+      LModifier.Execute(LUnitPath, LResult);
+      Inc(ATotalRemoved, Length(LResult.UnusedUnits));
+      Inc(ATotalMoved, Length(LResult.UnitsToMoveToImpl));
+      FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits, LResult.UnitsToMoveToImpl);
+      Log('Cleaned: ' + ExtractFileName(LUnitPath));
     end;
     
     Progress(AUnitCount, i + 1);
@@ -221,6 +244,7 @@ begin
       Continue;
     
     LContent := FFileService.ReadFileContent(LHint.FilePath);
+    FFileService.BackupFile(LHint.FilePath);
     
     LContent := TApplyUsesChanges.RemoveUnitFromUsesClause(LContent, LHint.UnitNeeded, False);
     LContent := TApplyUsesChanges.AddUnitToInterfaceUses(LContent, LHint.UnitNeeded);
@@ -259,7 +283,7 @@ begin
     FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.html'), FReportGen.GetReportContentHTML);
 end;
 
-procedure TProjectCleanerAppService.Execute(const ADprojPath: string);
+procedure TProjectCleanerAppService.ExecuteSafely(const ADprojPath: string);
 var
   LContext: TProjectContext;
   LLogger: ILogger;
@@ -285,6 +309,12 @@ begin
   
   LSearchPathCount := SetupEnvironment(LFullPath, LBasePath);
   LMetricsBefore := RunBaselineBuild(LFullPath);
+  if not LMetricsBefore.Success then
+  begin
+    Log('Analysis aborted because the baseline build is not healthy. No files were changed.');
+    GenerateReports;
+    Exit;
+  end;
 
   LLogger := CreateLogger;
   LContext := TProjectContext.Create(FResolver, LLogger);
@@ -296,6 +326,7 @@ begin
     if (LTotalRemoved = 0) and (LTotalMoved = 0) then
     begin
       Log('No modifications were necessary.');
+      FFileService.CommitBackups;
       GenerateReports;
       Exit;
     end;
@@ -334,6 +365,16 @@ begin
     LAnalyzer.Free;
     LContext.Free;
     LModifier.Free;
+  end;
+end;
+
+procedure TProjectCleanerAppService.Execute(const ADprojPath: string);
+begin
+  try
+    ExecuteSafely(ADprojPath);
+  except
+    FFileService.RestoreBackups;
+    raise;
   end;
 end;
 
