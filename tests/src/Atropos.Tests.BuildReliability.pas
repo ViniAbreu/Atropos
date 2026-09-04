@@ -82,6 +82,12 @@ type
       out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
   end;
 
+  TBuildProfileCleanerSpy = class(TInterfacedObject, IBuildProfileCleaner)
+  public
+    ProfileName: string;
+    procedure Cleanup(const AProfileName: string);
+  end;
+
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
   public
     ResolveKnownUnits: Boolean;
@@ -158,12 +164,19 @@ type
     procedure Win32ProcessRunnerTerminatesCancelledProcess;
     [Test]
     procedure ApplicationCancellationRollsBack;
+    [Test]
+    procedure BuildAlwaysCleansTemporaryRegistryProfile;
+    [Test]
+    procedure WindowsProfileCleanerRemovesRegistryTree;
+    [Test]
+    procedure CancellationTerminatesChildProcessTree;
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.IOUtils, System.RegularExpressions;
+  System.SysUtils, System.IOUtils, System.RegularExpressions, System.Classes,
+  System.Win.Registry, Winapi.Windows;
 
 function TProjectParserSpy.GetSearchPaths(const ADprojPath: string): TArray<string>;
 begin
@@ -274,6 +287,11 @@ begin
   LMatch := TRegEx.Match(ACommand, '-o"([^"]+)"');
   if LMatch.Success then
     TFile.WriteAllText(LMatch.Groups[1].Value, ErrorFileContent);
+end;
+
+procedure TBuildProfileCleanerSpy.Cleanup(const AProfileName: string);
+begin
+  ProfileName := AProfileName;
 end;
 
 procedure TExternalResolverStub.Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
@@ -883,6 +901,96 @@ begin
     Assert.AreEqual(1, LFiles.RestoreCallCount);
   finally
     LService.Free;
+  end;
+end;
+
+procedure TBuildReliabilityTests.BuildAlwaysCleansTemporaryRegistryProfile;
+var
+  LRoot, LBin: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LCleaner: TBuildProfileCleanerSpy;
+  LService: IBuildService;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot, 'bin');
+  TDirectory.CreateDirectory(LBin);
+  TFile.WriteAllText(TPath.Combine(LBin, 'bds.exe'), EmptyStr);
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := False;
+    LCleaner := TBuildProfileCleanerSpy.Create;
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner,
+      600000, nil, LCleaner);
+    LService.BuildProject('Sample.dproj');
+    Assert.IsTrue(LCleaner.ProfileName.StartsWith('$atropos-ce-tmp\'));
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.WindowsProfileCleanerRemovesRegistryTree;
+var
+  LProfileName, LKey: string;
+  LRegistry: TRegistry;
+  LCleaner: IBuildProfileCleaner;
+begin
+  LProfileName := '$atropos-ce-test\' + TGuid.NewGuid.ToString;
+  LKey := 'Software\Embarcadero\' + LProfileName + '\23.0';
+  LRegistry := TRegistry.Create(KEY_ALL_ACCESS);
+  try
+    LRegistry.RootKey := HKEY_CURRENT_USER;
+    Assert.IsTrue(LRegistry.OpenKey(LKey, True));
+    LRegistry.WriteString('Marker', 'Atropos');
+    LRegistry.CloseKey;
+    LCleaner := TWindowsBuildProfileCleaner.Create;
+    LCleaner.Cleanup(LProfileName);
+    Assert.IsFalse(LRegistry.KeyExists('Software\Embarcadero\' + LProfileName));
+  finally
+    LRegistry.Free;
+  end;
+end;
+
+procedure TBuildReliabilityTests.CancellationTerminatesChildProcessTree;
+var
+  LRunner: IBuildProcessRunner;
+  LOutput, LMarker, LStartedMarker, LScript, LCommand: string;
+  LExitCode: Cardinal;
+  LTimedOut, LCancelled: Boolean;
+  LStartTick: UInt64;
+begin
+  LMarker := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString + '.txt');
+  LStartedMarker := LMarker + '.started';
+  LScript := LMarker + '.cmd';
+  TFile.WriteAllText(LScript,
+    '@echo off' + sLineBreak +
+    'start "" /b cmd.exe /d /c "echo started>""' + LStartedMarker +
+      '"" & ping 127.0.0.1 -n 3 >nul & echo child>""' + LMarker + '"""' + sLineBreak +
+    'ping 127.0.0.1 -n 10 >nul');
+  LCommand := '"' + TPath.Combine(GetEnvironmentVariable('WINDIR'),
+    'System32\cmd.exe') + '" /d /c "' + LScript + '"';
+  LRunner := TWin32BuildProcessRunner.Create;
+  LStartTick := GetTickCount64;
+  Assert.IsFalse(LRunner.Execute(LCommand, 5000,
+    function: Boolean
+    begin
+      Result := TFile.Exists(LStartedMarker) or (GetTickCount64 - LStartTick >= 2000);
+    end,
+    LOutput, LExitCode, LTimedOut, LCancelled));
+  TThread.Sleep(1200);
+  try
+    Assert.IsTrue(LCancelled);
+    Assert.IsTrue(TFile.Exists(LStartedMarker), 'The child process did not start.');
+    Assert.IsFalse(TFile.Exists(LMarker), 'A child process survived cancellation.');
+  finally
+    if TFile.Exists(LStartedMarker) then
+      TFile.Delete(LStartedMarker);
+    if TFile.Exists(LMarker) then
+      TFile.Delete(LMarker);
+    if TFile.Exists(LScript) then
+      TFile.Delete(LScript);
   end;
 end;
 
