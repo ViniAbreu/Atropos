@@ -26,6 +26,7 @@ type
     ProjectEdit: TEdit;
     BrowseButton: TButton;
     RunButton: TButton;
+    CancelButton: TButton;
     ExecutionProgressBar: TProgressBar;
     LogMemo: TMemo;
     ProjectOpenDialog: TOpenDialog;
@@ -35,6 +36,7 @@ type
     DebugCheckBox: TCheckBox;
     procedure BrowseButtonClick(Sender: TObject);
     procedure RunButtonClick(Sender: TObject);
+    procedure CancelButtonClick(Sender: TObject);
   private
     FExecutionLifecycle: TExecutionLifecycle;
     procedure SetExecutionControlsEnabled(AEnabled: Boolean);
@@ -78,6 +80,7 @@ procedure TMainForm.SetExecutionControlsEnabled(AEnabled: Boolean);
 begin
   RunButton.Enabled := AEnabled;
   BrowseButton.Enabled := AEnabled;
+  CancelButton.Enabled := not AEnabled;
 end;
 
 procedure TMainForm.BrowseButtonClick(Sender: TObject);
@@ -114,7 +117,11 @@ begin
       LAppService: TProjectCleanerAppService;
     begin
       try
-        LAppService := TAppServiceFactory.CreateDefault(AConfig);
+        LAppService := TAppServiceFactory.CreateDefault(AConfig,
+          function: Boolean
+          begin
+            Result := FExecutionLifecycle.IsCancellationRequested;
+          end);
         try
           LAppService.OnLog := procedure(const AMsg: string)
             begin
@@ -141,6 +148,13 @@ begin
           SetExecutionControlsEnabled(True);
         end);
     end).Start;
+end;
+
+procedure TMainForm.CancelButtonClick(Sender: TObject);
+begin
+  FExecutionLifecycle.RequestCancel;
+  CancelButton.Enabled := False;
+  LogMemo.Lines.Add('Cancellation requested. Waiting for the current operation to stop...');
 end;
 
 procedure TMainForm.RunButtonClick(Sender: TObject);

@@ -22,6 +22,7 @@ type
     FResolver: IExternalUnitResolver;
     FBuildService: IBuildService;
     FConfig: TToolConfig;
+    FShouldCancel: TCancellationCheck;
     
     FOnProgress: TProgressEvent;
     FOnLog: TLogEvent;
@@ -49,7 +50,8 @@ type
       const ADelphiEnvironment: IDelphiEnvironmentService;
       const AResolver: IExternalUnitResolver;
       const ABuildService: IBuildService;
-      const AConfig: TToolConfig);
+      const AConfig: TToolConfig;
+      const AShouldCancel: TCancellationCheck = nil);
       
     property OnProgress: TProgressEvent read FOnProgress write FOnProgress;
     property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -89,7 +91,8 @@ constructor TProjectCleanerAppService.Create(
   const ADelphiEnvironment: IDelphiEnvironmentService;
   const AResolver: IExternalUnitResolver;
   const ABuildService: IBuildService;
-  const AConfig: TToolConfig);
+  const AConfig: TToolConfig;
+  const AShouldCancel: TCancellationCheck);
 begin
   FProjectParser := AProjectParser;
   FASTParser := AASTParser;
@@ -99,6 +102,7 @@ begin
   FResolver := AResolver;
   FBuildService := ABuildService;
   FConfig := AConfig;
+  FShouldCancel := AShouldCancel;
 end;
 
 procedure TProjectCleanerAppService.Log(const AMsg: string);
@@ -188,6 +192,8 @@ begin
   
   for i := 0 to High(LUnits) do
   begin
+    if Assigned(FShouldCancel) and FShouldCancel() then
+      raise EAbort.Create('Operation cancelled by user.');
     LUnit := LUnits[i];
     LUnitPath := ResolvePath(ABasePath, LUnit);
     

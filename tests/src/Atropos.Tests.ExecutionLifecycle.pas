@@ -14,6 +14,8 @@ type
     procedure PreventsConcurrentExecutionAndCloseWhileRunning;
     [Test]
     procedure CompleteAllowsNextExecutionAndClose;
+    [Test]
+    procedure CancellationIsThreadSafeAndResetsForNextExecution;
   end;
 
 implementation
@@ -28,6 +30,23 @@ begin
     Assert.IsTrue(LLifecycle.Running);
     Assert.IsFalse(LLifecycle.TryBegin);
     Assert.IsFalse(LLifecycle.CanClose);
+  finally
+    LLifecycle.Free;
+  end;
+end;
+
+procedure TExecutionLifecycleTests.CancellationIsThreadSafeAndResetsForNextExecution;
+var
+  LLifecycle: TExecutionLifecycle;
+begin
+  LLifecycle := TExecutionLifecycle.Create;
+  try
+    LLifecycle.TryBegin;
+    LLifecycle.RequestCancel;
+    Assert.IsTrue(LLifecycle.IsCancellationRequested);
+    LLifecycle.Complete;
+    Assert.IsTrue(LLifecycle.TryBegin);
+    Assert.IsFalse(LLifecycle.IsCancellationRequested);
   finally
     LLifecycle.Free;
   end;
