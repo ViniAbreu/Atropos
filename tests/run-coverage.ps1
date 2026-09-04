@@ -23,6 +23,7 @@ if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE
 $units = @(
     'Atropos.Core.Domain', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
+    'Atropos.Application.ExecutionLifecycle',
     'Atropos.Adapters.BuildService', 'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ReportGenerator',

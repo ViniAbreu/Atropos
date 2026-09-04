@@ -40,7 +40,9 @@ uses
   Atropos.Tests.BuildReliability in 'src\Atropos.Tests.BuildReliability.pas',
   Atropos.Tests.ProjectResolution in 'src\Atropos.Tests.ProjectResolution.pas',
   Atropos.Application.ExecutionConfig in '..\src\Application\Atropos.Application.ExecutionConfig.pas',
-  Atropos.Tests.ExecutionConfig in 'src\Atropos.Tests.ExecutionConfig.pas';
+  Atropos.Tests.ExecutionConfig in 'src\Atropos.Tests.ExecutionConfig.pas',
+  Atropos.Application.ExecutionLifecycle in '..\src\Application\Atropos.Application.ExecutionLifecycle.pas',
+  Atropos.Tests.ExecutionLifecycle in 'src\Atropos.Tests.ExecutionLifecycle.pas';
 
 var
   Runner: ITestRunner;
