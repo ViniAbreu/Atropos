@@ -72,10 +72,12 @@ type
   public
     ExecuteResult: Boolean;
     ExitCode: Cardinal;
+    TimedOut: Boolean;
+    TimeoutMs: Cardinal;
     ErrorFileContent: string;
     Command: string;
-    function Execute(const ACommand: string; out AOutput: string;
-      out AExitCode: Cardinal): Boolean;
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
   end;
 
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
@@ -144,6 +146,10 @@ type
     procedure MissingBdsExecutableDoesNotStartProcess;
     [Test]
     procedure Win32ProcessRunnerCapturesOutputAndExitCode;
+    [Test]
+    procedure BuildTimeoutReturnsSpecificFailure;
+    [Test]
+    procedure Win32ProcessRunnerTerminatesTimedOutProcess;
   end;
 
 implementation
@@ -242,14 +248,16 @@ begin
   Result := DelphiPath;
 end;
 
-function TBuildProcessRunnerStub.Execute(const ACommand: string; out AOutput: string;
-  out AExitCode: Cardinal): Boolean;
+function TBuildProcessRunnerStub.Execute(const ACommand: string; ATimeoutMs: Cardinal;
+  out AOutput: string; out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
 var
   LMatch: TMatch;
 begin
   Command := ACommand;
+  TimeoutMs := ATimeoutMs;
   AOutput := EmptyStr;
   AExitCode := ExitCode;
+  ATimedOut := TimedOut;
   Result := ExecuteResult;
   if not Result then
     Exit;
@@ -729,13 +737,61 @@ var
   LRunner: IBuildProcessRunner;
   LOutput: string;
   LExitCode: Cardinal;
+  LTimedOut: Boolean;
 begin
   LRunner := TWin32BuildProcessRunner.Create;
   Assert.IsTrue(LRunner.Execute(
     '"' + TPath.Combine(GetEnvironmentVariable('WINDIR'), 'System32\cmd.exe') +
-    '" /d /c "echo runner-output & exit /b 7"', LOutput, LExitCode));
+    '" /d /c "echo runner-output & exit /b 7"', 5000, LOutput, LExitCode,
+    LTimedOut));
   Assert.IsTrue(LOutput.Contains('runner-output'));
   Assert.AreEqual(Cardinal(7), LExitCode);
+  Assert.IsFalse(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.BuildTimeoutReturnsSpecificFailure;
+var
+  LRoot, LBin: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot, 'bin');
+  TDirectory.CreateDirectory(LBin);
+  TFile.WriteAllText(TPath.Combine(LBin, 'bds.exe'), EmptyStr);
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := False;
+    LRunner.TimedOut := True;
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner, 123);
+    LMetrics := LService.BuildProject('Sample.dproj');
+    Assert.IsFalse(LMetrics.Success);
+    Assert.IsTrue(LMetrics.ErrorMessage.Contains('timed out after 123 ms'));
+    Assert.AreEqual(Cardinal(123), LRunner.TimeoutMs);
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.Win32ProcessRunnerTerminatesTimedOutProcess;
+var
+  LRunner: IBuildProcessRunner;
+  LOutput: string;
+  LExitCode: Cardinal;
+  LTimedOut: Boolean;
+  LPowerShell: string;
+begin
+  LPowerShell := TPath.Combine(
+    GetEnvironmentVariable('WINDIR'), 'System32\WindowsPowerShell\v1.0\powershell.exe');
+  LRunner := TWin32BuildProcessRunner.Create;
+  Assert.IsFalse(LRunner.Execute('"' + LPowerShell +
+    '" -NoProfile -Command "Start-Sleep -Seconds 5"', 50, LOutput,
+    LExitCode, LTimedOut));
+  Assert.IsTrue(LTimedOut);
 end;
 
 initialization
