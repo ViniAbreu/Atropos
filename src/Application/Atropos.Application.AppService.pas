@@ -285,6 +285,12 @@ begin
   
   LSearchPathCount := SetupEnvironment(LFullPath, LBasePath);
   LMetricsBefore := RunBaselineBuild(LFullPath);
+  if not LMetricsBefore.Success then
+  begin
+    Log('Analysis aborted because the baseline build is not healthy. No files were changed.');
+    GenerateReports;
+    Exit;
+  end;
 
   LLogger := CreateLogger;
   LContext := TProjectContext.Create(FResolver, LLogger);

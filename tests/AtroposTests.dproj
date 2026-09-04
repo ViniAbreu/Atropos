@@ -103,6 +103,9 @@
         <DCCReference Include="..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
         <DCCReference Include="src\Atropos.Tests.ExternalResolver.pas"/>
         <DCCReference Include="src\Atropos.Tests.Integration.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.AppService.pas"/>
+        <DCCReference Include="..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
+        <DCCReference Include="src\Atropos.Tests.BuildReliability.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

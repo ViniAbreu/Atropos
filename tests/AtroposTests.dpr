@@ -34,7 +34,10 @@ uses
   Atropos.Tests.ExternalResolver in 'src\Atropos.Tests.ExternalResolver.pas',
   Atropos.Tests.Integration in 'src\Atropos.Tests.Integration.pas',
   Atropos.Adapters.DelphiEnvironment in '..\src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas',
-  Atropos.Tests.DelphiEnvironment in 'src\Atropos.Tests.DelphiEnvironment.pas';
+  Atropos.Tests.DelphiEnvironment in 'src\Atropos.Tests.DelphiEnvironment.pas',
+  Atropos.Application.AppService in '..\src\Application\Atropos.Application.AppService.pas',
+  Atropos.Adapters.BuildService in '..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
+  Atropos.Tests.BuildReliability in 'src\Atropos.Tests.BuildReliability.pas';
 
 var
   Runner: ITestRunner;
