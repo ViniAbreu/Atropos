@@ -72,7 +72,7 @@ begin
   
   // Como .dcu deve ser ignorado e Winapi.Windows est dentro do {$IFDEF} mas o parser foi atualizado para iterar recursivamente,
   // a lista final deve conter System.SysUtils, Winapi.Windows e System.Classes
-  Assert.AreEqual(3, Length(LIntfUses));
+  Assert.AreEqual(3, Integer(Length(LIntfUses)));
   Assert.AreEqual('System.SysUtils', LIntfUses[0]);
   Assert.AreEqual('Winapi.Windows', LIntfUses[1]);
   Assert.AreEqual('System.Classes', LIntfUses[2]);

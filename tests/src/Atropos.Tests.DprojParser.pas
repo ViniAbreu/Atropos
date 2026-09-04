@@ -79,7 +79,7 @@ var
   LPaths: TArray<string>;
 begin
   LPaths := FParser.GetSearchPaths(FTestDprojPath);
-  Assert.AreEqual(2, Length(LPaths));
+  Assert.AreEqual(2, Integer(Length(LPaths)));
   Assert.AreEqual('C:\Path1', LPaths[0]);
   Assert.AreEqual('..\Path2', LPaths[1]);
 end;
@@ -89,7 +89,7 @@ var
   LUnits: TArray<string>;
 begin
   LUnits := FParser.GetProjectUnits(FTestDprojPath);
-  Assert.AreEqual(2, Length(LUnits));
+  Assert.AreEqual(2, Integer(Length(LUnits)));
   // dfm should be ignored
   Assert.AreEqual('Unit1.pas', LUnits[0]);
   Assert.AreEqual('Unit2.pas', LUnits[1]);
@@ -123,9 +123,9 @@ begin
   LParser := TDprojParserAdapter.Create('Release', 'Win64');
   LPaths := LParser.GetSearchPaths(FTestDprojPath);
   LUnits := LParser.GetProjectUnits(FTestDprojPath);
-  Assert.AreEqual(1, Length(LPaths));
+  Assert.AreEqual(1, Integer(Length(LPaths)));
   Assert.AreEqual('release64', LPaths[0]);
-  Assert.AreEqual(1, Length(LUnits));
+  Assert.AreEqual(1, Integer(Length(LUnits)));
   Assert.AreEqual('ReleaseUnit.pas', LUnits[0]);
 end;
 
@@ -146,7 +146,7 @@ begin
     LXML.Free;
   end;
   LPaths := FParser.GetSearchPaths(FTestDprojPath);
-  Assert.AreEqual(3, Length(LPaths));
+  Assert.AreEqual(3, Integer(Length(LPaths)));
   Assert.AreEqual('specific', LPaths[0]);
   Assert.AreEqual('base', LPaths[1]);
   Assert.AreEqual('$(PROJECTDIR)shared', LPaths[2]);
@@ -174,7 +174,7 @@ begin
   end;
   LParser := TDprojParserAdapter.Create('Debug', 'Win32');
   LPaths := LParser.GetSearchPaths(FTestDprojPath);
-  Assert.AreEqual(1, Length(LPaths));
+  Assert.AreEqual(1, Integer(Length(LPaths)));
   Assert.AreEqual('win32-only', LPaths[0]);
 end;
 
@@ -187,7 +187,7 @@ var
   LFoundSource, LFoundParser: Boolean;
 begin
   LProjectPath := TPath.GetFullPath(
-    TPath.Combine(ExtractFilePath(ParamStr(0)), '..\AtroposCLI.dproj'));
+    TPath.Combine(ExtractFilePath(ParamStr(0)), '..\..\..\AtroposCLI.dproj'));
   Assert.IsTrue(TFile.Exists(LProjectPath));
   LParser := TDprojParserAdapter.Create('Debug', 'Win32');
   LPaths := LParser.GetSearchPaths(LProjectPath);
