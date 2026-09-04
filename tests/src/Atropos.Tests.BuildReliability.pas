@@ -42,10 +42,14 @@ type
     RestoreCallCount: Integer;
     BackupCallCount: Integer;
     CommitCallCount: Integer;
+    EnsureDirectoryCallCount: Integer;
+    LastDirectory: string;
+    LastWritePath: string;
     Content: string;
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath, AContent: string);
   end;
@@ -170,6 +174,8 @@ type
     procedure WindowsProfileCleanerRemovesRegistryTree;
     [Test]
     procedure CancellationTerminatesChildProcessTree;
+    [Test]
+    procedure ReportsUseConfiguredDirectoryRelativeToProject;
   end;
 
 implementation
@@ -228,6 +234,12 @@ begin
   Inc(CommitCallCount);
 end;
 
+procedure TFileServiceSpy.EnsureDirectory(const ADirectory: string);
+begin
+  Inc(EnsureDirectoryCallCount);
+  LastDirectory := ADirectory;
+end;
+
 function TFileServiceSpy.ReadFileContent(const AFilePath: string): string;
 begin
   Result := Content;
@@ -236,6 +248,7 @@ end;
 procedure TFileServiceSpy.WriteFileContent(const AFilePath, AContent: string);
 begin
   Inc(WriteCallCount);
+  LastWritePath := AFilePath;
   Content := AContent;
 end;
 
@@ -991,6 +1004,37 @@ begin
       TFile.Delete(LMarker);
     if TFile.Exists(LScript) then
       TFile.Delete(LScript);
+  end;
+end;
+
+procedure TBuildReliabilityTests.ReportsUseConfiguredDirectoryRelativeToProject;
+var
+  LParser: TProjectParserSpy;
+  LFiles: TFileServiceSpy;
+  LService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+  LProjectPath, LExpectedDirectory: string;
+begin
+  LProjectPath := TPath.Combine(TPath.GetTempPath, 'AtroposProject\Project.dproj');
+  LExpectedDirectory := TPath.GetFullPath(
+    TPath.Combine(TPath.GetDirectoryName(LProjectPath), 'reports'));
+  LParser := TProjectParserSpy.Create;
+  LFiles := TFileServiceSpy.Create;
+  LConfig := TToolConfig.Default;
+  LConfig.ExportTXT := True;
+  LConfig.ExportHTML := True;
+  LConfig.OutputDirectory := 'reports';
+  LService := TProjectCleanerAppService.Create(LParser, TASTParserStub.Create,
+    LFiles, TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
+    TExternalResolverStub.Create, TSuccessfulBuildService.Create, LConfig);
+  try
+    Assert.IsTrue(LService.Execute(LProjectPath));
+    Assert.AreEqual(2, LFiles.EnsureDirectoryCallCount);
+    Assert.AreEqual(LExpectedDirectory, LFiles.LastDirectory);
+    Assert.AreEqual(TPath.Combine(LExpectedDirectory, 'AtroposReport.html'),
+      LFiles.LastWritePath);
+  finally
+    LService.Free;
   end;
 end;
 

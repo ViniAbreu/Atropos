@@ -22,6 +22,7 @@ begin
   Writeln('  --move     Move units to implementation uses clause if applicable');
   Writeln('  -html      Export report to HTML');
   Writeln('  -txt       Export report to TXT');
+  Writeln('  --output   Directory for generated reports (project directory by default)');
   Writeln('  --debug    Enable verbose debug logging');
   Writeln('  --help     Show this help');
 end;

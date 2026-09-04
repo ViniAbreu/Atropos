@@ -60,6 +60,16 @@ begin
       Result.Config.ExportHTML := True
     else if SameText(LArg, '-txt') then
       Result.Config.ExportTXT := True
+    else if SameText(LArg, '--output') then
+    begin
+      if I + 1 >= Length(AArgs) then
+      begin
+        Result.ErrorMessage := 'Missing value after --output.';
+        Exit;
+      end;
+      Inc(I);
+      Result.Config.OutputDirectory := AArgs[I];
+    end
     else if SameText(LArg, '--help') or SameText(LArg, '-h') or SameText(LArg, '/?') then
       Result.ShowHelp := True
     else

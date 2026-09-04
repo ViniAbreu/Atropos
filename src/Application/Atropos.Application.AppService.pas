@@ -37,7 +37,7 @@ type
     function ProcessInlineHints(const AHints: TArray<TInlineHint>; LModifier: TApplyUsesChanges): Integer;
     procedure CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
     procedure RollbackChanges(const AErrorMessage: string);
-    procedure GenerateReports;
+    procedure GenerateReports(const AOutputDirectory: string);
     function SetupEnvironment(const AFullPath, ABasePath: string): Integer;
     function CreateLogger: ILogger;
     function ExecuteSafely(const ADprojPath: string): Boolean;
@@ -277,16 +277,22 @@ begin
   FReportGen.AddMetrics(AMetricsBefore, AMetricsAfter);
 end;
 
-procedure TProjectCleanerAppService.GenerateReports;
+procedure TProjectCleanerAppService.GenerateReports(const AOutputDirectory: string);
 begin
   Log('');
   Log(FReportGen.GetReportContentTXT);
   
   if FConfig.ExportTXT then
-    FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.txt'), FReportGen.GetReportContentTXT);
+  begin
+    FFileService.EnsureDirectory(AOutputDirectory);
+    FFileService.WriteFileContent(TPath.Combine(AOutputDirectory, 'AtroposReport.txt'), FReportGen.GetReportContentTXT);
+  end;
 
   if FConfig.ExportHTML then
-    FFileService.WriteFileContent(TPath.Combine(ExtractFilePath(ParamStr(0)), 'AtroposReport.html'), FReportGen.GetReportContentHTML);
+  begin
+    FFileService.EnsureDirectory(AOutputDirectory);
+    FFileService.WriteFileContent(TPath.Combine(AOutputDirectory, 'AtroposReport.html'), FReportGen.GetReportContentHTML);
+  end;
 end;
 
 function TProjectCleanerAppService.ExecuteSafely(const ADprojPath: string): Boolean;
@@ -304,11 +310,17 @@ var
   LTotalMoved: Integer;
   LUnitCount: Integer;
   LSearchPathCount: Integer;
+  LReportOutputDirectory: string;
   LStopwatch: TStopwatch;
 begin
   LStopwatch := TStopwatch.StartNew;
   LFullPath := TPath.GetFullPath(ADprojPath);
   LBasePath := TPath.GetDirectoryName(LFullPath);
+  LReportOutputDirectory := FConfig.OutputDirectory;
+  if LReportOutputDirectory.IsEmpty then
+    LReportOutputDirectory := LBasePath
+  else
+    LReportOutputDirectory := ResolvePath(LBasePath, LReportOutputDirectory);
   
   Log('Analyzing project: ' + LFullPath);
   Log('Loading dependencies... Please wait.');
@@ -318,7 +330,7 @@ begin
   if not LMetricsBefore.Success then
   begin
     Log('Analysis aborted because the baseline build is not healthy. No files were changed.');
-    GenerateReports;
+    GenerateReports(LReportOutputDirectory);
     Exit(False);
   end;
 
@@ -333,7 +345,7 @@ begin
     begin
       Log('No modifications were necessary.');
       FFileService.CommitBackups;
-      GenerateReports;
+      GenerateReports(LReportOutputDirectory);
       Exit(True);
     end;
     
@@ -341,7 +353,7 @@ begin
     if not LMetricsAfter.Success then
     begin
       RollbackChanges(LMetricsAfter.ErrorMessage);
-      GenerateReports;
+      GenerateReports(LReportOutputDirectory);
       Exit(False);
     end;
     
@@ -357,7 +369,7 @@ begin
         if not LVerifyMetrics.Success then
         begin
           RollbackChanges('Verification build failed after resolving inline hints: ' + LVerifyMetrics.ErrorMessage);
-          GenerateReports;
+          GenerateReports(LReportOutputDirectory);
           Exit(False);
         end;
         LVerifyMetrics.ResolvedInlineHintsCount := LMetricsAfter.ResolvedInlineHintsCount;
@@ -366,7 +378,7 @@ begin
     end;
       
     CommitChanges(LMetricsBefore, LMetricsAfter, LFullPath, LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
-    GenerateReports;
+    GenerateReports(LReportOutputDirectory);
     Result := True;
   finally
     LAnalyzer.Free;
