@@ -5,6 +5,16 @@ uses
   Atropos.Core.Ports;
 
 type
+  IBuildProcessRunner = interface
+    ['{A44BDD56-4A86-46C5-A2B4-C95A6B2D54E2}']
+    function Execute(const ACommand: string; out AOutput: string; out AExitCode: Cardinal): Boolean;
+  end;
+
+  TWin32BuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
+  public
+    function Execute(const ACommand: string; out AOutput: string; out AExitCode: Cardinal): Boolean;
+  end;
+
   TBuildOutputParser = class
   public
     class function Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics; static;
@@ -14,10 +24,11 @@ type
   private
     FEnvService: IDelphiEnvironmentService;
     FLogger: ILogger;
-    function RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string; out AExitCode: Cardinal): Boolean;
+    FProcessRunner: IBuildProcessRunner;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
   public
-    constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
+    constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
+      AProcessRunner: IBuildProcessRunner = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
   end;
 
@@ -25,13 +36,18 @@ implementation
 uses System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, Winapi.Windows,
   System.SysUtils;
 
-constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
+constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
+  AProcessRunner: IBuildProcessRunner);
 begin
   FEnvService := AEnvService;
   FLogger := ALogger;
+  FProcessRunner := AProcessRunner;
+  if not Assigned(FProcessRunner) then
+    FProcessRunner := TWin32BuildProcessRunner.Create;
 end;
 
-function TBuildServiceAdapter.RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string; out AExitCode: Cardinal): Boolean;
+function TWin32BuildProcessRunner.Execute(const ACommand: string; out AOutput: string;
+  out AExitCode: Cardinal): Boolean;
 var
   LSecurityAttributes: TSecurityAttributes;
   LReadPipe: THandle;
@@ -63,7 +79,7 @@ begin
     LStartupInfo.hStdOutput := LWritePipe;
     LStartupInfo.hStdError := LWritePipe;
 
-    LMutableCmd := ACmd;
+  LMutableCmd := ACommand;
     UniqueString(LMutableCmd);
     if CreateProcess(nil, PChar(LMutableCmd), nil, nil, True, CREATE_NO_WINDOW, nil, nil, LStartupInfo, LProcessInfo) then
     begin
@@ -217,7 +233,7 @@ begin
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
   LStartTick := GetTickCount64;
-  if not RunCmdAndCaptureOutput(LBdsCmd, LOutput, LExitCode) then
+  if not FProcessRunner.Execute(LBdsCmd, LOutput, LExitCode) then
   begin
     Result.Success := False;
     Result.ErrorMessage := 'Failed to execute bds.exe process.';

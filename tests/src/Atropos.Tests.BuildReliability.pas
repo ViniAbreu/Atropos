@@ -64,7 +64,18 @@ type
 
   TDelphiEnvironmentStub = class(TInterfacedObject, IDelphiEnvironmentService)
   public
+    DelphiPath: string;
     function ResolveDelphiPath(const ADprojPath: string): string;
+  end;
+
+  TBuildProcessRunnerStub = class(TInterfacedObject, IBuildProcessRunner)
+  public
+    ExecuteResult: Boolean;
+    ExitCode: Cardinal;
+    ErrorFileContent: string;
+    Command: string;
+    function Execute(const ACommand: string; out AOutput: string;
+      out AExitCode: Cardinal): Boolean;
   end;
 
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
@@ -125,12 +136,20 @@ type
     procedure ParserFailureSkipsUnitAndReportsProgress;
     [Test]
     procedure InlineHintIsFixedAndBuildIsVerifiedAgain;
+    [Test]
+    procedure InjectedProcessRunnerBuildsAndParsesCompilerOutput;
+    [Test]
+    procedure ProcessStartFailureReturnsBuildFailure;
+    [Test]
+    procedure MissingBdsExecutableDoesNotStartProcess;
+    [Test]
+    procedure Win32ProcessRunnerCapturesOutputAndExitCode;
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.IOUtils;
+  System.SysUtils, System.IOUtils, System.RegularExpressions;
 
 function TProjectParserSpy.GetSearchPaths(const ADprojPath: string): TArray<string>;
 begin
@@ -220,7 +239,23 @@ end;
 
 function TDelphiEnvironmentStub.ResolveDelphiPath(const ADprojPath: string): string;
 begin
-  Result := EmptyStr;
+  Result := DelphiPath;
+end;
+
+function TBuildProcessRunnerStub.Execute(const ACommand: string; out AOutput: string;
+  out AExitCode: Cardinal): Boolean;
+var
+  LMatch: TMatch;
+begin
+  Command := ACommand;
+  AOutput := EmptyStr;
+  AExitCode := ExitCode;
+  Result := ExecuteResult;
+  if not Result then
+    Exit;
+  LMatch := TRegEx.Match(ACommand, '-o"([^"]+)"');
+  if LMatch.Success then
+    TFile.WriteAllText(LMatch.Groups[1].Value, ErrorFileContent);
 end;
 
 procedure TExternalResolverStub.Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
@@ -603,6 +638,104 @@ begin
   finally
     TFile.Delete(LTempFile);
   end;
+end;
+
+procedure TBuildReliabilityTests.InjectedProcessRunnerBuildsAndParsesCompilerOutput;
+var
+  LRoot, LBin, LBds, LProject: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot, 'bin');
+  TDirectory.CreateDirectory(LBin);
+  LBds := TPath.Combine(LBin, 'bds.exe');
+  TFile.WriteAllText(LBds, EmptyStr);
+  LProject := TPath.Combine(LRoot, 'Sample.dproj');
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := True;
+    LRunner.ExitCode := 0;
+    LRunner.ErrorFileContent := '[dcc32 Warning] Unit1.pas(1): W1000 Warning';
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner);
+    LMetrics := LService.BuildProject(LProject);
+    Assert.IsTrue(LMetrics.Success);
+    Assert.AreEqual(1, LMetrics.Warnings);
+    Assert.IsTrue(LRunner.Command.Contains('-b -ns'));
+    Assert.IsTrue(LRunner.Command.Contains(LProject));
+    Assert.AreEqual(ExtractFileName(LRoot), LMetrics.DelphiVersion);
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.ProcessStartFailureReturnsBuildFailure;
+var
+  LRoot, LBin: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot, 'bin');
+  TDirectory.CreateDirectory(LBin);
+  TFile.WriteAllText(TPath.Combine(LBin, 'bds.exe'), EmptyStr);
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := False;
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner);
+    LMetrics := LService.BuildProject('Sample.dproj');
+    Assert.IsFalse(LMetrics.Success);
+    Assert.IsTrue(LMetrics.ErrorMessage.Contains('Failed to execute'));
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.MissingBdsExecutableDoesNotStartProcess;
+var
+  LRoot: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(LRoot);
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := True;
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner);
+    LMetrics := LService.BuildProject('Sample.dproj');
+    Assert.IsFalse(LMetrics.Success);
+    Assert.IsTrue(LMetrics.ErrorMessage.Contains('bds.exe not found'));
+    Assert.IsTrue(LRunner.Command.IsEmpty);
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.Win32ProcessRunnerCapturesOutputAndExitCode;
+var
+  LRunner: IBuildProcessRunner;
+  LOutput: string;
+  LExitCode: Cardinal;
+begin
+  LRunner := TWin32BuildProcessRunner.Create;
+  Assert.IsTrue(LRunner.Execute(
+    '"' + TPath.Combine(GetEnvironmentVariable('WINDIR'), 'System32\cmd.exe') +
+    '" /d /c "echo runner-output & exit /b 7"', LOutput, LExitCode));
+  Assert.IsTrue(LOutput.Contains('runner-output'));
+  Assert.AreEqual(Cardinal(7), LExitCode);
 end;
 
 initialization
