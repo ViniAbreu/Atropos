@@ -3,34 +3,45 @@
 interface
 uses
   Atropos.Core.Ports,
-  System.Generics.Collections;
+  System.Generics.Collections,
+  System.SysUtils;
 
 type
   TFileSystemAdapter = class(TInterfacedObject, IFileService)
   private
-    FBackupList: TList<string>;
+    FBackupPaths: TDictionary<string, string>;
+    function DetectEncoding(const ABytes: TBytes): TEncoding;
+    function IsValidUTF8(const ABytes: TBytes): Boolean;
+    function CreateBackupPath(const AFilePath: string): string;
   public
     constructor Create;
     destructor Destroy; override;
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
   end;
 
 implementation
-uses System.IOUtils,
-  System.SysUtils;
+uses System.IOUtils;
 
 constructor TFileSystemAdapter.Create;
 begin
-  FBackupList := TList<string>.Create;
+  FBackupPaths := TDictionary<string, string>.Create;
+end;
+
+procedure TFileSystemAdapter.EnsureDirectory(const ADirectory: string);
+begin
+  if ADirectory.IsEmpty then
+    Exit;
+  TDirectory.CreateDirectory(ADirectory);
 end;
 
 destructor TFileSystemAdapter.Destroy;
 begin
-  FBackupList.Free;
+  FBackupPaths.Free;
   inherited;
 end;
 
@@ -41,41 +52,107 @@ begin
   if not TFile.Exists(AFilePath) then
     raise Exception.CreateFmt('Cannot backup. File does not exist: %s', [AFilePath]);
 
-  LBackupPath := AFilePath + '.bak';
+  if FBackupPaths.ContainsKey(AFilePath) then
+    Exit;
+
+  LBackupPath := CreateBackupPath(AFilePath);
   TFile.Copy(AFilePath, LBackupPath, True);
-  if not FBackupList.Contains(AFilePath) then
-    FBackupList.Add(AFilePath);
+  FBackupPaths.Add(AFilePath, LBackupPath);
+end;
+
+function TFileSystemAdapter.CreateBackupPath(const AFilePath: string): string;
+begin
+  Result := AFilePath + '.bak';
+  if not TFile.Exists(Result) then
+    Exit;
+
+  Result := AFilePath + '.atropos-' + TGuid.NewGuid.ToString + '.bak';
 end;
 
 procedure TFileSystemAdapter.RestoreBackups;
 var
-  LPath: string;
-  LBackupPath: string;
+  LBackup: TPair<string, string>;
 begin
-  for LPath in FBackupList do
+  for LBackup in FBackupPaths do
   begin
-    LBackupPath := LPath + '.bak';
-    if TFile.Exists(LBackupPath) then
-    begin
-      TFile.Copy(LBackupPath, LPath, True);
-      TFile.Delete(LBackupPath);
-    end;
+    if not TFile.Exists(LBackup.Value) then
+      Continue;
+
+    TFile.Copy(LBackup.Value, LBackup.Key, True);
+    TFile.Delete(LBackup.Value);
   end;
-  FBackupList.Clear;
+  FBackupPaths.Clear;
 end;
 
 procedure TFileSystemAdapter.CommitBackups;
 var
-  LPath: string;
-  LBackupPath: string;
+  LBackup: TPair<string, string>;
 begin
-  for LPath in FBackupList do
+  for LBackup in FBackupPaths do
   begin
-    LBackupPath := LPath + '.bak';
-    if TFile.Exists(LBackupPath) then
-      TFile.Delete(LBackupPath);
+    if TFile.Exists(LBackup.Value) then
+      TFile.Delete(LBackup.Value);
   end;
-  FBackupList.Clear;
+  FBackupPaths.Clear;
+end;
+
+function TFileSystemAdapter.DetectEncoding(const ABytes: TBytes): TEncoding;
+var
+  LDetectedEncoding: TEncoding;
+begin
+  LDetectedEncoding := nil;
+  if TEncoding.GetBufferEncoding(ABytes, LDetectedEncoding) > 0 then
+    Exit(LDetectedEncoding);
+
+  Result := TEncoding.Default;
+  if IsValidUTF8(ABytes) then
+    Result := TEncoding.UTF8;
+end;
+
+function TFileSystemAdapter.IsValidUTF8(const ABytes: TBytes): Boolean;
+var
+  LIndex: Integer;
+  LContinuationCount: Integer;
+  LContinuationIndex: Integer;
+begin
+  Result := False;
+  LIndex := 0;
+  while LIndex < Length(ABytes) do
+  begin
+    if ABytes[LIndex] <= $7F then
+    begin
+      Inc(LIndex);
+      Continue;
+    end;
+
+    LContinuationCount := 0;
+    if (ABytes[LIndex] >= $C2) and (ABytes[LIndex] <= $DF) then
+      LContinuationCount := 1;
+    if (ABytes[LIndex] >= $E0) and (ABytes[LIndex] <= $EF) then
+      LContinuationCount := 2;
+    if (ABytes[LIndex] >= $F0) and (ABytes[LIndex] <= $F4) then
+      LContinuationCount := 3;
+    if LContinuationCount = 0 then
+      Exit;
+    if LIndex + LContinuationCount >= Length(ABytes) then
+      Exit;
+
+    for LContinuationIndex := 1 to LContinuationCount do
+      if (ABytes[LIndex + LContinuationIndex] < $80) or (ABytes[LIndex + LContinuationIndex] > $BF) then
+        Exit;
+
+    if (ABytes[LIndex] = $E0) and (ABytes[LIndex + 1] < $A0) then
+      Exit;
+    if (ABytes[LIndex] = $ED) and (ABytes[LIndex + 1] > $9F) then
+      Exit;
+    if (ABytes[LIndex] = $F0) and (ABytes[LIndex + 1] < $90) then
+      Exit;
+    if (ABytes[LIndex] = $F4) and (ABytes[LIndex + 1] > $8F) then
+      Exit;
+
+    Inc(LIndex, LContinuationCount + 1);
+  end;
+  Result := True;
 end;
 
 function TFileSystemAdapter.ReadFileContent(const AFilePath: string): string;
@@ -83,21 +160,35 @@ begin
   if not TFile.Exists(AFilePath) then
     raise Exception.CreateFmt('Cannot read. File does not exist: %s', [AFilePath]);
 
-  Result := TFile.ReadAllText(AFilePath);
+  Result := TFile.ReadAllText(AFilePath, DetectEncoding(TFile.ReadAllBytes(AFilePath)));
 end;
 
 procedure TFileSystemAdapter.WriteFileContent(const AFilePath, AContent: string);
 var
   LEncoding: TEncoding;
+  LBytes: TBytes;
 begin
+  if not TFile.Exists(AFilePath) then
+  begin
+    TFile.WriteAllText(AFilePath, AContent, TEncoding.Default);
+    Exit;
+  end;
+
+  LBytes := TFile.ReadAllBytes(AFilePath);
   LEncoding := nil;
-  if TFile.Exists(AFilePath) then
-    TEncoding.GetBufferEncoding(TFile.ReadAllBytes(AFilePath), LEncoding);
+  if TEncoding.GetBufferEncoding(LBytes, LEncoding) > 0 then
+  begin
+    TFile.WriteAllText(AFilePath, AContent, LEncoding);
+    Exit;
+  end;
 
-  if LEncoding = nil then
-    LEncoding := TEncoding.Default;
+  if IsValidUTF8(LBytes) then
+  begin
+    TFile.WriteAllBytes(AFilePath, TEncoding.UTF8.GetBytes(AContent));
+    Exit;
+  end;
 
-  TFile.WriteAllText(AFilePath, AContent, LEncoding);
+  TFile.WriteAllText(AFilePath, AContent, TEncoding.Default);
 end;
 
 end.

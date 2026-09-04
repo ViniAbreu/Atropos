@@ -52,6 +52,7 @@
 *.rsm
 *.tds
 *.dcu
+tests/AtroposTests.res
 *.lib
 *.a
 *.o
@@ -83,5 +84,7 @@ modules/
 
 # Code coverage reports
 **/UsesCleaner/
+tests/coverage/
+Delphi-Code-Coverage-Debug.log
 *.html
 *.xml

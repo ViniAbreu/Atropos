@@ -38,7 +38,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
-        <DCC_UnitSearchPath>C:\Projetos\UsesTool\modules\DelphiAST\Source;C:\Projetos\UsesTool\modules\DelphiAST\Source\SimpleParser;third_party\DelphiAST\Source;third_party\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\third_party\DelphiAST\Source;..\third_party\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_E>false</DCC_E>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
@@ -103,6 +103,16 @@
         <DCCReference Include="..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
         <DCCReference Include="src\Atropos.Tests.ExternalResolver.pas"/>
         <DCCReference Include="src\Atropos.Tests.Integration.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.AppService.pas"/>
+        <DCCReference Include="..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
+        <DCCReference Include="src\Atropos.Tests.BuildReliability.pas"/>
+        <DCCReference Include="src\Atropos.Tests.ProjectResolution.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.ExecutionConfig.pas"/>
+        <DCCReference Include="src\Atropos.Tests.ExecutionConfig.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.ExecutionLifecycle.pas"/>
+        <DCCReference Include="src\Atropos.Tests.ExecutionLifecycle.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.CommandLine.pas"/>
+        <DCCReference Include="src\Atropos.Tests.CommandLine.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

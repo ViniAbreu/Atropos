@@ -3,6 +3,8 @@ unit Atropos.Core.Ports;
 interface
 
 type
+  TCancellationCheck = reference to function: Boolean;
+
   TInlineHint = record
     HintType: string;
     FilePath: string;
@@ -55,6 +57,7 @@ type
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
   end;
