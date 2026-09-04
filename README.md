@@ -36,6 +36,16 @@ Over time, Delphi projects accumulate "ghost dependencies" (units added by the I
 
 Download the latest release from the [Releases page](https://github.com/ViniAbreu/Atropos/releases/latest). You can use either the GUI (`AtroposVCL.exe`) or the command line interface (`AtroposCLI.exe`).
 
+### Building from source
+
+DelphiAST is tracked as a Git submodule. Clone the repository and its dependencies with:
+
+```bash
+git clone --recurse-submodules https://github.com/ViniAbreu/Atropos.git
+```
+
+If the repository was already cloned, initialize the dependency with `git submodule update --init --recursive` before building the projects or the test suite.
+
 ### CLI Usage
 
 ```bash
