@@ -7,6 +7,11 @@ uses
   System.Win.Registry;
 
 type
+  TDelphiVersionMap = class
+  public
+    class function FromProjectVersion(const AProjectVersion: string): string; static;
+  end;
+
   TDelphiEnvironmentAdapter = class(TInterfacedObject, IDelphiEnvironmentService)
   private
     function FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
@@ -22,6 +27,29 @@ type
 implementation
 uses System.Classes, System.SysUtils, Xml.XMLDoc, Winapi.ActiveX,
   Winapi.Windows;
+
+class function TDelphiVersionMap.FromProjectVersion(const AProjectVersion: string): string;
+begin
+  if AProjectVersion.StartsWith('20.1') then
+    Exit('23.0');
+  if AProjectVersion.StartsWith('19.2') then
+    Exit('22.0');
+  if AProjectVersion.StartsWith('19.1') then
+    Exit('21.0');
+  if AProjectVersion.StartsWith('18.8') then
+    Exit('20.0');
+  if AProjectVersion.StartsWith('18.4') then
+    Exit('19.0');
+  if AProjectVersion.StartsWith('18.2') then
+    Exit('18.0');
+  if AProjectVersion.StartsWith('18.1') then
+    Exit('17.0');
+  if AProjectVersion.StartsWith('17.2') then
+    Exit('16.0');
+  if AProjectVersion.StartsWith('16.1') then
+    Exit('15.0');
+  Result := EmptyStr;
+end;
 
 function TDelphiEnvironmentAdapter.FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
 var
@@ -56,26 +84,7 @@ begin
   try
     LDoc := LoadXMLDocument(ADprojPath);
     if FindNodeRec(LDoc.DocumentElement, 'ProjectVersion', LNode) then
-    begin
-      Result := LNode.Text;
-      if Result.StartsWith('19.2') then
-        Exit('22.0');
-      if Result.StartsWith('19.1') then
-        Exit('21.0');
-      if Result.StartsWith('18.8') then
-        Exit('20.0');
-      if Result.StartsWith('18.4') then
-        Exit('19.0');
-      if Result.StartsWith('18.2') then
-        Exit('18.0');
-      if Result.StartsWith('18.1') then
-        Exit('17.0');
-      if Result.StartsWith('17.2') then
-        Exit('16.0');
-      if Result.StartsWith('16.1') then
-        Exit('15.0');
-      Exit(EmptyStr);
-    end;
+      Result := TDelphiVersionMap.FromProjectVersion(LNode.Text);
   except
     Result := EmptyStr;
   end;

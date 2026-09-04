@@ -16,7 +16,7 @@ type
     FIsCacheBuilt: Boolean;
     
     procedure BuildCache;
-    procedure ScanDirectoryForUnits(const ADirectory: string);
+    procedure ScanDirectoryForUnits(const ADirectory: string; ARecursive: Boolean);
     function ResolvePath(const ABasePath, ARelativePath: string): string;
   public
     constructor Create(const AASTParser: IASTParser);
@@ -57,22 +57,28 @@ var
   LPath: string;
 begin
   LPath := ARelativePath.Replace('$(BDS)', FDelphiPath, [rfReplaceAll, rfIgnoreCase]);
+  LPath := LPath.Replace('$(PROJECTDIR)', FProjectBasePath, [rfReplaceAll, rfIgnoreCase]);
   
   Result := LPath;
   if TPath.IsRelativePath(LPath) then
     Result := TPath.GetFullPath(TPath.Combine(ABasePath, LPath));
 end;
 
-procedure TExternalUnitResolverAdapter.ScanDirectoryForUnits(const ADirectory: string);
+procedure TExternalUnitResolverAdapter.ScanDirectoryForUnits(const ADirectory: string; ARecursive: Boolean);
 var
   LFile: string;
   LFileName: string;
+  LSearchOption: TSearchOption;
 begin
   if not TDirectory.Exists(ADirectory) then
     Exit;
-    
+
+  LSearchOption := TSearchOption.soTopDirectoryOnly;
+  if ARecursive then
+    LSearchOption := TSearchOption.soAllDirectories;
+
   try
-    for LFile in TDirectory.GetFiles(ADirectory, '*.pas', TSearchOption.soAllDirectories) do
+    for LFile in TDirectory.GetFiles(ADirectory, '*.pas', LSearchOption) do
     begin
       LFileName := TPath.GetFileNameWithoutExtension(LFile).ToLower;
       if not FUnitPathCache.ContainsKey(LFileName) then
@@ -95,7 +101,7 @@ begin
   begin
     try
       LResolvedPath := ResolvePath(FProjectBasePath, LPath);
-      ScanDirectoryForUnits(LResolvedPath);
+      ScanDirectoryForUnits(LResolvedPath, False);
     except
       
     end;
@@ -105,7 +111,7 @@ begin
     if (not FDelphiPath.IsEmpty) and TDirectory.Exists(FDelphiPath) then
     begin
       LResolvedPath := TPath.Combine(FDelphiPath, 'source');
-      ScanDirectoryForUnits(LResolvedPath);
+      ScanDirectoryForUnits(LResolvedPath, True);
     end;
   except
     

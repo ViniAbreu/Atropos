@@ -12,8 +12,11 @@ uses
   System.SysUtils,
   System.Classes,
   System.IOUtils,
+  System.UITypes,
   Vcl.Controls,
   Atropos.Application.AppService,
+  Atropos.Application.ExecutionConfig,
+  Atropos.Application.ExecutionLifecycle,
   Atropos.Application.Factory,
   Atropos.Core.Config;
 
@@ -33,9 +36,15 @@ type
     procedure BrowseButtonClick(Sender: TObject);
     procedure RunButtonClick(Sender: TObject);
   private
+    FExecutionLifecycle: TExecutionLifecycle;
+    procedure SetExecutionControlsEnabled(AEnabled: Boolean);
     procedure LogMessage(const AMsg: string);
     procedure UpdateProgress(AMax, APosition: Integer);
-    procedure ExecuteProcess(const ADprojPath: string);
+    procedure ExecuteProcess(const ADprojPath: string; const AConfig: TToolConfig);
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function CloseQuery: Boolean; override;
   end;
 
 var
@@ -45,6 +54,32 @@ implementation
 
 {$R *.dfm}
 
+constructor TMainForm.Create(AOwner: TComponent);
+begin
+  inherited;
+  FExecutionLifecycle := TExecutionLifecycle.Create;
+end;
+
+destructor TMainForm.Destroy;
+begin
+  FExecutionLifecycle.Free;
+  inherited;
+end;
+
+function TMainForm.CloseQuery: Boolean;
+begin
+  Result := FExecutionLifecycle.CanClose;
+  if not Result then
+    MessageDlg('A análise ainda está em execução. Aguarde a conclusão antes de fechar o Atropos.',
+      mtWarning, [mbOK], 0);
+end;
+
+procedure TMainForm.SetExecutionControlsEnabled(AEnabled: Boolean);
+begin
+  RunButton.Enabled := AEnabled;
+  BrowseButton.Enabled := AEnabled;
+end;
+
 procedure TMainForm.BrowseButtonClick(Sender: TObject);
 begin
   if ProjectOpenDialog.Execute then
@@ -53,7 +88,7 @@ end;
 
 procedure TMainForm.LogMessage(const AMsg: string);
 begin
-  TThread.Queue(nil,
+  TThread.Queue(TThread.CurrentThread,
     procedure
     begin
       LogMemo.Lines.Add(AMsg);
@@ -63,7 +98,7 @@ end;
 
 procedure TMainForm.UpdateProgress(AMax, APosition: Integer);
 begin
-  TThread.Queue(nil,
+  TThread.Queue(TThread.CurrentThread,
     procedure
     begin
       ExecutionProgressBar.Max := AMax;
@@ -71,21 +106,15 @@ begin
     end);
 end;
 
-procedure TMainForm.ExecuteProcess(const ADprojPath: string);
+procedure TMainForm.ExecuteProcess(const ADprojPath: string; const AConfig: TToolConfig);
 begin
   TThread.CreateAnonymousThread(
     procedure
     var
       LAppService: TProjectCleanerAppService;
-      LConfig: TToolConfig;
     begin
       try
-        LConfig := TToolConfig.Default;
-        LConfig.RemoveUnused := MainForm.RemoveCheckBox.Checked;
-        LConfig.MoveToImplementation := MainForm.MoveCheckBox.Checked;
-        LConfig.EnableDebug := MainForm.DebugCheckBox.Checked;
-        
-        LAppService := TAppServiceFactory.CreateDefault(LConfig);
+        LAppService := TAppServiceFactory.CreateDefault(AConfig);
         try
           LAppService.OnLog := procedure(const AMsg: string)
             begin
@@ -98,46 +127,45 @@ begin
             end;
           
           LAppService.Execute(ADprojPath);
-          
         finally
           LAppService.Free;
-          
-          TThread.Queue(nil,
-            procedure
-            begin
-              RunButton.Enabled := True;
-              BrowseButton.Enabled := True;
-            end);
         end;
       except
         on E: Exception do
-        begin
           LogMessage('Critical Error: ' + E.Message);
-          TThread.Queue(nil,
-            procedure
-            begin
-              RunButton.Enabled := True;
-              BrowseButton.Enabled := True;
-            end);
-        end;
       end;
+      TThread.Queue(TThread.CurrentThread,
+        procedure
+        begin
+          FExecutionLifecycle.Complete;
+          SetExecutionControlsEnabled(True);
+        end);
     end).Start;
 end;
 
 procedure TMainForm.RunButtonClick(Sender: TObject);
+var
+  LConfig: TToolConfig;
 begin
+  if not FExecutionLifecycle.TryBegin then
+    Exit;
+
   if not FileExists(ProjectEdit.Text) then
   begin
+    FExecutionLifecycle.Complete;
     ShowMessage('Selecione um projeto válido!');
     Exit;
   end;
   
   LogMemo.Clear;
-  RunButton.Enabled := False;
-  BrowseButton.Enabled := False;
+  SetExecutionControlsEnabled(False);
   ExecutionProgressBar.Position := 0;
   
-  ExecuteProcess(ProjectEdit.Text);
+  LConfig := TExecutionConfigFactory.FromSelections(
+    RemoveCheckBox.Checked,
+    MoveCheckBox.Checked,
+    DebugCheckBox.Checked);
+  ExecuteProcess(ProjectEdit.Text, LConfig);
 end;
 
 end.
