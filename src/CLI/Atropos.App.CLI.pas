@@ -1,112 +1,84 @@
 ﻿unit Atropos.App.CLI;
 
 interface
-uses
-  Atropos.Core.Config;
-
 type
   TCLIApp = class
   private
-    FDprojPath: string;
-    procedure ParseParams(var AConfig: TToolConfig);
+    procedure ShowUsage;
   public
-    procedure Run;
+    function Run: Integer;
   end;
 
 implementation
 uses System.SysUtils, System.IOUtils, Atropos.Application.Factory,
-  Atropos.Application.AppService;
+  Atropos.Application.AppService, Atropos.Application.CommandLine;
 
-procedure TCLIApp.ParseParams(var AConfig: TToolConfig);
-var
-  i: Integer;
-  LParam: string;
+procedure TCLIApp.ShowUsage;
 begin
-  for i := 1 to ParamCount do
-  begin
-    LParam := ParamStr(i);
-    
-    if SameText(LParam, '-dproj') and (i < ParamCount) then
-    begin
-      FDprojPath := ParamStr(i + 1);
-      Continue;
-    end;
-    
-    if SameText(LParam, '--remove') then
-    begin
-      AConfig.RemoveUnused := True;
-      Continue;
-    end;
-    
-    if SameText(LParam, '--move') then
-    begin
-      AConfig.MoveToImplementation := True;
-      Continue;
-    end;
-    
-    if SameText(LParam, '--debug') then
-    begin
-      AConfig.EnableDebug := True;
-      Continue;
-    end;
-    
-    if SameText(LParam, '-html') then
-    begin
-      AConfig.ExportHTML := True;
-      Continue;
-    end;
-    
-    if SameText(LParam, '-txt') then
-    begin
-      AConfig.ExportTXT := True;
-      Continue;
-    end;
-  end;
+  Writeln('Atropos CLI v1.0');
+  Writeln('Usage: AtroposCLI -dproj <path_to_dproj> [options]');
+  Writeln('Options:');
+  Writeln('  --remove   Remove unused units');
+  Writeln('  --move     Move units to implementation uses clause if applicable');
+  Writeln('  -html      Export report to HTML');
+  Writeln('  -txt       Export report to TXT');
+  Writeln('  --output   Directory for generated reports (project directory by default)');
+  Writeln('  --debug    Enable verbose debug logging');
+  Writeln('  --help     Show this help');
 end;
 
-procedure TCLIApp.Run;
+function TCLIApp.Run: Integer;
 var
   LAppService: TProjectCleanerAppService;
-  LConfig: TToolConfig;
+  LOptions: TCommandLineOptions;
+  LArgs: TArray<string>;
+  I: Integer;
 begin
+  Result := 1;
   try
-    LConfig := TToolConfig.Default;
-    ParseParams(LConfig);
-    
-    if FDprojPath.IsEmpty then
+    SetLength(LArgs, ParamCount);
+    for I := 1 to ParamCount do
+      LArgs[I - 1] := ParamStr(I);
+    LOptions := TCommandLineParser.Parse(LArgs);
+
+    if not LOptions.IsValid then
     begin
-      Writeln('Atropos CLI v1.0');
-      Writeln('Usage: AtroposCLI -dproj <path_to_dproj> [options]');
-      Writeln('Options:');
-      Writeln('  --remove   Remove unused units');
-      Writeln('  --move     Move units to implementation uses clause if applicable');
-      Writeln('  -html          Export report to HTML');
-      Writeln('  -txt           Export report to TXT');
-      Writeln('  --debug        Enable verbose debug logging');
-      Exit;
+      Writeln('Error: ', LOptions.ErrorMessage);
+      ShowUsage;
+      Exit(2);
     end;
 
-    if not TFile.Exists(FDprojPath) then
+    if LOptions.ShowHelp then
     begin
-      Writeln('Error: Project file not found -> ', FDprojPath);
-      Exit;
+      ShowUsage;
+      Exit(0);
     end;
 
-    LAppService := TAppServiceFactory.CreateDefault(LConfig);
+    if not TFile.Exists(LOptions.ProjectPath) then
+    begin
+      Writeln('Error: Project file not found -> ', LOptions.ProjectPath);
+      Exit(2);
+    end;
+
+    LAppService := TAppServiceFactory.CreateDefault(LOptions.Config);
     try
       LAppService.OnLog := procedure(const AMsg: string)
         begin
           Writeln(AMsg);
         end;
       
-      LAppService.Execute(FDprojPath);
+      if LAppService.Execute(LOptions.ProjectPath) then
+        Result := 0;
     finally
       LAppService.Free;
     end;
     
   except
     on E: Exception do
+    begin
       Writeln('Critical Error: ', E.Message);
+      Result := 1;
+    end;
   end;
 end;
 

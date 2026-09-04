@@ -5,7 +5,7 @@
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <ProjectName Condition="'$(ProjectName)'==''">AtroposVCL</ProjectName>
-        <TargetedPlatforms>1</TargetedPlatforms>
+        <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Application</AppType>
         <FrameworkType>VCL</FrameworkType>
         <ProjectVersion>20.1</ProjectVersion>
@@ -49,7 +49,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
-        <DCC_UnitSearchPath>C:\Projetos\UsesTool\modules\DelphiAST\Source;C:\Projetos\UsesTool\modules\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>third_party\DelphiAST\Source;third_party\DelphiAST\Source\SimpleParser</DCC_UnitSearchPath>
         <DCC_E>false</DCC_E>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>
@@ -116,6 +116,8 @@
         <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
         <DCCReference Include="src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.AppService.pas"/>
+        <DCCReference Include="src\Application\Atropos.Application.ExecutionConfig.pas"/>
+        <DCCReference Include="src\Application\Atropos.Application.ExecutionLifecycle.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.Factory.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
         <BuildConfiguration Include="Base">
@@ -145,7 +147,7 @@
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Win32">True</Platform>
-                <Platform value="Win64">False</Platform>
+                <Platform value="Win64">True</Platform>
             </Platforms>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
