@@ -14,6 +14,7 @@ uses
   System.IOUtils,
   Vcl.Controls,
   Atropos.Application.AppService,
+  Atropos.Application.ExecutionConfig,
   Atropos.Application.Factory,
   Atropos.Core.Config;
 
@@ -35,7 +36,7 @@ type
   private
     procedure LogMessage(const AMsg: string);
     procedure UpdateProgress(AMax, APosition: Integer);
-    procedure ExecuteProcess(const ADprojPath: string);
+    procedure ExecuteProcess(const ADprojPath: string; const AConfig: TToolConfig);
   end;
 
 var
@@ -71,21 +72,15 @@ begin
     end);
 end;
 
-procedure TMainForm.ExecuteProcess(const ADprojPath: string);
+procedure TMainForm.ExecuteProcess(const ADprojPath: string; const AConfig: TToolConfig);
 begin
   TThread.CreateAnonymousThread(
     procedure
     var
       LAppService: TProjectCleanerAppService;
-      LConfig: TToolConfig;
     begin
       try
-        LConfig := TToolConfig.Default;
-        LConfig.RemoveUnused := MainForm.RemoveCheckBox.Checked;
-        LConfig.MoveToImplementation := MainForm.MoveCheckBox.Checked;
-        LConfig.EnableDebug := MainForm.DebugCheckBox.Checked;
-        
-        LAppService := TAppServiceFactory.CreateDefault(LConfig);
+        LAppService := TAppServiceFactory.CreateDefault(AConfig);
         try
           LAppService.OnLog := procedure(const AMsg: string)
             begin
@@ -125,6 +120,8 @@ begin
 end;
 
 procedure TMainForm.RunButtonClick(Sender: TObject);
+var
+  LConfig: TToolConfig;
 begin
   if not FileExists(ProjectEdit.Text) then
   begin
@@ -137,7 +134,11 @@ begin
   BrowseButton.Enabled := False;
   ExecutionProgressBar.Position := 0;
   
-  ExecuteProcess(ProjectEdit.Text);
+  LConfig := TExecutionConfigFactory.FromSelections(
+    RemoveCheckBox.Checked,
+    MoveCheckBox.Checked,
+    DebugCheckBox.Checked);
+  ExecuteProcess(ProjectEdit.Text, LConfig);
 end;
 
 end.
