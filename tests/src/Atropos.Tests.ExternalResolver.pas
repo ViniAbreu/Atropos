@@ -32,7 +32,7 @@ type
   public
     CallCount: Integer;
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
-    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
+    function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
   end;
 
 implementation
@@ -44,10 +44,11 @@ begin
   // Do nothing in mock
 end;
 
-function TMockExternalResolver.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean): Boolean;
+function TMockExternalResolver.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
 begin
   Inc(CallCount);
   AHasInit := False;
+  AIsNative := False;
   if AUnitName = 'SysUtils' then
   begin
     AExports := ['ExtractFilePath', 'FileExists'];
@@ -91,7 +92,7 @@ begin
   Assert.AreEqual(1, LResolver.CallCount);
   
   // It should register the exports
-  Assert.IsTrue(FContext.UnitExportsIdentifier('SysUtils', 'FileExists'));
+  Assert.IsTrue(FContext.UnitExportsIdentifier('SysUtils', 'FileExists', []));
   
   // Second call should hit the cache and not call resolver again
   Assert.IsTrue(FContext.HasUnit('SysUtils'));
