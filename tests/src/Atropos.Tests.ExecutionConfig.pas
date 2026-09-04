@@ -13,6 +13,8 @@ type
     procedure SelectedOptionsAreCopiedToConfiguration;
     [Test]
     procedure UnselectedOptionsRemainDisabled;
+    [Test]
+    procedure FluentConfigurationMethodsReturnUpdatedCopies;
   end;
 
 implementation
@@ -41,6 +43,23 @@ begin
   Assert.IsFalse(LConfig.EnableDebug);
   Assert.IsFalse(LConfig.ExportHTML);
   Assert.IsFalse(LConfig.ExportTXT);
+end;
+
+procedure TExecutionConfigTests.FluentConfigurationMethodsReturnUpdatedCopies;
+var
+  LDefaultConfig: TToolConfig;
+  LUpdatedConfig: TToolConfig;
+begin
+  LDefaultConfig := TToolConfig.Default;
+  LUpdatedConfig := LDefaultConfig
+    .WithRemoveUnused(True)
+    .WithMoveToImplementation(True)
+    .WithEnableDebug(True);
+
+  Assert.IsFalse(LDefaultConfig.RemoveUnused);
+  Assert.IsTrue(LUpdatedConfig.RemoveUnused);
+  Assert.IsTrue(LUpdatedConfig.MoveToImplementation);
+  Assert.IsTrue(LUpdatedConfig.EnableDebug);
 end;
 
 initialization

@@ -64,6 +64,12 @@ type
     function BuildProject(const AProjectPath: string): TBuildMetrics;
   end;
 
+  TSuccessfulBuildService = class(TInterfacedObject, IBuildService)
+  public
+    CallCount: Integer;
+    function BuildProject(const AProjectPath: string): TBuildMetrics;
+  end;
+
   [TestFixture]
   TBuildReliabilityTests = class
   public
@@ -75,6 +81,14 @@ type
     procedure FailedBaselineStopsBeforeProcessingOrWriting;
     [Test]
     procedure UnexpectedExceptionTriggersRollback;
+    [Test]
+    procedure CompilerErrorTextFailsEvenWithZeroExitCode;
+    [Test]
+    procedure BuildOutputCountsDiagnosticsAndInlineHints;
+    [Test]
+    procedure MissingDelphiEnvironmentFailsBuildGracefully;
+    [Test]
+    procedure HealthyProjectWithoutUnitsCommitsWithoutFinalBuild;
   end;
 
 implementation
@@ -173,6 +187,13 @@ begin
   Result.ErrorMessage := 'Baseline failed';
 end;
 
+function TSuccessfulBuildService.BuildProject(const AProjectPath: string): TBuildMetrics;
+begin
+  Inc(CallCount);
+  Result := Default(TBuildMetrics);
+  Result.Success := True;
+end;
+
 procedure TBuildReliabilityTests.NonZeroExitCodeFailsBuildWithoutErrorText;
 var
   LMetrics: TBuildMetrics;
@@ -248,6 +269,69 @@ begin
     end;
     Assert.IsTrue(LExceptionRaised);
     Assert.AreEqual(1, LFileService.RestoreCallCount);
+  finally
+    LApplicationService.Free;
+  end;
+end;
+
+procedure TBuildReliabilityTests.CompilerErrorTextFailsEvenWithZeroExitCode;
+var
+  LMetrics: TBuildMetrics;
+begin
+  LMetrics := TBuildOutputParser.Parse(
+    '[dcc32 Error] Unit1.pas(10): E2003 Undeclared identifier',
+    'Project.dproj', 0);
+  Assert.IsFalse(LMetrics.Success);
+  Assert.IsTrue(LMetrics.ErrorMessage.Contains('E2003'));
+end;
+
+procedure TBuildReliabilityTests.BuildOutputCountsDiagnosticsAndInlineHints;
+var
+  LMetrics: TBuildMetrics;
+  LOutput: string;
+begin
+  LOutput := '[dcc32 Hint] Unit1.pas(10): H2443 Inline function ''Run'' has not been expanded because unit ''System.SysUtils'' is not specified in USES list' + sLineBreak +
+    '[dcc32 Warning] Unit1.pas(11): W1000 Symbol is deprecated';
+  LMetrics := TBuildOutputParser.Parse(LOutput, 'Project.dproj', 0);
+  Assert.IsTrue(LMetrics.Success);
+  Assert.AreEqual(1, LMetrics.Hints);
+  Assert.AreEqual(1, LMetrics.Warnings);
+  Assert.AreEqual(1, Length(LMetrics.InlineHints));
+  Assert.AreEqual('System.SysUtils', LMetrics.InlineHints[0].UnitNeeded);
+end;
+
+procedure TBuildReliabilityTests.MissingDelphiEnvironmentFailsBuildGracefully;
+var
+  LBuildService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LBuildService := TBuildServiceAdapter.Create(TDelphiEnvironmentStub.Create);
+  LMetrics := LBuildService.BuildProject('Project.dproj');
+  Assert.IsFalse(LMetrics.Success);
+  Assert.IsTrue(LMetrics.ErrorMessage.Contains('Delphi path not found'));
+end;
+
+procedure TBuildReliabilityTests.HealthyProjectWithoutUnitsCommitsWithoutFinalBuild;
+var
+  LProjectParser: TProjectParserSpy;
+  LFileService: TFileServiceSpy;
+  LBuildService: TSuccessfulBuildService;
+  LApplicationService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+begin
+  LProjectParser := TProjectParserSpy.Create;
+  LFileService := TFileServiceSpy.Create;
+  LBuildService := TSuccessfulBuildService.Create;
+  LConfig := TToolConfig.Default;
+  LApplicationService := TProjectCleanerAppService.Create(
+    LProjectParser, TASTParserStub.Create, LFileService,
+    TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
+    TExternalResolverStub.Create, LBuildService, LConfig);
+  try
+    LApplicationService.Execute('Project.dproj');
+    Assert.AreEqual(1, LBuildService.CallCount);
+    Assert.AreEqual(1, LProjectParser.ProjectUnitsCallCount);
+    Assert.AreEqual(0, LFileService.WriteCallCount);
   finally
     LApplicationService.Free;
   end;
