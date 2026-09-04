@@ -43,28 +43,33 @@ var
   LEscapedUnit: string;
   LRegex: TRegEx;
   LBoundary: string;
+  LAlias: string;
+  LTrivia: string;
 begin
   Result := ASource;
   LEscapedUnit := TRegEx.Escape(AUnitToRemove);
   LBoundary := '(?<![\w\.])' + LEscapedUnit + '(?![\w\.])';
-  
-  LRegex := TRegEx.Create('(?i)' + LBoundary + '\s*,\s*');
+  LAlias := '(?:\s+in\s+''(?:''''|[^''])*'')?';
+  LTrivia := '(?:\s|\{[^}]*\}|\(\*.*?\*\)|//[^\r\n]*(?:\r?\n|$))*';
+
+  // Match complete entries only, so names inside comments are not modified.
+  LRegex := TRegEx.Create('(?is)(\buses\s*|,\s*)' + LBoundary + LAlias + LTrivia + ',\s*');
   if LRegex.IsMatch(Result) then
   begin
-    Result := LRegex.Replace(Result, '');
+    Result := LRegex.Replace(Result, '$1', 1);
     Exit;
   end;
-  
-  LRegex := TRegEx.Create('(?i),\s*' + LBoundary);
+
+  LRegex := TRegEx.Create('(?is),\s*' + LBoundary + LAlias + LTrivia);
   if LRegex.IsMatch(Result) then
   begin
-    Result := LRegex.Replace(Result, '');
+    Result := LRegex.Replace(Result, '', 1);
     Exit;
   end;
-  
-  LRegex := TRegEx.Create('(?i)' + LBoundary);
+
+  LRegex := TRegEx.Create('(?is)(\buses\s*)' + LBoundary + LAlias + LTrivia);
   if LRegex.IsMatch(Result) then
-    Result := LRegex.Replace(Result, '');
+    Result := LRegex.Replace(Result, '$1', 1);
 end;
 
 class function TApplyUsesChanges.RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;

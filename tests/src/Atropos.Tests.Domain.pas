@@ -37,6 +37,10 @@ type
     [Test]
     [TestCase('Remove unused and move to implementation', 'Should remove unused units and move implementation-only units to the implementation section')]
     procedure Test_RemoveUnused_And_MoveToImpl;
+    [Test]
+    procedure HelpersAndQualifiedIdentifiersAreResolved;
+    [Test]
+    procedure InitializationUnitsArePreservedUnlessNative;
   end;
 
 implementation
@@ -132,6 +136,27 @@ begin
   
   Assert.AreEqual(1, Length(LResult.UnusedUnits));
   Assert.AreEqual('UnusedUnit', LResult.UnusedUnits[0]);
+end;
+
+procedure TDomainTests.HelpersAndQualifiedIdentifiersAreResolved;
+begin
+  FContext.RegisterUnitExports('Helper.Unit', [
+    '!HELPER:ToText:string',
+    'TArray']);
+
+  Assert.IsTrue(FContext.UnitExportsIdentifier('Helper.Unit', 'ToText', ['string']));
+  Assert.IsTrue(FContext.UnitExportsIdentifier('Helper.Unit', 'System.TArray<string>', []));
+  Assert.IsFalse(FContext.UnitExportsIdentifier('Helper.Unit', 'UnknownIdentifier', []));
+end;
+
+procedure TDomainTests.InitializationUnitsArePreservedUnlessNative;
+begin
+  FContext.RegisterUnitExports('SideEffect.Unit', [], True, False);
+  FContext.RegisterUnitExports('Native.Unit', [], True, True);
+
+  Assert.IsTrue(FContext.UnitHasInitialization('SideEffect.Unit'));
+  Assert.IsFalse(FContext.UnitHasInitialization('Native.Unit'));
+  Assert.IsFalse(FContext.UnitHasInitialization('Missing.Unit'));
 end;
 
 initialization

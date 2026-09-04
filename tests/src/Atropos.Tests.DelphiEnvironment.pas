@@ -21,9 +21,23 @@ type
     
     [Test]
     procedure Test_ResolveDelphiPath_With_Mock_Dproj;
+    [Test]
+    procedure ProjectVersion201MapsToBDS230;
+    [Test]
+    procedure UnknownProjectVersionDoesNotGuessBDSVersion;
   end;
 
 implementation
+
+procedure TDelphiEnvironmentTests.ProjectVersion201MapsToBDS230;
+begin
+  Assert.AreEqual('23.0', TDelphiVersionMap.FromProjectVersion('20.1'));
+end;
+
+procedure TDelphiEnvironmentTests.UnknownProjectVersionDoesNotGuessBDSVersion;
+begin
+  Assert.AreEqual('', TDelphiVersionMap.FromProjectVersion('99.9'));
+end;
 
 procedure TDelphiEnvironmentTests.Setup;
 begin

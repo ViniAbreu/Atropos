@@ -5,29 +5,60 @@ uses
   Atropos.Core.Ports;
 
 type
+  IBuildProcessRunner = interface
+    ['{A44BDD56-4A86-46C5-A2B4-C95A6B2D54E2}']
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
+  end;
+
+  TWin32BuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
+  public
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
+  end;
+
+  TBuildOutputParser = class
+  public
+    class function Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics; static;
+  end;
+
   TBuildServiceAdapter = class(TInterfacedObject, IBuildService)
   private
     FEnvService: IDelphiEnvironmentService;
     FLogger: ILogger;
-    function RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string): Boolean;
-    function ParseBuildOutput(const AOutput, AProjectPath: string): TBuildMetrics;
+    FProcessRunner: IBuildProcessRunner;
+    FTimeoutMs: Cardinal;
+    FShouldCancel: TCancellationCheck;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
   public
-    constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
+    constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
+      AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000;
+      const AShouldCancel: TCancellationCheck = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
   end;
 
 implementation
-uses System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, Winapi.Windows,
+uses System.Classes, System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions, Winapi.Windows,
   System.SysUtils;
 
-constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
+constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
+  AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal;
+  const AShouldCancel: TCancellationCheck);
 begin
   FEnvService := AEnvService;
   FLogger := ALogger;
+  FProcessRunner := AProcessRunner;
+  if not Assigned(FProcessRunner) then
+    FProcessRunner := TWin32BuildProcessRunner.Create;
+  FTimeoutMs := ATimeoutMs;
+  FShouldCancel := AShouldCancel;
 end;
 
-function TBuildServiceAdapter.RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string): Boolean;
+function TWin32BuildProcessRunner.Execute(const ACommand: string; ATimeoutMs: Cardinal;
+  const AShouldCancel: TCancellationCheck; out AOutput: string; out AExitCode: Cardinal;
+  out ATimedOut, ACancelled: Boolean): Boolean;
 var
   LSecurityAttributes: TSecurityAttributes;
   LReadPipe: THandle;
@@ -36,11 +67,17 @@ var
   LProcessInfo: TProcessInformation;
   LBuffer: array[0..4095] of AnsiChar;
   LBytesRead: DWORD;
+  LBytesAvailable: DWORD;
   LOutputStream: TStringStream;
   LMutableCmd: string;
+  LStartTick: UInt64;
+  LWaitResult: DWORD;
 begin
   Result := False;
   AOutput := EmptyStr;
+  AExitCode := Cardinal(-1);
+  ATimedOut := False;
+  ACancelled := False;
 
   LSecurityAttributes.nLength := SizeOf(TSecurityAttributes);
   LSecurityAttributes.bInheritHandle := True;
@@ -58,7 +95,7 @@ begin
     LStartupInfo.hStdOutput := LWritePipe;
     LStartupInfo.hStdError := LWritePipe;
 
-    LMutableCmd := ACmd;
+  LMutableCmd := ACommand;
     UniqueString(LMutableCmd);
     if CreateProcess(nil, PChar(LMutableCmd), nil, nil, True, CREATE_NO_WINDOW, nil, nil, LStartupInfo, LProcessInfo) then
     begin
@@ -67,20 +104,46 @@ begin
 
       LOutputStream := TStringStream.Create('');
       try
-        while ReadFile(LReadPipe, LBuffer, SizeOf(LBuffer) - 1, LBytesRead, nil) and (LBytesRead > 0) do
+        LStartTick := GetTickCount64;
+        repeat
         begin
-          LBuffer[LBytesRead] := #0;
+          while PeekNamedPipe(LReadPipe, nil, 0, nil, @LBytesAvailable, nil) and
+            (LBytesAvailable > 0) do
+          begin
+            if not ReadFile(LReadPipe, LBuffer, Min(Cardinal(SizeOf(LBuffer) - 1), LBytesAvailable), LBytesRead, nil) then
+              Break;
+            LOutputStream.WriteBuffer(LBuffer, LBytesRead);
+          end;
+          LWaitResult := WaitForSingleObject(LProcessInfo.hProcess, 10);
+          if LWaitResult = WAIT_OBJECT_0 then
+            Break;
+          if Assigned(AShouldCancel) and AShouldCancel() then
+          begin
+            ACancelled := True;
+            TerminateProcess(LProcessInfo.hProcess, ERROR_CANCELLED);
+            WaitForSingleObject(LProcessInfo.hProcess, 5000);
+            Break;
+          end;
+          if (ATimeoutMs > 0) and (GetTickCount64 - LStartTick >= ATimeoutMs) then
+          begin
+            ATimedOut := True;
+            TerminateProcess(LProcessInfo.hProcess, ERROR_TIMEOUT);
+            WaitForSingleObject(LProcessInfo.hProcess, 5000);
+            Break;
+          end;
+        end
+        until False;
+        while ReadFile(LReadPipe, LBuffer, SizeOf(LBuffer) - 1, LBytesRead, nil) and (LBytesRead > 0) do
           LOutputStream.WriteBuffer(LBuffer, LBytesRead);
-        end;
         AOutput := LOutputStream.DataString;
       finally
         LOutputStream.Free;
       end;
 
-      WaitForSingleObject(LProcessInfo.hProcess, INFINITE);
+      if GetExitCodeProcess(LProcessInfo.hProcess, AExitCode) then
+        Result := not (ATimedOut or ACancelled);
       CloseHandle(LProcessInfo.hProcess);
       CloseHandle(LProcessInfo.hThread);
-      Result := True;
     end;
   finally
     if LWritePipe <> 0 then CloseHandle(LWritePipe);
@@ -88,7 +151,7 @@ begin
   end;
 end;
 
-function TBuildServiceAdapter.ParseBuildOutput(const AOutput, AProjectPath: string): TBuildMetrics;
+class function TBuildOutputParser.Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics;
 var
   LMatch: TMatch;
   LExeDir: string;
@@ -126,7 +189,7 @@ begin
     LHintsList.Free;
   end;
 
-  Result.Success :=
+  Result.Success := (AExitCode = 0) and
     not (TRegEx.IsMatch(AOutput, 'Build FAILED\.') or TRegEx.IsMatch(AOutput, '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\]'));
   if not Result.Success then
   begin
@@ -182,6 +245,9 @@ var
   LRegEntry: string;
   LOutput: string;
   LStartTick: UInt64;
+  LExitCode: Cardinal;
+  LTimedOut: Boolean;
+  LCancelled: Boolean;
 begin
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
@@ -210,25 +276,35 @@ begin
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
   LStartTick := GetTickCount64;
-  if not RunCmdAndCaptureOutput(LBdsCmd, LOutput) then
-  begin
-    Result.Success := False;
-    Result.ErrorMessage := 'Failed to execute bds.exe process.';
-    Exit;
+  try
+    if not FProcessRunner.Execute(LBdsCmd, FTimeoutMs, FShouldCancel, LOutput,
+      LExitCode, LTimedOut, LCancelled) then
+    begin
+      Result.Success := False;
+      if LCancelled then
+        Result.ErrorMessage := 'bds.exe build was cancelled.'
+      else if LTimedOut then
+        Result.ErrorMessage := Format('bds.exe build timed out after %d ms.', [FTimeoutMs])
+      else
+        Result.ErrorMessage := 'Failed to execute bds.exe process.';
+      Exit;
+    end;
+
+    if not TFile.Exists(LErrFile) then
+    begin
+      Result.Success := False;
+      Result.ErrorMessage := 'Failed to read bds.exe error file output.';
+      Exit;
+    end;
+
+    LOutput := TFile.ReadAllText(LErrFile);
+    Result := TBuildOutputParser.Parse(LOutput, AProjectPath, LExitCode);
+    Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
+    Result.CompileTimeMs := Int64(GetTickCount64 - LStartTick);
+  finally
+    if TFile.Exists(LErrFile) then
+      TFile.Delete(LErrFile);
   end;
-  
-  if not TFile.Exists(LErrFile) then
-  begin
-    Result.Success := False;
-    Result.ErrorMessage := 'Failed to read bds.exe error file output.';
-    Exit;
-  end;
-  
-  LOutput := TFile.ReadAllText(LErrFile);
-  TFile.Delete(LErrFile);
-  Result := ParseBuildOutput(LOutput, AProjectPath);
-  Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
-  Result.CompileTimeMs := Int64(GetTickCount64 - LStartTick);
 end;
 
 end.
