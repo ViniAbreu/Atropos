@@ -25,6 +25,7 @@ type
   TFileServiceSpy = class(TInterfacedObject, IFileService)
   public
     WriteCallCount: Integer;
+    RestoreCallCount: Integer;
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
@@ -48,8 +49,13 @@ type
 
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
   public
-    procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
+    procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string); virtual;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
+  end;
+
+  TFailingExternalResolver = class(TExternalResolverStub)
+  public
+    procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string); override;
   end;
 
   TFailingBuildService = class(TInterfacedObject, IBuildService)
@@ -67,6 +73,8 @@ type
     procedure ZeroExitCodeAcceptsCleanBuildOutput;
     [Test]
     procedure FailedBaselineStopsBeforeProcessingOrWriting;
+    [Test]
+    procedure UnexpectedExceptionTriggersRollback;
   end;
 
 implementation
@@ -96,6 +104,7 @@ end;
 
 procedure TFileServiceSpy.RestoreBackups;
 begin
+  Inc(RestoreCallCount);
 end;
 
 procedure TFileServiceSpy.CommitBackups;
@@ -151,6 +160,11 @@ begin
   Result := False;
 end;
 
+procedure TFailingExternalResolver.Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
+begin
+  raise Exception.Create('Unexpected resolver failure');
+end;
+
 function TFailingBuildService.BuildProject(const AProjectPath: string): TBuildMetrics;
 begin
   Inc(CallCount);
@@ -201,6 +215,39 @@ begin
     Assert.AreEqual(1, LBuildService.CallCount);
     Assert.AreEqual(0, LProjectParser.ProjectUnitsCallCount);
     Assert.AreEqual(0, LFileService.WriteCallCount);
+  finally
+    LApplicationService.Free;
+  end;
+end;
+
+procedure TBuildReliabilityTests.UnexpectedExceptionTriggersRollback;
+var
+  LFileService: TFileServiceSpy;
+  LApplicationService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+  LExceptionRaised: Boolean;
+begin
+  LFileService := TFileServiceSpy.Create;
+  LConfig := TToolConfig.Default;
+  LApplicationService := TProjectCleanerAppService.Create(
+    TProjectParserSpy.Create,
+    TASTParserStub.Create,
+    LFileService,
+    TReportGeneratorStub.Create,
+    TDelphiEnvironmentStub.Create,
+    TFailingExternalResolver.Create,
+    TFailingBuildService.Create,
+    LConfig);
+  try
+    LExceptionRaised := False;
+    try
+      LApplicationService.Execute('Project.dproj');
+    except
+      on E: Exception do
+        LExceptionRaised := True;
+    end;
+    Assert.IsTrue(LExceptionRaised);
+    Assert.AreEqual(1, LFileService.RestoreCallCount);
   finally
     LApplicationService.Free;
   end;
