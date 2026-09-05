@@ -5,12 +5,16 @@ uses
   Atropos.Core.Ports;
 
 type
+  TBuildOutputParser = class
+  public
+    class function Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics; static;
+  end;
+
   TBuildServiceAdapter = class(TInterfacedObject, IBuildService)
   private
     FEnvService: IDelphiEnvironmentService;
     FLogger: ILogger;
-    function RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string): Boolean;
-    function ParseBuildOutput(const AOutput, AProjectPath: string): TBuildMetrics;
+    function RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string; out AExitCode: Cardinal): Boolean;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
   public
     constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil);
@@ -27,7 +31,7 @@ begin
   FLogger := ALogger;
 end;
 
-function TBuildServiceAdapter.RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string): Boolean;
+function TBuildServiceAdapter.RunCmdAndCaptureOutput(const ACmd: string; out AOutput: string; out AExitCode: Cardinal): Boolean;
 var
   LSecurityAttributes: TSecurityAttributes;
   LReadPipe: THandle;
@@ -41,6 +45,7 @@ var
 begin
   Result := False;
   AOutput := EmptyStr;
+  AExitCode := Cardinal(-1);
 
   LSecurityAttributes.nLength := SizeOf(TSecurityAttributes);
   LSecurityAttributes.bInheritHandle := True;
@@ -78,9 +83,10 @@ begin
       end;
 
       WaitForSingleObject(LProcessInfo.hProcess, INFINITE);
+      if GetExitCodeProcess(LProcessInfo.hProcess, AExitCode) then
+        Result := True;
       CloseHandle(LProcessInfo.hProcess);
       CloseHandle(LProcessInfo.hThread);
-      Result := True;
     end;
   finally
     if LWritePipe <> 0 then CloseHandle(LWritePipe);
@@ -88,7 +94,7 @@ begin
   end;
 end;
 
-function TBuildServiceAdapter.ParseBuildOutput(const AOutput, AProjectPath: string): TBuildMetrics;
+class function TBuildOutputParser.Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics;
 var
   LMatch: TMatch;
   LExeDir: string;
@@ -126,7 +132,7 @@ begin
     LHintsList.Free;
   end;
 
-  Result.Success :=
+  Result.Success := (AExitCode = 0) and
     not (TRegEx.IsMatch(AOutput, 'Build FAILED\.') or TRegEx.IsMatch(AOutput, '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\]'));
   if not Result.Success then
   begin
@@ -182,6 +188,7 @@ var
   LRegEntry: string;
   LOutput: string;
   LStartTick: UInt64;
+  LExitCode: Cardinal;
 begin
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
@@ -210,7 +217,7 @@ begin
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
   LStartTick := GetTickCount64;
-  if not RunCmdAndCaptureOutput(LBdsCmd, LOutput) then
+  if not RunCmdAndCaptureOutput(LBdsCmd, LOutput, LExitCode) then
   begin
     Result.Success := False;
     Result.ErrorMessage := 'Failed to execute bds.exe process.';
@@ -226,7 +233,7 @@ begin
   
   LOutput := TFile.ReadAllText(LErrFile);
   TFile.Delete(LErrFile);
-  Result := ParseBuildOutput(LOutput, AProjectPath);
+  Result := TBuildOutputParser.Parse(LOutput, AProjectPath, LExitCode);
   Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
   Result.CompileTimeMs := Int64(GetTickCount64 - LStartTick);
 end;
