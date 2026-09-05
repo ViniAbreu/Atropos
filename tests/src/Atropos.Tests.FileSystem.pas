@@ -28,6 +28,10 @@ type
     procedure RepeatedBackupKeepsOriginalContent;
     [Test]
     procedure UTF8WithoutBOMIsPreserved;
+    [Test]
+    procedure CommitDeletesCreatedBackup;
+    [Test]
+    procedure MissingFileOperationsRaiseExceptions;
   end;
 
 implementation
@@ -66,16 +70,10 @@ end;
 
 procedure TFileSystemTests.UTF8WithoutBOMIsPreserved;
 var
-  LUTF8WithoutBOM: TUTF8Encoding;
   LContent: string;
   LWrittenBytes: TBytes;
 begin
-  LUTF8WithoutBOM := TUTF8Encoding.Create(False);
-  try
-    TFile.WriteAllBytes(FTestFile, LUTF8WithoutBOM.GetBytes('ação original'));
-  finally
-    LUTF8WithoutBOM.Free;
-  end;
+  TFile.WriteAllBytes(FTestFile, TEncoding.UTF8.GetBytes('ação original'));
 
   LContent := FFileService.ReadFileContent(FTestFile);
   Assert.AreEqual('ação original', LContent);
@@ -84,6 +82,39 @@ begin
   LWrittenBytes := TFile.ReadAllBytes(FTestFile);
   Assert.IsFalse((Length(LWrittenBytes) >= 3) and (LWrittenBytes[0] = $EF) and
     (LWrittenBytes[1] = $BB) and (LWrittenBytes[2] = $BF));
+end;
+
+procedure TFileSystemTests.CommitDeletesCreatedBackup;
+begin
+  FFileService.BackupFile(FTestFile);
+  Assert.IsTrue(TFile.Exists(FTestFile + '.bak'));
+  FFileService.CommitBackups;
+  Assert.IsFalse(TFile.Exists(FTestFile + '.bak'));
+end;
+
+procedure TFileSystemTests.MissingFileOperationsRaiseExceptions;
+var
+  LMissingPath: string;
+  LBackupRaised: Boolean;
+  LReadRaised: Boolean;
+begin
+  LMissingPath := FTestFile + '.missing';
+  LBackupRaised := False;
+  try
+    FFileService.BackupFile(LMissingPath);
+  except
+    on E: Exception do
+      LBackupRaised := True;
+  end;
+  LReadRaised := False;
+  try
+    FFileService.ReadFileContent(LMissingPath);
+  except
+    on E: Exception do
+      LReadRaised := True;
+  end;
+  Assert.IsTrue(LBackupRaised);
+  Assert.IsTrue(LReadRaised);
 end;
 
 procedure TFileSystemTests.TearDown;
