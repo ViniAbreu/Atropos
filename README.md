@@ -10,7 +10,7 @@ Antes de modificar fontes, compila o projeto para estabelecer uma linha de base.
 
 - CLI e interface VCL para Windows.
 - Builds nativos Win32 e Win64 validados.
-- 90 testes automatizados executados nas duas arquiteturas.
+- 96 testes automatizados executados nas duas arquiteturas.
 - Smoke tests de compilação, modificação, relatório e preservação do fixture.
 - Cobertura protegida por gate mínimo de 85%.
 - DelphiAST fixado como submódulo Git.
@@ -25,11 +25,14 @@ Obtenha os executáveis nas [releases](https://github.com/ViniAbreu/Atropos/rele
 AtroposCLI.exe -dproj "C:\Projetos\MinhaAplicacao\MinhaAplicacao.dproj" --remove --move -html -txt
 AtroposCLI.exe -dproj "C:\Projetos\MinhaAplicacao\MinhaAplicacao.dproj" --remove -txt --output reports
 AtroposCLI.exe -dproj "C:\Projetos\MinhaAplicacao\MinhaAplicacao.dproj" --remove --dry-run -html -txt
+AtroposCLI.exe -dproj "C:\Projetos\MinhaAplicacao\MinhaAplicacao.dproj" --remove --dry-run --target "Debug|Win32" --target "Debug|Win64"
 ```
 
 Sem `--remove` ou `--move`, nenhuma alteração é solicitada, embora a compilação inicial ainda seja executada.
 Use `--dry-run` para revisar os candidatos e gerar relatórios sem modificar os
 fontes.
+Repita `--target <configuração|plataforma>` para validar uma matriz de targets
+antes e depois da análise.
 
 ## Documentação
 

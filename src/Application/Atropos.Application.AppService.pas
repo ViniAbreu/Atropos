@@ -32,6 +32,7 @@ type
     function ResolvePath(const ABasePath, ARelativePath: string): string;
 
     function RunBaselineBuild(const AFullPath: string): TBuildMetrics;
+    function RunConfiguredBuilds(const AFullPath: string): TBuildMetrics;
     procedure ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
     function RunFinalBuild(const AFullPath: string; ARemoved, AMoved: Integer): TBuildMetrics;
     function ProcessInlineHints(const AHints: TArray<TInlineHint>; LModifier: TApplyUsesChanges): Integer;
@@ -155,7 +156,7 @@ end;
 function TProjectCleanerAppService.RunBaselineBuild(const AFullPath: string): TBuildMetrics;
 begin
   Log('Running baseline build (Before)...');
-  Result := FBuildService.BuildProject(AFullPath);
+  Result := RunConfiguredBuilds(AFullPath);
   if not Result.Success then
   begin
     Log('WARNING: Baseline build failed! Metrics will be collected, but rollback comparison might be inaccurate.');
@@ -165,6 +166,27 @@ begin
   
   Log(Format('Baseline build successful. Hints: %d, Warnings: %d', [Result.Hints, Result.Warnings]));
   Log('Delphi Version: ' + Result.DelphiVersion);
+end;
+
+function TProjectCleanerAppService.RunConfiguredBuilds(
+  const AFullPath: string): TBuildMetrics;
+var
+  LTarget: TBuildTarget;
+begin
+  if Length(FConfig.BuildTargets) = 0 then
+    Exit(FBuildService.BuildProject(AFullPath));
+  Result := Default(TBuildMetrics);
+  for LTarget in FConfig.BuildTargets do
+  begin
+    Log(Format('Building target %s|%s...', [LTarget.Configuration,
+      LTarget.Platform]));
+    Result := FBuildService.BuildProjectForTarget(AFullPath, LTarget);
+    if Result.Success then
+      Continue;
+    Result.ErrorMessage := Format('[%s|%s] %s', [LTarget.Configuration,
+      LTarget.Platform, Result.ErrorMessage]);
+    Exit;
+  end;
 end;
 
 procedure TProjectCleanerAppService.ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
@@ -242,7 +264,7 @@ end;
 function TProjectCleanerAppService.RunFinalBuild(const AFullPath: string; ARemoved, AMoved: Integer): TBuildMetrics;
 begin
   Log('Modifications applied. Running final build (After)...');
-  Result := FBuildService.BuildProject(AFullPath);
+  Result := RunConfiguredBuilds(AFullPath);
   Result.RemovedUnitsCount := ARemoved;
   Result.MovedUnitsCount := AMoved;
 end;

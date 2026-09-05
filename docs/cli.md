@@ -13,6 +13,7 @@ AtroposCLI.exe -dproj <arquivo.dproj> [opções]
 | `-txt` | Grava `AtroposReport.txt`. |
 | `--output <diretório>` | Pasta dos relatórios; caminho relativo parte da pasta do `.dproj`. |
 | `--dry-run` | Analisa e relata candidatos sem modificar os fontes. |
+| `--target <configuração\|plataforma>` | Valida um target antes e depois; pode ser repetida para formar uma matriz. |
 | `--debug` | Habilita diagnóstico detalhado. |
 | `--help`, `-h`, `/?` | Exibe ajuda. |
 

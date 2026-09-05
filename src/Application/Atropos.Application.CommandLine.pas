@@ -3,7 +3,8 @@ unit Atropos.Application.CommandLine;
 interface
 
 uses
-  Atropos.Core.Config;
+  Atropos.Core.Config,
+  Atropos.Core.Ports;
 
 type
   TCommandLineOptions = record
@@ -33,6 +34,7 @@ class function TCommandLineParser.Parse(const AArgs: TArray<string>): TCommandLi
 var
   I: Integer;
   LArg: string;
+  LBuildTarget: TBuildTarget;
 begin
   Result := Default(TCommandLineOptions);
   Result.Config := TToolConfig.Default;
@@ -58,6 +60,21 @@ begin
       Result.Config.EnableDebug := True
     else if SameText(LArg, '--dry-run') then
       Result.Config.DryRun := True
+    else if SameText(LArg, '--target') then
+    begin
+      if I + 1 >= Length(AArgs) then
+      begin
+        Result.ErrorMessage := 'Missing value after --target.';
+        Exit;
+      end;
+      Inc(I);
+      if not TBuildTarget.TryParse(AArgs[I], LBuildTarget) then
+      begin
+        Result.ErrorMessage := 'Invalid --target. Use Configuration|Platform.';
+        Exit;
+      end;
+      Result.Config.AddBuildTarget(LBuildTarget);
+    end
     else if SameText(LArg, '-html') then
       Result.Config.ExportHTML := True
     else if SameText(LArg, '-txt') then

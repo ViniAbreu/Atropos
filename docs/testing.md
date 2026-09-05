@@ -19,6 +19,8 @@ Para Win32 e Win64, compila e executa DUnitX, gera CLI/VCL Release e roda smoke 
 ```
 
 O smoke confere o PE, copia o fixture, executa a CLI, remove uma dependência, gera relatório e garante que o original não mudou.
+Ele também solicita explicitamente os targets `Debug|Win32` e `Debug|Win64`,
+validando a matriz configurada pelo usuário.
 
 Somente cobertura:
 

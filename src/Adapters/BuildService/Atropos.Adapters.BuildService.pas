@@ -32,11 +32,15 @@ type
     FTimeoutMs: Cardinal;
     FShouldCancel: TCancellationCheck;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
+    function ExecuteBuildCommand(const ACommand, AErrorFile, AProjectPath,
+      ADelphiPath, AToolName: string; ARequiresOutputFile: Boolean): TBuildMetrics;
   public
     constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
       AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000;
       const AShouldCancel: TCancellationCheck = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
+    function BuildProjectForTarget(const AProjectPath: string;
+      const ATarget: TBuildTarget): TBuildMetrics;
   end;
 
 implementation
@@ -271,11 +275,6 @@ var
   LBdsExe: string;
   LBdsCmd: string;
   LErrFile: string;
-  LOutput: string;
-  LStartTick: UInt64;
-  LExitCode: Cardinal;
-  LTimedOut: Boolean;
-  LCancelled: Boolean;
 begin
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
@@ -302,36 +301,112 @@ begin
 
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
+  Result := ExecuteBuildCommand(LBdsCmd, LErrFile, AProjectPath, LDelphiPath,
+    'bds.exe', True);
+end;
+
+function TBuildServiceAdapter.ExecuteBuildCommand(const ACommand, AErrorFile,
+  AProjectPath, ADelphiPath, AToolName: string;
+  ARequiresOutputFile: Boolean): TBuildMetrics;
+var
+  LOutput: string;
+  LStartTick: UInt64;
+  LExitCode: Cardinal;
+  LTimedOut: Boolean;
+  LCancelled: Boolean;
+begin
+  Result := Default(TBuildMetrics);
   LStartTick := GetTickCount64;
   try
-    if not FProcessRunner.Execute(LBdsCmd, FTimeoutMs, FShouldCancel, LOutput,
+    if not FProcessRunner.Execute(ACommand, FTimeoutMs, FShouldCancel, LOutput,
       LExitCode, LTimedOut, LCancelled) then
     begin
       Result.Success := False;
       if LCancelled then
-        Result.ErrorMessage := 'bds.exe build was cancelled.'
+        Result.ErrorMessage := AToolName + ' build was cancelled.'
       else if LTimedOut then
-        Result.ErrorMessage := Format('bds.exe build timed out after %d ms.', [FTimeoutMs])
+        Result.ErrorMessage := Format('%s build timed out after %d ms.',
+          [AToolName, FTimeoutMs])
       else
-        Result.ErrorMessage := 'Failed to execute bds.exe process.';
+        Result.ErrorMessage := 'Failed to execute ' + AToolName + ' process.';
       Exit;
     end;
 
-    if not TFile.Exists(LErrFile) then
+    if ARequiresOutputFile and not TFile.Exists(AErrorFile) then
     begin
       Result.Success := False;
-      Result.ErrorMessage := 'Failed to read bds.exe error file output.';
+      Result.ErrorMessage := 'Failed to read ' + AToolName + ' output.';
       Exit;
     end;
 
-    LOutput := TFile.ReadAllText(LErrFile);
+    if TFile.Exists(AErrorFile) then
+      LOutput := TFile.ReadAllText(AErrorFile);
     Result := TBuildOutputParser.Parse(LOutput, AProjectPath, LExitCode);
-    Result.DelphiVersion := GetDelphiFriendlyName(LDelphiPath);
+    Result.DelphiVersion := GetDelphiFriendlyName(ADelphiPath);
     Result.CompileTimeMs := Int64(GetTickCount64 - LStartTick);
   finally
-    if TFile.Exists(LErrFile) then
-      TFile.Delete(LErrFile);
+    if TFile.Exists(AErrorFile) then
+      TFile.Delete(AErrorFile);
   end;
+end;
+
+function TBuildServiceAdapter.BuildProjectForTarget(const AProjectPath: string;
+  const ATarget: TBuildTarget): TBuildMetrics;
+var
+  LDelphiPath: string;
+  LMSBuildPath: string;
+  LCommandProcessorPath: string;
+  LEnvironmentScriptPath: string;
+  LDelphiLibraryPath: string;
+  LErrorFile: string;
+  LCommand: string;
+begin
+  Result := Default(TBuildMetrics);
+  if not Assigned(FEnvService) then
+  begin
+    Result.ErrorMessage := 'Delphi environment service is not available.';
+    Exit;
+  end;
+  if not ATarget.IsValid then
+  begin
+    Result.ErrorMessage := 'Invalid build target.';
+    Exit;
+  end;
+  LDelphiPath := FEnvService.ResolveDelphiPath(AProjectPath);
+  if LDelphiPath.IsEmpty then
+  begin
+    Result.ErrorMessage := 'Delphi path not found for project.';
+    Exit;
+  end;
+  LMSBuildPath := TPath.Combine(GetEnvironmentVariable('WINDIR'),
+    'Microsoft.NET\Framework\v4.0.30319\MSBuild.exe');
+  if not TFile.Exists(LMSBuildPath) then
+  begin
+    Result.ErrorMessage := 'MSBuild.exe not found at ' + LMSBuildPath;
+    Exit;
+  end;
+  LErrorFile := TPath.Combine(TPath.GetTempPath,
+    TGuid.NewGuid.ToString + '.msbuild.log');
+  LCommandProcessorPath := GetEnvironmentVariable('ComSpec');
+  LEnvironmentScriptPath := TPath.Combine(LDelphiPath, 'bin\rsvars.bat');
+  LDelphiLibraryPath := TPath.Combine(LDelphiPath,
+    Format('lib\%s\%s', [ATarget.Platform, ATarget.Configuration]));
+  if not TFile.Exists(LEnvironmentScriptPath) then
+  begin
+    Result.ErrorMessage := 'rsvars.bat not found at ' + LEnvironmentScriptPath;
+    Exit;
+  end;
+  LCommand := Format(
+    '"%s" /d /c ""%s" && "%s" "%s" /t:Build /p:Config="%s" ' +
+    '/p:Platform="%s" /p:DelphiLibraryPath="%s" /nologo /v:minimal"',
+    [LCommandProcessorPath, LEnvironmentScriptPath, LMSBuildPath,
+     AProjectPath, ATarget.Configuration, ATarget.Platform,
+     LDelphiLibraryPath]);
+  if Assigned(FLogger) then
+    FLogger.Log(Format('Executing target build %s|%s via MSBuild.',
+      [ATarget.Configuration, ATarget.Platform]));
+  Result := ExecuteBuildCommand(LCommand, LErrorFile, AProjectPath,
+    LDelphiPath, 'MSBuild.exe', False);
 end;
 
 end.

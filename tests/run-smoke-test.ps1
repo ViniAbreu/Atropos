@@ -39,7 +39,8 @@ try {
     $standardOutputPath = Join-Path $temporaryRoot 'stdout.txt'
     $standardErrorPath = Join-Path $temporaryRoot 'stderr.txt'
     $process = Start-Process -FilePath $resolvedCliPath -ArgumentList @(
-        '-dproj', ('"' + $projectPath + '"'), '--remove', '-txt', '--output', 'reports'
+        '-dproj', ('"' + $projectPath + '"'), '--remove', '-txt', '--output', 'reports',
+        '--target', 'Debug|Win32', '--target', 'Debug|Win64'
     ) -RedirectStandardOutput $standardOutputPath -RedirectStandardError $standardErrorPath -PassThru -WindowStyle Hidden
     if (-not $process.WaitForExit(180000)) {
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
