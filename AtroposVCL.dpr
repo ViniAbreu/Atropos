@@ -16,6 +16,7 @@ uses
   Atropos.Adapters.DelphiEnvironment in 'src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas',
   Atropos.Application.AppService in 'src\Application\Atropos.Application.AppService.pas',
   Atropos.Application.ExecutionConfig in 'src\Application\Atropos.Application.ExecutionConfig.pas',
+  Atropos.Application.ExecutionLifecycle in 'src\Application\Atropos.Application.ExecutionLifecycle.pas',
   Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
   Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas';
 

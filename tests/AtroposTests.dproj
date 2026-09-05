@@ -109,6 +109,8 @@
         <DCCReference Include="src\Atropos.Tests.ProjectResolution.pas"/>
         <DCCReference Include="..\src\Application\Atropos.Application.ExecutionConfig.pas"/>
         <DCCReference Include="src\Atropos.Tests.ExecutionConfig.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.ExecutionLifecycle.pas"/>
+        <DCCReference Include="src\Atropos.Tests.ExecutionLifecycle.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
