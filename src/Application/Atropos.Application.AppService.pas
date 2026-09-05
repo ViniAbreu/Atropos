@@ -4,7 +4,6 @@ interface
 uses
   Atropos.Core.Ports,
   Atropos.Core.Config,
-  Atropos.Adapters.Logger,
   Atropos.Core.Domain,
   Atropos.Core.Modifier,
   System.Generics.Collections;
@@ -62,6 +61,26 @@ implementation
 uses System.Diagnostics, System.IOUtils, System.Threading,
   System.SysUtils;
 
+type
+  TApplicationLogger = class(TInterfacedObject, ILogger)
+  private
+    FOnLog: TLogEvent;
+  public
+    constructor Create(const AOnLog: TLogEvent);
+    procedure Log(const AMsg: string);
+  end;
+
+constructor TApplicationLogger.Create(const AOnLog: TLogEvent);
+begin
+  FOnLog := AOnLog;
+end;
+
+procedure TApplicationLogger.Log(const AMsg: string);
+begin
+  if Assigned(FOnLog) then
+    FOnLog(AMsg);
+end;
+
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
   const AASTParser: IASTParser;
@@ -106,7 +125,7 @@ begin
   Result := nil;
   if FConfig.EnableDebug then
   begin
-    Result := TAppLogger.Create(
+    Result := TApplicationLogger.Create(
       procedure(const AMsg: string)
       begin
         Self.Log(AMsg);

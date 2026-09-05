@@ -116,6 +116,7 @@
         <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
         <DCCReference Include="src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.AppService.pas"/>
+        <DCCReference Include="src\Application\Atropos.Application.ExecutionConfig.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.Factory.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
         <BuildConfiguration Include="Base">

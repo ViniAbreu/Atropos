@@ -107,6 +107,8 @@
         <DCCReference Include="..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
         <DCCReference Include="src\Atropos.Tests.BuildReliability.pas"/>
         <DCCReference Include="src\Atropos.Tests.ProjectResolution.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.ExecutionConfig.pas"/>
+        <DCCReference Include="src\Atropos.Tests.ExecutionConfig.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
