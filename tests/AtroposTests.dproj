@@ -38,7 +38,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
-        <DCC_UnitSearchPath>C:\Projetos\UsesTool\modules\DelphiAST\Source;C:\Projetos\UsesTool\modules\DelphiAST\Source\SimpleParser;third_party\DelphiAST\Source;third_party\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\third_party\DelphiAST\Source;..\third_party\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_E>false</DCC_E>
         <DCC_F>false</DCC_F>
         <DCC_K>false</DCC_K>

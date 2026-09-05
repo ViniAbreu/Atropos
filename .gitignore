@@ -52,6 +52,7 @@
 *.rsm
 *.tds
 *.dcu
+tests/AtroposTests.res
 *.lib
 *.a
 *.o
