@@ -344,7 +344,7 @@ begin
     LBuildService,
     LConfig);
   try
-    LApplicationService.Execute('Project.dproj');
+    Assert.IsFalse(LApplicationService.Execute('Project.dproj'));
     Assert.AreEqual(1, LBuildService.CallCount);
     Assert.AreEqual(0, LProjectParser.ProjectUnitsCallCount);
     Assert.AreEqual(0, LFileService.WriteCallCount);
@@ -440,7 +440,7 @@ begin
     TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
     TExternalResolverStub.Create, LBuildService, LConfig);
   try
-    LApplicationService.Execute('Project.dproj');
+    Assert.IsTrue(LApplicationService.Execute('Project.dproj'));
     Assert.AreEqual(1, LBuildService.CallCount);
     Assert.AreEqual(1, LProjectParser.ProjectUnitsCallCount);
     Assert.AreEqual(0, LFileService.WriteCallCount);
@@ -486,7 +486,7 @@ begin
     LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles, LReports,
       TDelphiEnvironmentStub.Create, LResolver, LBuild, LConfig);
     try
-      LService.Execute('Project.dproj');
+      Assert.IsFalse(LService.Execute('Project.dproj'));
       Assert.AreEqual(2, LBuild.CallCount);
       Assert.AreEqual(1, LFiles.WriteCallCount);
       Assert.AreEqual(1, LFiles.RestoreCallCount);
@@ -535,7 +535,7 @@ begin
     LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles, LReports,
       TDelphiEnvironmentStub.Create, LResolver, LBuild, LConfig);
     try
-      LService.Execute('Project.dproj');
+      Assert.IsTrue(LService.Execute('Project.dproj'));
       Assert.AreEqual(2, LBuild.CallCount);
       Assert.AreEqual(1, LFiles.CommitCallCount);
       Assert.AreEqual(0, LFiles.RestoreCallCount);
@@ -579,7 +579,7 @@ begin
         begin
           LProgressPosition := APosition;
         end;
-      LService.Execute('Project.dproj');
+      Assert.IsTrue(LService.Execute('Project.dproj'));
       Assert.AreEqual(1, LProgressPosition);
       Assert.AreEqual(1, LBuild.CallCount);
       Assert.AreEqual(0, LFiles.WriteCallCount);
@@ -633,7 +633,7 @@ begin
     LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles, LReports,
       TDelphiEnvironmentStub.Create, LResolver, LBuild, LConfig);
     try
-      LService.Execute('Project.dproj');
+      Assert.IsTrue(LService.Execute('Project.dproj'));
       Assert.AreEqual(3, LBuild.CallCount);
       Assert.AreEqual(2, LFiles.WriteCallCount);
       Assert.AreEqual(2, LFiles.BackupCallCount);

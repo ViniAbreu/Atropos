@@ -7,6 +7,7 @@ program AtroposCLI;
 uses
   System.SysUtils,
   Atropos.App.CLI in 'src\CLI\Atropos.App.CLI.pas',
+  Atropos.Application.CommandLine in 'src\Application\Atropos.Application.CommandLine.pas',
   Atropos.Core.Ports in 'src\Core\Ports\Atropos.Core.Ports.pas',
   Atropos.Core.Domain in 'src\Core\Domain\Atropos.Core.Domain.pas',
   Atropos.Core.Config in 'src\Core\Domain\Atropos.Core.Config.pas',
@@ -28,13 +29,16 @@ begin
   try
     LApp := TCLIApp.Create;
     try
-      LApp.Run;
+      ExitCode := LApp.Run;
     finally
       LApp.Free;
     end;
   except
     on E: Exception do
+    begin
       Writeln(E.ClassName, ': ', E.Message);
+      ExitCode := 1;
+    end;
   end;
 end.
 

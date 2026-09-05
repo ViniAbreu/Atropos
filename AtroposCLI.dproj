@@ -95,6 +95,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="src\CLI\Atropos.App.CLI.pas"/>
+        <DCCReference Include="src\Application\Atropos.Application.CommandLine.pas"/>
         <DCCReference Include="src\Core\Ports\Atropos.Core.Ports.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Config.pas"/>
