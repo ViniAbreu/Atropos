@@ -10,7 +10,7 @@ Antes de modificar fontes, compila o projeto para estabelecer uma linha de base.
 
 - CLI e interface VCL para Windows.
 - Builds nativos Win32 e Win64 validados.
-- 95 testes automatizados executados nas duas arquiteturas.
+- 90 testes automatizados executados nas duas arquiteturas.
 - Smoke tests de compilação, modificação, relatório e preservação do fixture.
 - Cobertura protegida por gate mínimo de 85%.
 - DelphiAST fixado como submódulo Git.

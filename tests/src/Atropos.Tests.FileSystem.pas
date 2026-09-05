@@ -103,11 +103,11 @@ begin
   FFileService.BackupFile(FTestFile);
   LBackupFiles := TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
     ExtractFileName(FTestFile) + '.atropos-*.bak');
-  Assert.AreEqual(1, Length(LBackupFiles));
+  Assert.AreEqual(1, Integer(Length(LBackupFiles)));
   FFileService.CommitBackups;
   LBackupFiles := TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
     ExtractFileName(FTestFile) + '.atropos-*.bak');
-  Assert.AreEqual(0, Length(LBackupFiles));
+  Assert.AreEqual(0, Integer(Length(LBackupFiles)));
 end;
 
 procedure TFileSystemTests.MissingFileOperationsRaiseExceptions;
@@ -162,8 +162,9 @@ begin
   LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
 
   Assert.AreEqual('initial content', LRecoveryService.ReadFileContent(FTestFile));
-  Assert.AreEqual(0, Length(TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
-    ExtractFileName(FTestFile) + '.atropos-*.bak')));
+  Assert.AreEqual(0, Integer(Length(TDirectory.GetFiles(
+    TPath.GetDirectoryName(FTestFile),
+    ExtractFileName(FTestFile) + '.atropos-*.bak'))));
 end;
 
 procedure TFileSystemTests.ConcurrentTransactionInSameProjectIsRejected;
@@ -202,7 +203,7 @@ begin
   FFileService.BackupFile(FTestFile);
   LBackupFiles := TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
     ExtractFileName(FTestFile) + '.atropos-*.bak');
-  Assert.AreEqual(1, Length(LBackupFiles), 'Backup file was not created');
+  Assert.AreEqual(1, Integer(Length(LBackupFiles)), 'Backup file was not created');
   Assert.AreEqual('initial content', TFile.ReadAllText(LBackupFiles[0],
     TEncoding.UTF8), 'Backup content mismatch');
 end;

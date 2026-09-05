@@ -143,8 +143,8 @@ begin
     
     // Assert
     // Check if backup exists
-    Assert.AreEqual(1, Length(TDirectory.GetFiles(LBasePath,
-      'UnitA.pas.atropos-*.bak')), 'Atropos backup should be created');
+    Assert.AreEqual(1, Integer(Length(TDirectory.GetFiles(LBasePath,
+      'UnitA.pas.atropos-*.bak'))), 'Atropos backup should be created');
     
     // Check if UnitB was physically removed from UnitA.pas
     LContentAfter := TFile.ReadAllText(FUnitAPath);

@@ -4,8 +4,8 @@
 
 | Item | Evidência |
 | --- | --- |
-| Windows Win32 | Build, 95 testes e smoke aprovados |
-| Windows Win64 | Build, 95 testes e smoke aprovados |
+| Windows Win32 | Build, 90 testes e smoke aprovados |
+| Windows Win64 | Build, 90 testes e smoke aprovados |
 | RAD Studio BDS 23.0 | Ambiente do quality gate atual |
 | DelphiAST | Commit fixado no submódulo |
 

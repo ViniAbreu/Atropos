@@ -383,6 +383,7 @@ begin
     Assert.AreEqual(1, LBuildService.CallCount);
     Assert.AreEqual(0, LProjectParser.ProjectUnitsCallCount);
     Assert.AreEqual(0, LFileService.WriteCallCount);
+    Assert.AreEqual(1, LFileService.RestoreCallCount);
   finally
     LApplicationService.Free;
   end;
@@ -443,7 +444,7 @@ begin
   Assert.IsTrue(LMetrics.Success);
   Assert.AreEqual(1, LMetrics.Hints);
   Assert.AreEqual(1, LMetrics.Warnings);
-  Assert.AreEqual(1, Length(LMetrics.InlineHints));
+  Assert.AreEqual(1, Integer(Length(LMetrics.InlineHints)));
   Assert.AreEqual('System.SysUtils', LMetrics.InlineHints[0].UnitNeeded);
 end;
 
@@ -886,6 +887,7 @@ var
   LFiles: TFileServiceSpy;
   LService: TProjectCleanerAppService;
   LConfig: TToolConfig;
+  LCancelled: Boolean;
 begin
   LParser := TProjectParserSpy.Create;
   LParser.Units := ['any-unit.pas'];
@@ -899,12 +901,14 @@ begin
       Result := True;
     end);
   try
-    Assert.WillRaise(
-      procedure
-      begin
-        LService.Execute('Project.dproj');
-      end,
-      EAbort);
+    LCancelled := False;
+    try
+      LService.Execute('Project.dproj');
+    except
+      on E: EAbort do
+        LCancelled := True;
+    end;
+    Assert.IsTrue(LCancelled);
     Assert.AreEqual(1, LFiles.RestoreCallCount);
   finally
     LService.Free;

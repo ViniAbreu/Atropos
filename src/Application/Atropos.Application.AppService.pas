@@ -341,6 +341,7 @@ begin
   if not LMetricsBefore.Success then
   begin
     Log('Analysis aborted because the baseline build is not healthy. No files were changed.');
+    FFileService.RestoreBackups;
     GenerateReports(LReportOutputDirectory);
     Exit(False);
   end;
