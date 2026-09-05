@@ -1,0 +1,41 @@
+name: Delphi quality gates
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-build-and-cover:
+    runs-on: [self-hosted, Windows, Delphi]
+    timeout-minutes: 30
+    env:
+      BDS_VERSION: '23.0'
+      MINIMUM_LINE_COVERAGE: '85'
+    steps:
+      - name: Check out repository and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Validate configured coverage tool
+        shell: pwsh
+        run: |
+          if (-not $env:DELPHI_CODE_COVERAGE) {
+            throw 'Set DELPHI_CODE_COVERAGE on the self-hosted runner.'
+          }
+
+      - name: Run tests, builds, and coverage gate
+        shell: pwsh
+        run: |
+          ./tests/run-quality-gates.ps1 `
+            -BdsVersion $env:BDS_VERSION `
+            -CodeCoveragePath $env:DELPHI_CODE_COVERAGE `
+            -MinimumLineCoverage $env:MINIMUM_LINE_COVERAGE
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delphi-code-coverage
+          path: tests/coverage/
+          if-no-files-found: ignore

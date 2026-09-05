@@ -2,7 +2,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$CodeCoveragePath,
     [string]$BdsVersion = '23.0',
-    [string]$OutputDirectory = (Join-Path $PSScriptRoot 'coverage')
+    [string]$OutputDirectory = (Join-Path $PSScriptRoot 'coverage'),
+    [ValidateRange(0, 100)]
+    [int]$MinimumLineCoverage = 85
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,3 +51,7 @@ $summary = Join-Path $OutputDirectory 'CodeCoverage_Summary.xml'
 [xml]$report = Get-Content -Raw -LiteralPath $summary
 $lineCoverage = $report.report.data.all.coverage | Where-Object { $_.type -eq 'line, %' }
 Write-Host "Line coverage: $($lineCoverage.value)"
+$coveragePercent = [int]([regex]::Match($lineCoverage.value, '^\d+').Value)
+if ($coveragePercent -lt $MinimumLineCoverage) {
+    throw "Line coverage $coveragePercent% is below the required $MinimumLineCoverage%."
+}
