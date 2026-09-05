@@ -23,6 +23,14 @@ type
     [Test]
     [TestCase('Get project units', 'Should list all units belonging to the project')]
     procedure Test_GetProjectUnits;
+    [Test]
+    procedure SelectsOnlyActiveConfigurationAndPlatform;
+    [Test]
+    procedure ExpandsInheritedSearchPathInDeclarationOrder;
+    [Test]
+    procedure EvaluatesDelphiGeneratedBooleanConditions;
+    [Test]
+    procedure ParsesActivePathsFromRepositoryProject;
   end;
 
 implementation
@@ -71,7 +79,7 @@ var
   LPaths: TArray<string>;
 begin
   LPaths := FParser.GetSearchPaths(FTestDprojPath);
-  Assert.AreEqual(2, Length(LPaths));
+  Assert.AreEqual(2, Integer(Length(LPaths)));
   Assert.AreEqual('C:\Path1', LPaths[0]);
   Assert.AreEqual('..\Path2', LPaths[1]);
 end;
@@ -81,10 +89,117 @@ var
   LUnits: TArray<string>;
 begin
   LUnits := FParser.GetProjectUnits(FTestDprojPath);
-  Assert.AreEqual(2, Length(LUnits));
+  Assert.AreEqual(2, Integer(Length(LUnits)));
   // dfm should be ignored
   Assert.AreEqual('Unit1.pas', LUnits[0]);
   Assert.AreEqual('Unit2.pas', LUnits[1]);
+end;
+
+procedure TDprojParserTests.SelectsOnlyActiveConfigurationAndPlatform;
+var
+  LXML: TStringList;
+  LParser: IProjectParser;
+  LPaths, LUnits: TArray<string>;
+begin
+  LXML := TStringList.Create;
+  try
+    LXML.Text :=
+      '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+      '<PropertyGroup><Config Condition="''$(Config)''==''''">Debug</Config>' +
+      '<Platform Condition="''$(Platform)''==''''">Win32</Platform></PropertyGroup>' +
+      '<PropertyGroup Condition="''$(Config)|$(Platform)''==''Debug|Win32''">' +
+      '<DCC_UnitSearchPath>debug32</DCC_UnitSearchPath></PropertyGroup>' +
+      '<PropertyGroup Condition="''$(Config)|$(Platform)''==''Release|Win64''">' +
+      '<DCC_UnitSearchPath>release64</DCC_UnitSearchPath></PropertyGroup>' +
+      '<ItemGroup Condition="''$(Config)|$(Platform)''==''Debug|Win32''">' +
+      '<DCCReference Include="DebugUnit.pas"/></ItemGroup>' +
+      '<ItemGroup Condition="''$(Config)|$(Platform)''==''Release|Win64''">' +
+      '<DCCReference Include="ReleaseUnit.pas"/></ItemGroup></Project>';
+    LXML.SaveToFile(FTestDprojPath, TEncoding.UTF8);
+  finally
+    LXML.Free;
+  end;
+
+  LParser := TDprojParserAdapter.Create('Release', 'Win64');
+  LPaths := LParser.GetSearchPaths(FTestDprojPath);
+  LUnits := LParser.GetProjectUnits(FTestDprojPath);
+  Assert.AreEqual(1, Integer(Length(LPaths)));
+  Assert.AreEqual('release64', LPaths[0]);
+  Assert.AreEqual(1, Integer(Length(LUnits)));
+  Assert.AreEqual('ReleaseUnit.pas', LUnits[0]);
+end;
+
+procedure TDprojParserTests.ExpandsInheritedSearchPathInDeclarationOrder;
+var
+  LXML: TStringList;
+  LPaths: TArray<string>;
+begin
+  LXML := TStringList.Create;
+  try
+    LXML.Text :=
+      '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+      '<PropertyGroup><DCC_UnitSearchPath>base</DCC_UnitSearchPath></PropertyGroup>' +
+      '<PropertyGroup><DCC_UnitSearchPath>specific;$(DCC_UnitSearchPath);$(PROJECTDIR)shared</DCC_UnitSearchPath></PropertyGroup>' +
+      '</Project>';
+    LXML.SaveToFile(FTestDprojPath, TEncoding.UTF8);
+  finally
+    LXML.Free;
+  end;
+  LPaths := FParser.GetSearchPaths(FTestDprojPath);
+  Assert.AreEqual(3, Integer(Length(LPaths)));
+  Assert.AreEqual('specific', LPaths[0]);
+  Assert.AreEqual('base', LPaths[1]);
+  Assert.AreEqual('$(PROJECTDIR)shared', LPaths[2]);
+end;
+
+procedure TDprojParserTests.EvaluatesDelphiGeneratedBooleanConditions;
+var
+  LXML: TStringList;
+  LParser: IProjectParser;
+  LPaths: TArray<string>;
+begin
+  LXML := TStringList.Create;
+  try
+    LXML.Text :=
+      '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+      '<PropertyGroup><Base>True</Base></PropertyGroup>' +
+      '<PropertyGroup Condition="(''$(Platform)''==''Win32'' and ''$(Base)''==''true'') or ''$(Base_Win32)''!=''''">' +
+      '<Base_Win32>true</Base_Win32></PropertyGroup>' +
+      '<PropertyGroup Condition="''$(Base_Win32)''!=''''">' +
+      '<DCC_UnitSearchPath>win32-only</DCC_UnitSearchPath></PropertyGroup>' +
+      '</Project>';
+    LXML.SaveToFile(FTestDprojPath, TEncoding.UTF8);
+  finally
+    LXML.Free;
+  end;
+  LParser := TDprojParserAdapter.Create('Debug', 'Win32');
+  LPaths := LParser.GetSearchPaths(FTestDprojPath);
+  Assert.AreEqual(1, Integer(Length(LPaths)));
+  Assert.AreEqual('win32-only', LPaths[0]);
+end;
+
+procedure TDprojParserTests.ParsesActivePathsFromRepositoryProject;
+var
+  LProjectPath: string;
+  LParser: IProjectParser;
+  LPaths: TArray<string>;
+  LPath: string;
+  LFoundSource, LFoundParser: Boolean;
+begin
+  LProjectPath := TPath.GetFullPath(
+    TPath.Combine(ExtractFilePath(ParamStr(0)), '..\..\..\AtroposCLI.dproj'));
+  Assert.IsTrue(TFile.Exists(LProjectPath));
+  LParser := TDprojParserAdapter.Create('Debug', 'Win32');
+  LPaths := LParser.GetSearchPaths(LProjectPath);
+  LFoundSource := False;
+  LFoundParser := False;
+  for LPath in LPaths do
+  begin
+    LFoundSource := LFoundSource or SameText(LPath, 'third_party\DelphiAST\Source');
+    LFoundParser := LFoundParser or SameText(LPath, 'third_party\DelphiAST\Source\SimpleParser');
+  end;
+  Assert.IsTrue(LFoundSource);
+  Assert.IsTrue(LFoundParser);
 end;
 
 initialization

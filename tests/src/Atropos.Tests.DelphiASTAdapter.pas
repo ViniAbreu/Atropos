@@ -71,11 +71,11 @@ begin
   Assert.AreEqual('MockUnit', LTree.GetUnitName);
   
   LIntfUses := LTree.GetInterfaceUses;
-  Assert.AreEqual(1, Length(LIntfUses));
+  Assert.AreEqual(1, Integer(Length(LIntfUses)));
   Assert.AreEqual('System.SysUtils', LIntfUses[0]);
 
   LImplUses := LTree.GetImplementationUses;
-  Assert.AreEqual(1, Length(LImplUses));
+  Assert.AreEqual(1, Integer(Length(LImplUses)));
   Assert.AreEqual('System.Classes', LImplUses[0]);
 end;
 

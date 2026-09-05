@@ -2,7 +2,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$CodeCoveragePath,
     [string]$BdsVersion = '23.0',
-    [string]$OutputDirectory = (Join-Path $PSScriptRoot 'coverage')
+    [string]$OutputDirectory = (Join-Path $PSScriptRoot 'coverage'),
+    [ValidateRange(0, 100)]
+    [int]$MinimumLineCoverage = 85
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,19 +12,22 @@ $repositoryRoot = Split-Path $PSScriptRoot -Parent
 $rsvars = "C:\Program Files (x86)\Embarcadero\Studio\$BdsVersion\bin\rsvars.bat"
 $msbuild = "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
 $testProject = Join-Path $PSScriptRoot 'AtroposTests.dproj'
-$testExecutable = Join-Path $PSScriptRoot 'AtroposTests.exe'
-$mapFile = Join-Path $PSScriptRoot 'AtroposTests.map'
+$testExecutable = Join-Path $PSScriptRoot 'Win32\Debug\AtroposTests.exe'
+$mapFile = Join-Path $PSScriptRoot 'Win32\Debug\AtroposTests.map'
 
 if (-not (Test-Path -LiteralPath $CodeCoveragePath)) { throw "Coverage executable not found: $CodeCoveragePath" }
 if (-not (Test-Path -LiteralPath $rsvars)) { throw "RAD Studio environment not found: $rsvars" }
 
-$buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config=Debug /p:Platform=Win32 /nologo /v:minimal"
+$libraryPath = "C:\Program Files (x86)\Embarcadero\Studio\$BdsVersion\lib\Win32\Debug"
+$buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config=Debug /p:Platform=Win32 /p:DelphiLibraryPath=`"$libraryPath`" /nologo /v:minimal"
 & cmd.exe /d /c $buildCommand
 if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE" }
 
 $units = @(
     'Atropos.Core.Domain', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
+    'Atropos.Application.ExecutionLifecycle',
+    'Atropos.Application.CommandLine',
     'Atropos.Adapters.BuildService', 'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ReportGenerator',
@@ -47,3 +52,7 @@ $summary = Join-Path $OutputDirectory 'CodeCoverage_Summary.xml'
 [xml]$report = Get-Content -Raw -LiteralPath $summary
 $lineCoverage = $report.report.data.all.coverage | Where-Object { $_.type -eq 'line, %' }
 Write-Host "Line coverage: $($lineCoverage.value)"
+$coveragePercent = [int]([regex]::Match($lineCoverage.value, '^\d+').Value)
+if ($coveragePercent -lt $MinimumLineCoverage) {
+    throw "Line coverage $coveragePercent% is below the required $MinimumLineCoverage%."
+}

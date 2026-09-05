@@ -42,10 +42,14 @@ type
     RestoreCallCount: Integer;
     BackupCallCount: Integer;
     CommitCallCount: Integer;
+    EnsureDirectoryCallCount: Integer;
+    LastDirectory: string;
+    LastWritePath: string;
     Content: string;
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath, AContent: string);
   end;
@@ -73,11 +77,19 @@ type
     ExecuteResult: Boolean;
     ExitCode: Cardinal;
     TimedOut: Boolean;
+    Cancelled: Boolean;
     TimeoutMs: Cardinal;
     ErrorFileContent: string;
     Command: string;
-    function Execute(const ACommand: string; ATimeoutMs: Cardinal; out AOutput: string;
-      out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
+  end;
+
+  TBuildProfileCleanerSpy = class(TInterfacedObject, IBuildProfileCleaner)
+  public
+    ProfileName: string;
+    procedure Cleanup(const AProfileName: string);
   end;
 
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
@@ -150,12 +162,27 @@ type
     procedure BuildTimeoutReturnsSpecificFailure;
     [Test]
     procedure Win32ProcessRunnerTerminatesTimedOutProcess;
+    [Test]
+    procedure BuildCancellationReturnsSpecificFailure;
+    [Test]
+    procedure Win32ProcessRunnerTerminatesCancelledProcess;
+    [Test]
+    procedure ApplicationCancellationRollsBack;
+    [Test]
+    procedure BuildDoesNotCreateTemporaryRegistryProfile;
+    [Test]
+    procedure WindowsProfileCleanerRemovesRegistryTree;
+    [Test]
+    procedure CancellationTerminatesChildProcessTree;
+    [Test]
+    procedure ReportsUseConfiguredDirectoryRelativeToProject;
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.IOUtils, System.RegularExpressions;
+  System.SysUtils, System.IOUtils, System.RegularExpressions, System.Classes,
+  System.Win.Registry, Winapi.Windows;
 
 function TProjectParserSpy.GetSearchPaths(const ADprojPath: string): TArray<string>;
 begin
@@ -207,6 +234,12 @@ begin
   Inc(CommitCallCount);
 end;
 
+procedure TFileServiceSpy.EnsureDirectory(const ADirectory: string);
+begin
+  Inc(EnsureDirectoryCallCount);
+  LastDirectory := ADirectory;
+end;
+
 function TFileServiceSpy.ReadFileContent(const AFilePath: string): string;
 begin
   Result := Content;
@@ -215,6 +248,7 @@ end;
 procedure TFileServiceSpy.WriteFileContent(const AFilePath, AContent: string);
 begin
   Inc(WriteCallCount);
+  LastWritePath := AFilePath;
   Content := AContent;
 end;
 
@@ -249,7 +283,8 @@ begin
 end;
 
 function TBuildProcessRunnerStub.Execute(const ACommand: string; ATimeoutMs: Cardinal;
-  out AOutput: string; out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+  const AShouldCancel: TCancellationCheck; out AOutput: string;
+  out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
 var
   LMatch: TMatch;
 begin
@@ -258,12 +293,18 @@ begin
   AOutput := EmptyStr;
   AExitCode := ExitCode;
   ATimedOut := TimedOut;
+  ACancelled := Cancelled;
   Result := ExecuteResult;
   if not Result then
     Exit;
   LMatch := TRegEx.Match(ACommand, '-o"([^"]+)"');
   if LMatch.Success then
     TFile.WriteAllText(LMatch.Groups[1].Value, ErrorFileContent);
+end;
+
+procedure TBuildProfileCleanerSpy.Cleanup(const AProfileName: string);
+begin
+  ProfileName := AProfileName;
 end;
 
 procedure TExternalResolverStub.Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
@@ -344,7 +385,7 @@ begin
     LBuildService,
     LConfig);
   try
-    LApplicationService.Execute('Project.dproj');
+    Assert.IsFalse(LApplicationService.Execute('Project.dproj'));
     Assert.AreEqual(1, LBuildService.CallCount);
     Assert.AreEqual(0, LProjectParser.ProjectUnitsCallCount);
     Assert.AreEqual(0, LFileService.WriteCallCount);
@@ -408,7 +449,7 @@ begin
   Assert.IsTrue(LMetrics.Success);
   Assert.AreEqual(1, LMetrics.Hints);
   Assert.AreEqual(1, LMetrics.Warnings);
-  Assert.AreEqual(1, Length(LMetrics.InlineHints));
+  Assert.AreEqual(1, Integer(Length(LMetrics.InlineHints)));
   Assert.AreEqual('System.SysUtils', LMetrics.InlineHints[0].UnitNeeded);
 end;
 
@@ -440,7 +481,7 @@ begin
     TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
     TExternalResolverStub.Create, LBuildService, LConfig);
   try
-    LApplicationService.Execute('Project.dproj');
+    Assert.IsTrue(LApplicationService.Execute('Project.dproj'));
     Assert.AreEqual(1, LBuildService.CallCount);
     Assert.AreEqual(1, LProjectParser.ProjectUnitsCallCount);
     Assert.AreEqual(0, LFileService.WriteCallCount);
@@ -486,7 +527,7 @@ begin
     LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles, LReports,
       TDelphiEnvironmentStub.Create, LResolver, LBuild, LConfig);
     try
-      LService.Execute('Project.dproj');
+      Assert.IsFalse(LService.Execute('Project.dproj'));
       Assert.AreEqual(2, LBuild.CallCount);
       Assert.AreEqual(1, LFiles.WriteCallCount);
       Assert.AreEqual(1, LFiles.RestoreCallCount);
@@ -535,7 +576,7 @@ begin
     LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles, LReports,
       TDelphiEnvironmentStub.Create, LResolver, LBuild, LConfig);
     try
-      LService.Execute('Project.dproj');
+      Assert.IsTrue(LService.Execute('Project.dproj'));
       Assert.AreEqual(2, LBuild.CallCount);
       Assert.AreEqual(1, LFiles.CommitCallCount);
       Assert.AreEqual(0, LFiles.RestoreCallCount);
@@ -579,7 +620,7 @@ begin
         begin
           LProgressPosition := APosition;
         end;
-      LService.Execute('Project.dproj');
+      Assert.IsTrue(LService.Execute('Project.dproj'));
       Assert.AreEqual(1, LProgressPosition);
       Assert.AreEqual(1, LBuild.CallCount);
       Assert.AreEqual(0, LFiles.WriteCallCount);
@@ -633,7 +674,7 @@ begin
     LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles, LReports,
       TDelphiEnvironmentStub.Create, LResolver, LBuild, LConfig);
     try
-      LService.Execute('Project.dproj');
+      Assert.IsTrue(LService.Execute('Project.dproj'));
       Assert.AreEqual(3, LBuild.CallCount);
       Assert.AreEqual(2, LFiles.WriteCallCount);
       Assert.AreEqual(2, LFiles.BackupCallCount);
@@ -674,6 +715,7 @@ begin
     Assert.IsTrue(LMetrics.Success);
     Assert.AreEqual(1, LMetrics.Warnings);
     Assert.IsTrue(LRunner.Command.Contains('-b -ns'));
+    Assert.IsFalse(LRunner.Command.Contains(' -r'));
     Assert.IsTrue(LRunner.Command.Contains(LProject));
     Assert.AreEqual(ExtractFileName(LRoot), LMetrics.DelphiVersion);
   finally
@@ -738,12 +780,13 @@ var
   LOutput: string;
   LExitCode: Cardinal;
   LTimedOut: Boolean;
+  LCancelled: Boolean;
 begin
   LRunner := TWin32BuildProcessRunner.Create;
   Assert.IsTrue(LRunner.Execute(
     '"' + TPath.Combine(GetEnvironmentVariable('WINDIR'), 'System32\cmd.exe') +
-    '" /d /c "echo runner-output & exit /b 7"', 5000, LOutput, LExitCode,
-    LTimedOut));
+    '" /d /c "echo runner-output & exit /b 7"', 5000, nil, LOutput,
+    LExitCode, LTimedOut, LCancelled));
   Assert.IsTrue(LOutput.Contains('runner-output'));
   Assert.AreEqual(Cardinal(7), LExitCode);
   Assert.IsFalse(LTimedOut);
@@ -783,15 +826,217 @@ var
   LOutput: string;
   LExitCode: Cardinal;
   LTimedOut: Boolean;
+  LCancelled: Boolean;
   LPowerShell: string;
 begin
   LPowerShell := TPath.Combine(
     GetEnvironmentVariable('WINDIR'), 'System32\WindowsPowerShell\v1.0\powershell.exe');
   LRunner := TWin32BuildProcessRunner.Create;
   Assert.IsFalse(LRunner.Execute('"' + LPowerShell +
-    '" -NoProfile -Command "Start-Sleep -Seconds 5"', 50, LOutput,
-    LExitCode, LTimedOut));
+    '" -NoProfile -Command "Start-Sleep -Seconds 5"', 50, nil, LOutput,
+    LExitCode, LTimedOut, LCancelled));
   Assert.IsTrue(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.BuildCancellationReturnsSpecificFailure;
+var
+  LRoot, LBin: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot, 'bin');
+  TDirectory.CreateDirectory(LBin);
+  TFile.WriteAllText(TPath.Combine(LBin, 'bds.exe'), EmptyStr);
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := False;
+    LRunner.Cancelled := True;
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner);
+    LMetrics := LService.BuildProject('Sample.dproj');
+    Assert.IsFalse(LMetrics.Success);
+    Assert.IsTrue(LMetrics.ErrorMessage.Contains('cancelled'));
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.Win32ProcessRunnerTerminatesCancelledProcess;
+var
+  LRunner: IBuildProcessRunner;
+  LOutput: string;
+  LExitCode: Cardinal;
+  LTimedOut, LCancelled: Boolean;
+  LPowerShell: string;
+begin
+  LPowerShell := TPath.Combine(
+    GetEnvironmentVariable('WINDIR'), 'System32\WindowsPowerShell\v1.0\powershell.exe');
+  LRunner := TWin32BuildProcessRunner.Create;
+  Assert.IsFalse(LRunner.Execute('"' + LPowerShell +
+    '" -NoProfile -Command "Start-Sleep -Seconds 5"', 5000,
+    function: Boolean
+    begin
+      Result := True;
+    end,
+    LOutput, LExitCode, LTimedOut, LCancelled));
+  Assert.IsTrue(LCancelled);
+  Assert.IsFalse(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.ApplicationCancellationRollsBack;
+var
+  LParser: TProjectParserSpy;
+  LFiles: TFileServiceSpy;
+  LService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+begin
+  LParser := TProjectParserSpy.Create;
+  LParser.Units := ['any-unit.pas'];
+  LFiles := TFileServiceSpy.Create;
+  LConfig := TToolConfig.Default;
+  LService := TProjectCleanerAppService.Create(LParser, TASTParserStub.Create,
+    LFiles, TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
+    TExternalResolverStub.Create, TSuccessfulBuildService.Create, LConfig,
+    function: Boolean
+    begin
+      Result := True;
+    end);
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        LService.Execute('Project.dproj');
+      end,
+      EAbort);
+    Assert.AreEqual(1, LFiles.RestoreCallCount);
+  finally
+    LService.Free;
+  end;
+end;
+
+procedure TBuildReliabilityTests.BuildDoesNotCreateTemporaryRegistryProfile;
+var
+  LRoot, LBin: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LCleaner: TBuildProfileCleanerSpy;
+  LService: IBuildService;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot, 'bin');
+  TDirectory.CreateDirectory(LBin);
+  TFile.WriteAllText(TPath.Combine(LBin, 'bds.exe'), EmptyStr);
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := False;
+    LCleaner := TBuildProfileCleanerSpy.Create;
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner,
+      600000, nil, LCleaner);
+    LService.BuildProject('Sample.dproj');
+    Assert.IsTrue(LCleaner.ProfileName.IsEmpty);
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.WindowsProfileCleanerRemovesRegistryTree;
+var
+  LProfileName, LKey: string;
+  LRegistry: TRegistry;
+  LCleaner: IBuildProfileCleaner;
+begin
+  LProfileName := '$atropos-ce-test\' + TGuid.NewGuid.ToString;
+  LKey := 'Software\Embarcadero\' + LProfileName + '\23.0';
+  LRegistry := TRegistry.Create(KEY_ALL_ACCESS);
+  try
+    LRegistry.RootKey := HKEY_CURRENT_USER;
+    Assert.IsTrue(LRegistry.OpenKey(LKey, True));
+    LRegistry.WriteString('Marker', 'Atropos');
+    LRegistry.CloseKey;
+    LCleaner := TWindowsBuildProfileCleaner.Create;
+    LCleaner.Cleanup(LProfileName);
+    Assert.IsFalse(LRegistry.KeyExists('Software\Embarcadero\' + LProfileName));
+  finally
+    LRegistry.Free;
+  end;
+end;
+
+procedure TBuildReliabilityTests.CancellationTerminatesChildProcessTree;
+var
+  LRunner: IBuildProcessRunner;
+  LOutput, LMarker, LStartedMarker, LScript, LCommand: string;
+  LExitCode: Cardinal;
+  LTimedOut, LCancelled: Boolean;
+  LStartTick: UInt64;
+begin
+  LMarker := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString + '.txt');
+  LStartedMarker := LMarker + '.started';
+  LScript := LMarker + '.cmd';
+  TFile.WriteAllText(LScript,
+    '@echo off' + sLineBreak +
+    'start "" /b cmd.exe /d /c "echo started>""' + LStartedMarker +
+      '"" & ping 127.0.0.1 -n 3 >nul & echo child>""' + LMarker + '"""' + sLineBreak +
+    'ping 127.0.0.1 -n 10 >nul');
+  LCommand := '"' + TPath.Combine(GetEnvironmentVariable('WINDIR'),
+    'System32\cmd.exe') + '" /d /c "' + LScript + '"';
+  LRunner := TWin32BuildProcessRunner.Create;
+  LStartTick := GetTickCount64;
+  Assert.IsFalse(LRunner.Execute(LCommand, 5000,
+    function: Boolean
+    begin
+      Result := TFile.Exists(LStartedMarker) or (GetTickCount64 - LStartTick >= 2000);
+    end,
+    LOutput, LExitCode, LTimedOut, LCancelled));
+  TThread.Sleep(1200);
+  try
+    Assert.IsTrue(LCancelled);
+    Assert.IsTrue(TFile.Exists(LStartedMarker), 'The child process did not start.');
+    Assert.IsFalse(TFile.Exists(LMarker), 'A child process survived cancellation.');
+  finally
+    if TFile.Exists(LStartedMarker) then
+      TFile.Delete(LStartedMarker);
+    if TFile.Exists(LMarker) then
+      TFile.Delete(LMarker);
+    if TFile.Exists(LScript) then
+      TFile.Delete(LScript);
+  end;
+end;
+
+procedure TBuildReliabilityTests.ReportsUseConfiguredDirectoryRelativeToProject;
+var
+  LParser: TProjectParserSpy;
+  LFiles: TFileServiceSpy;
+  LService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+  LProjectPath, LExpectedDirectory: string;
+begin
+  LProjectPath := TPath.Combine(TPath.GetTempPath, 'AtroposProject\Project.dproj');
+  LExpectedDirectory := TPath.GetFullPath(
+    TPath.Combine(TPath.GetDirectoryName(LProjectPath), 'reports'));
+  LParser := TProjectParserSpy.Create;
+  LFiles := TFileServiceSpy.Create;
+  LConfig := TToolConfig.Default;
+  LConfig.ExportTXT := True;
+  LConfig.ExportHTML := True;
+  LConfig.OutputDirectory := 'reports';
+  LService := TProjectCleanerAppService.Create(LParser, TASTParserStub.Create,
+    LFiles, TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
+    TExternalResolverStub.Create, TSuccessfulBuildService.Create, LConfig);
+  try
+    Assert.IsTrue(LService.Execute(LProjectPath));
+    Assert.AreEqual(2, LFiles.EnsureDirectoryCallCount);
+    Assert.AreEqual(LExpectedDirectory, LFiles.LastDirectory);
+    Assert.AreEqual(TPath.Combine(LExpectedDirectory, 'AtroposReport.html'),
+      LFiles.LastWritePath);
+  finally
+    LService.Free;
+  end;
 end;
 
 initialization

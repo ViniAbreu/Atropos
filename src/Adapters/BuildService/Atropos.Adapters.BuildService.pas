@@ -7,14 +7,26 @@ uses
 type
   IBuildProcessRunner = interface
     ['{A44BDD56-4A86-46C5-A2B4-C95A6B2D54E2}']
-    function Execute(const ACommand: string; ATimeoutMs: Cardinal; out AOutput: string;
-      out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
+  end;
+
+  IBuildProfileCleaner = interface
+    ['{80823598-223C-4A44-B8BD-191842BEE019}']
+    procedure Cleanup(const AProfileName: string);
+  end;
+
+  TWindowsBuildProfileCleaner = class(TInterfacedObject, IBuildProfileCleaner)
+  public
+    procedure Cleanup(const AProfileName: string);
   end;
 
   TWin32BuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
   public
-    function Execute(const ACommand: string; ATimeoutMs: Cardinal; out AOutput: string;
-      out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
   end;
 
   TBuildOutputParser = class
@@ -28,19 +40,24 @@ type
     FLogger: ILogger;
     FProcessRunner: IBuildProcessRunner;
     FTimeoutMs: Cardinal;
+    FShouldCancel: TCancellationCheck;
+    FProfileCleaner: IBuildProfileCleaner;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
   public
     constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
-      AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000);
+      AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000;
+      const AShouldCancel: TCancellationCheck = nil;
+      AProfileCleaner: IBuildProfileCleaner = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
   end;
 
 implementation
-uses System.Classes, System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions, Winapi.Windows,
+uses System.Classes, System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions, System.Win.Registry, Winapi.Windows,
   System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
-  AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal);
+  AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal;
+  const AShouldCancel: TCancellationCheck; AProfileCleaner: IBuildProfileCleaner);
 begin
   FEnvService := AEnvService;
   FLogger := ALogger;
@@ -48,10 +65,32 @@ begin
   if not Assigned(FProcessRunner) then
     FProcessRunner := TWin32BuildProcessRunner.Create;
   FTimeoutMs := ATimeoutMs;
+  FShouldCancel := AShouldCancel;
+  FProfileCleaner := AProfileCleaner;
+  if not Assigned(FProfileCleaner) then
+    FProfileCleaner := TWindowsBuildProfileCleaner.Create;
+end;
+
+procedure TWindowsBuildProfileCleaner.Cleanup(const AProfileName: string);
+var
+  LRegistryPath: string;
+  LRegistry: TRegistry;
+begin
+  if AProfileName.IsEmpty then
+    Exit;
+  LRegistryPath := 'Software\Embarcadero\' + AProfileName;
+  LRegistry := TRegistry.Create(KEY_ALL_ACCESS);
+  try
+    LRegistry.RootKey := HKEY_CURRENT_USER;
+    LRegistry.DeleteKey(LRegistryPath);
+  finally
+    LRegistry.Free;
+  end;
 end;
 
 function TWin32BuildProcessRunner.Execute(const ACommand: string; ATimeoutMs: Cardinal;
-  out AOutput: string; out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+  const AShouldCancel: TCancellationCheck; out AOutput: string; out AExitCode: Cardinal;
+  out ATimedOut, ACancelled: Boolean): Boolean;
 var
   LSecurityAttributes: TSecurityAttributes;
   LReadPipe: THandle;
@@ -65,11 +104,15 @@ var
   LMutableCmd: string;
   LStartTick: UInt64;
   LWaitResult: DWORD;
+  LJob: THandle;
+  LJobInfo: TJobObjectExtendedLimitInformation;
 begin
   Result := False;
   AOutput := EmptyStr;
   AExitCode := Cardinal(-1);
   ATimedOut := False;
+  ACancelled := False;
+  LJob := 0;
 
   LSecurityAttributes.nLength := SizeOf(TSecurityAttributes);
   LSecurityAttributes.bInheritHandle := True;
@@ -89,8 +132,31 @@ begin
 
   LMutableCmd := ACommand;
     UniqueString(LMutableCmd);
-    if CreateProcess(nil, PChar(LMutableCmd), nil, nil, True, CREATE_NO_WINDOW, nil, nil, LStartupInfo, LProcessInfo) then
+    if CreateProcess(nil, PChar(LMutableCmd), nil, nil, True,
+      CREATE_NO_WINDOW or CREATE_SUSPENDED, nil, nil, LStartupInfo, LProcessInfo) then
     begin
+      LJob := CreateJobObject(nil, nil);
+      if LJob = 0 then
+      begin
+        TerminateProcess(LProcessInfo.hProcess, ERROR_NOT_ENOUGH_MEMORY);
+        CloseHandle(LProcessInfo.hProcess);
+        CloseHandle(LProcessInfo.hThread);
+        Exit;
+      end;
+      FillChar(LJobInfo, SizeOf(LJobInfo), 0);
+      LJobInfo.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+      if not SetInformationJobObject(LJob, JobObjectExtendedLimitInformation,
+        @LJobInfo, SizeOf(LJobInfo)) or
+        not AssignProcessToJobObject(LJob, LProcessInfo.hProcess) then
+      begin
+        TerminateProcess(LProcessInfo.hProcess, ERROR_ACCESS_DENIED);
+        CloseHandle(LProcessInfo.hProcess);
+        CloseHandle(LProcessInfo.hThread);
+        CloseHandle(LJob);
+        LJob := 0;
+        Exit;
+      end;
+      ResumeThread(LProcessInfo.hThread);
       CloseHandle(LWritePipe); 
       LWritePipe := 0;
 
@@ -109,10 +175,17 @@ begin
           LWaitResult := WaitForSingleObject(LProcessInfo.hProcess, 10);
           if LWaitResult = WAIT_OBJECT_0 then
             Break;
+          if Assigned(AShouldCancel) and AShouldCancel() then
+          begin
+            ACancelled := True;
+            TerminateJobObject(LJob, ERROR_CANCELLED);
+            WaitForSingleObject(LProcessInfo.hProcess, 5000);
+            Break;
+          end;
           if (ATimeoutMs > 0) and (GetTickCount64 - LStartTick >= ATimeoutMs) then
           begin
             ATimedOut := True;
-            TerminateProcess(LProcessInfo.hProcess, ERROR_TIMEOUT);
+            TerminateJobObject(LJob, ERROR_TIMEOUT);
             WaitForSingleObject(LProcessInfo.hProcess, 5000);
             Break;
           end;
@@ -126,11 +199,14 @@ begin
       end;
 
       if GetExitCodeProcess(LProcessInfo.hProcess, AExitCode) then
-        Result := not ATimedOut;
+        Result := not (ATimedOut or ACancelled);
       CloseHandle(LProcessInfo.hProcess);
       CloseHandle(LProcessInfo.hThread);
+      CloseHandle(LJob);
+      LJob := 0;
     end;
   finally
+    if LJob <> 0 then CloseHandle(LJob);
     if LWritePipe <> 0 then CloseHandle(LWritePipe);
     CloseHandle(LReadPipe);
   end;
@@ -232,6 +308,7 @@ var
   LStartTick: UInt64;
   LExitCode: Cardinal;
   LTimedOut: Boolean;
+  LCancelled: Boolean;
 begin
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
@@ -254,17 +331,20 @@ begin
   end;
 
   LErrFile := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString + '.err');
-  LRegEntry := '$atropos-ce-tmp\' + TGuid.NewGuid.ToString;
-  LBdsCmd := Format('"%s" -b -ns -o"%s" -r"%s" "%s"', [LBdsExe, LErrFile, LRegEntry, AProjectPath]);
+  LRegEntry := EmptyStr;
+  LBdsCmd := Format('"%s" -b -ns -o"%s" "%s"', [LBdsExe, LErrFile, AProjectPath]);
 
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
   LStartTick := GetTickCount64;
   try
-    if not FProcessRunner.Execute(LBdsCmd, FTimeoutMs, LOutput, LExitCode, LTimedOut) then
+    if not FProcessRunner.Execute(LBdsCmd, FTimeoutMs, FShouldCancel, LOutput,
+      LExitCode, LTimedOut, LCancelled) then
     begin
       Result.Success := False;
-      if LTimedOut then
+      if LCancelled then
+        Result.ErrorMessage := 'bds.exe build was cancelled.'
+      else if LTimedOut then
         Result.ErrorMessage := Format('bds.exe build timed out after %d ms.', [FTimeoutMs])
       else
         Result.ErrorMessage := 'Failed to execute bds.exe process.';
@@ -285,6 +365,7 @@ begin
   finally
     if TFile.Exists(LErrFile) then
       TFile.Delete(LErrFile);
+    FProfileCleaner.Cleanup(LRegEntry);
   end;
 end;
 

@@ -15,6 +15,7 @@ type
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
     
@@ -46,6 +47,14 @@ type
     procedure AddToConditionalImplementationCreatesUnconditionalUses;
     [Test]
     procedure MissingSectionOrSemicolonLeavesSourceUnchanged;
+    [Test]
+    procedure RemoveUnitAlsoRemovesInFileAlias;
+    [Test]
+    procedure UnitMentionedOnlyInCommentIsNotRemoved;
+    [Test]
+    procedure RemovingUnitDoesNotMatchQualifiedNames;
+    [Test]
+    procedure RemoveUnitWithTrailingCommentKeepsValidClause;
   end;
 
 implementation
@@ -67,6 +76,10 @@ begin
 end;
 
 procedure TMockFileService.CommitBackups;
+begin
+end;
+
+procedure TMockFileService.EnsureDirectory(const ADirectory: string);
 begin
 end;
 
@@ -253,6 +266,56 @@ begin
     'uses BrokenUnit' + sLineBreak + 'implementation' + sLineBreak + 'end.';
   Assert.AreEqual(LSource,
     TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'BrokenUnit', True));
+end;
+
+procedure TApplyUsesChangesTests.RemoveUnitAlsoRemovesInFileAlias;
+var
+  LSource: string;
+  LResult: string;
+begin
+  LSource := 'unit Test;' + sLineBreak + 'interface' + sLineBreak +
+    'uses Local.Unit in ''src\Local.Unit.pas'', System.SysUtils;' + sLineBreak +
+    'implementation' + sLineBreak + 'end.';
+  LResult := TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'Local.Unit', True);
+  Assert.IsFalse(LResult.Contains('Local.Unit'));
+  Assert.IsFalse(LResult.Contains('src\Local.Unit.pas'));
+  Assert.IsTrue(LResult.Contains('uses System.SysUtils;'));
+end;
+
+procedure TApplyUsesChangesTests.UnitMentionedOnlyInCommentIsNotRemoved;
+var
+  LSource: string;
+begin
+  LSource := 'unit Test;' + sLineBreak + 'interface' + sLineBreak +
+    'uses System.SysUtils, { Legacy.Unit was removed } System.Classes;' + sLineBreak +
+    'implementation' + sLineBreak + 'end.';
+  Assert.AreEqual(LSource,
+    TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'Legacy.Unit', True));
+end;
+
+procedure TApplyUsesChangesTests.RemovingUnitDoesNotMatchQualifiedNames;
+var
+  LSource: string;
+begin
+  LSource := 'unit Test;' + sLineBreak + 'interface' + sLineBreak +
+    'uses Company.Core, Company.Core.UI;' + sLineBreak +
+    'implementation' + sLineBreak + 'end.';
+  Assert.AreEqual(LSource,
+    TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'Core', True));
+end;
+
+procedure TApplyUsesChangesTests.RemoveUnitWithTrailingCommentKeepsValidClause;
+var
+  LSource: string;
+  LResult: string;
+begin
+  LSource := 'unit Test;' + sLineBreak + 'interface' + sLineBreak +
+    'uses Legacy.Unit { compatibility only }, System.SysUtils;' + sLineBreak +
+    'implementation' + sLineBreak + 'end.';
+  LResult := TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'Legacy.Unit', True);
+  Assert.IsFalse(LResult.Contains('Legacy.Unit'));
+  Assert.IsFalse(LResult.Contains('compatibility only'));
+  Assert.IsTrue(LResult.Contains('uses System.SysUtils;'));
 end;
 
 initialization
