@@ -4,21 +4,26 @@ interface
 uses
   Atropos.Core.Ports,
   System.Generics.Collections,
+  System.Classes,
   System.SysUtils;
 
 type
   TFileSystemAdapter = class(TInterfacedObject, IFileService)
   private
     FBackupPaths: TDictionary<string, string>;
+    FTransactionLock: TFileStream;
+    FLockPath: string;
     function DetectEncoding(const ABytes: TBytes): TEncoding;
     function IsValidUTF8(const ABytes: TBytes): Boolean;
     function CreateBackupPath(const AFilePath: string): string;
+    procedure ReleaseTransactionLock;
   public
     constructor Create;
     destructor Destroy; override;
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure RecoverPendingBackups(const ARootDirectory: string);
     procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
@@ -41,6 +46,7 @@ end;
 
 destructor TFileSystemAdapter.Destroy;
 begin
+  ReleaseTransactionLock;
   FBackupPaths.Free;
   inherited;
 end;
@@ -62,11 +68,42 @@ end;
 
 function TFileSystemAdapter.CreateBackupPath(const AFilePath: string): string;
 begin
-  Result := AFilePath + '.bak';
-  if not TFile.Exists(Result) then
-    Exit;
-
   Result := AFilePath + '.atropos-' + TGuid.NewGuid.ToString + '.bak';
+end;
+
+procedure TFileSystemAdapter.ReleaseTransactionLock;
+begin
+  FreeAndNil(FTransactionLock);
+  if FLockPath.IsEmpty or not TFile.Exists(FLockPath) then
+    Exit;
+  TFile.Delete(FLockPath);
+  FLockPath := EmptyStr;
+end;
+
+procedure TFileSystemAdapter.RecoverPendingBackups(const ARootDirectory: string);
+const
+  BACKUP_MARKER = '.atropos-';
+var
+  LBackupPath: string;
+  LMarkerPosition: Integer;
+  LOriginalPath: string;
+  LLockPath: string;
+begin
+  if not TDirectory.Exists(ARootDirectory) then
+    Exit;
+  LLockPath := TPath.Combine(ARootDirectory, '.atropos.lock');
+  FTransactionLock := TFileStream.Create(LLockPath, fmCreate or fmShareExclusive);
+  FLockPath := LLockPath;
+  for LBackupPath in TDirectory.GetFiles(ARootDirectory, '*.atropos-*.bak',
+    TSearchOption.soAllDirectories) do
+  begin
+    LMarkerPosition := LBackupPath.LastIndexOf(BACKUP_MARKER) + 1;
+    if LMarkerPosition <= 0 then
+      Continue;
+    LOriginalPath := Copy(LBackupPath, 1, LMarkerPosition - 1);
+    TFile.Copy(LBackupPath, LOriginalPath, True);
+    TFile.Delete(LBackupPath);
+  end;
 end;
 
 procedure TFileSystemAdapter.RestoreBackups;
@@ -82,6 +119,7 @@ begin
     TFile.Delete(LBackup.Value);
   end;
   FBackupPaths.Clear;
+  ReleaseTransactionLock;
 end;
 
 procedure TFileSystemAdapter.CommitBackups;
@@ -94,6 +132,7 @@ begin
       TFile.Delete(LBackup.Value);
   end;
   FBackupPaths.Clear;
+  ReleaseTransactionLock;
 end;
 
 function TFileSystemAdapter.DetectEncoding(const ABytes: TBytes): TEncoding;

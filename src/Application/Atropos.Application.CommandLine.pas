@@ -56,6 +56,8 @@ begin
       Result.Config.MoveToImplementation := True
     else if SameText(LArg, '--debug') then
       Result.Config.EnableDebug := True
+    else if SameText(LArg, '--dry-run') then
+      Result.Config.DryRun := True
     else if SameText(LArg, '-html') then
       Result.Config.ExportHTML := True
     else if SameText(LArg, '-txt') then

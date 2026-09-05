@@ -15,6 +15,7 @@ type
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure RecoverPendingBackups(const ARootDirectory: string);
     procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
@@ -55,6 +56,12 @@ type
     procedure RemovingUnitDoesNotMatchQualifiedNames;
     [Test]
     procedure RemoveUnitWithTrailingCommentKeepsValidClause;
+    [Test]
+    procedure SemicolonInsideLineCommentDoesNotEndUsesClause;
+    [Test]
+    procedure SemicolonInsideBlockCommentDoesNotEndUsesClause;
+    [Test]
+    procedure SemicolonInsideInFilePathDoesNotEndUsesClause;
   end;
 
 implementation
@@ -76,6 +83,10 @@ begin
 end;
 
 procedure TMockFileService.CommitBackups;
+begin
+end;
+
+procedure TMockFileService.RecoverPendingBackups(const ARootDirectory: string);
 begin
 end;
 
@@ -316,6 +327,47 @@ begin
   Assert.IsFalse(LResult.Contains('Legacy.Unit'));
   Assert.IsFalse(LResult.Contains('compatibility only'));
   Assert.IsTrue(LResult.Contains('uses System.SysUtils;'));
+end;
+
+procedure TApplyUsesChangesTests.SemicolonInsideLineCommentDoesNotEndUsesClause;
+var
+  LSource: string;
+  LResult: string;
+begin
+  LSource := 'unit Test;' + sLineBreak + 'interface' + sLineBreak +
+    'uses UnitA, // compatibility; keep until next release' + sLineBreak +
+    '  UnitB;' + sLineBreak + 'implementation' + sLineBreak + 'end.';
+  LResult := TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'UnitB', True);
+  Assert.IsFalse(LResult.Contains('UnitB'));
+  Assert.IsTrue(LResult.Contains('compatibility; keep until next release'));
+  Assert.IsTrue(LResult.Contains('UnitA'));
+end;
+
+procedure TApplyUsesChangesTests.SemicolonInsideBlockCommentDoesNotEndUsesClause;
+var
+  LSource: string;
+  LResult: string;
+begin
+  LSource := 'unit Test;' + sLineBreak + 'interface' + sLineBreak +
+    'uses UnitA, { compatibility; keep until next release } UnitB;' +
+    sLineBreak + 'implementation' + sLineBreak + 'end.';
+  LResult := TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'UnitB', True);
+  Assert.IsFalse(LResult.Contains('UnitB'));
+  Assert.IsTrue(LResult.Contains('compatibility; keep until next release'));
+  Assert.IsTrue(LResult.Contains('UnitA'));
+end;
+
+procedure TApplyUsesChangesTests.SemicolonInsideInFilePathDoesNotEndUsesClause;
+var
+  LSource: string;
+  LResult: string;
+begin
+  LSource := 'unit Test;' + sLineBreak + 'interface' + sLineBreak +
+    'uses UnitA in ''folder;legacy\UnitA.pas'', UnitB;' + sLineBreak +
+    'implementation' + sLineBreak + 'end.';
+  LResult := TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'UnitB', True);
+  Assert.IsFalse(LResult.Contains('UnitB'));
+  Assert.IsTrue(LResult.Contains('folder;legacy\UnitA.pas'));
 end;
 
 initialization

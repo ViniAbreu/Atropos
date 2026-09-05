@@ -12,6 +12,7 @@ AtroposCLI.exe -dproj <arquivo.dproj> [opções]
 | `-html` | Grava `AtroposReport.html`. |
 | `-txt` | Grava `AtroposReport.txt`. |
 | `--output <diretório>` | Pasta dos relatórios; caminho relativo parte da pasta do `.dproj`. |
+| `--dry-run` | Analisa e relata candidatos sem modificar os fontes. |
 | `--debug` | Habilita diagnóstico detalhado. |
 | `--help`, `-h`, `/?` | Exibe ajuda. |
 
@@ -30,4 +31,4 @@ Sem `--output`, relatórios solicitados são gravados ao lado do projeto. O resu
 if ($LASTEXITCODE -ne 0) { throw "Atropos falhou: $LASTEXITCODE" }
 ```
 
-Não há `--dry-run` nem cancelamento próprio da CLI. Comece em uma branch limpa, revise o diff e não execute duas instâncias sobre os mesmos fontes.
+A CLI não possui cancelamento próprio. Comece em uma branch limpa, revise o diff e não execute duas instâncias sobre os mesmos fontes.

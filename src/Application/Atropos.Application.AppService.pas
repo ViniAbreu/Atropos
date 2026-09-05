@@ -206,7 +206,7 @@ begin
     
     try
       LSyntaxTree := FASTParser.ParseFile(LUnitPath);
-      LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
+    LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
     except
       on E: Exception do
       begin
@@ -214,6 +214,15 @@ begin
         Progress(AUnitCount, i + 1);
         Continue;
       end;
+    end;
+
+    if FConfig.DryRun and ((Length(LResult.UnusedUnits) > 0) or
+      (Length(LResult.UnitsToMoveToImpl) > 0)) then
+    begin
+      FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits,
+        LResult.UnitsToMoveToImpl);
+      Progress(AUnitCount, i + 1);
+      Continue;
     end;
 
     if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
@@ -321,6 +330,8 @@ begin
     LReportOutputDirectory := LBasePath
   else
     LReportOutputDirectory := ResolvePath(LBasePath, LReportOutputDirectory);
+
+  FFileService.RecoverPendingBackups(LBasePath);
   
   Log('Analyzing project: ' + LFullPath);
   Log('Loading dependencies... Please wait.');

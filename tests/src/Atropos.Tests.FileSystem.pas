@@ -2,7 +2,8 @@
 
 interface
 uses
-  Atropos.Core.Ports, Atropos.Adapters.FileSystem, DUnitX.TestFramework, System.SysUtils, System.IOUtils;
+  Atropos.Core.Ports, Atropos.Adapters.FileSystem, DUnitX.TestFramework,
+  System.SysUtils, System.IOUtils, System.Classes;
 
 type
   [TestFixture]
@@ -34,14 +35,23 @@ type
     procedure MissingFileOperationsRaiseExceptions;
     [Test]
     procedure EnsureDirectoryCreatesNestedPath;
+    [Test]
+    procedure RecoversBackupLeftByInterruptedExecution;
+    [Test]
+    procedure ConcurrentTransactionInSameProjectIsRejected;
   end;
 
 implementation
 
 procedure TFileSystemTests.Setup;
+var
+  LTestDirectory: string;
 begin
   FFileService := TFileSystemAdapter.Create;
-  FTestFile := TPath.Combine(TPath.GetTempPath, 'Atropos-' + TGuid.NewGuid.ToString + '.pas');
+  LTestDirectory := TPath.Combine(TPath.GetTempPath,
+    'Atropos-' + TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(LTestDirectory);
+  FTestFile := TPath.Combine(LTestDirectory, 'Sample.pas');
   TFile.WriteAllText(FTestFile, 'initial content', TEncoding.UTF8);
 end;
 
@@ -87,11 +97,17 @@ begin
 end;
 
 procedure TFileSystemTests.CommitDeletesCreatedBackup;
+var
+  LBackupFiles: TArray<string>;
 begin
   FFileService.BackupFile(FTestFile);
-  Assert.IsTrue(TFile.Exists(FTestFile + '.bak'));
+  LBackupFiles := TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
+    ExtractFileName(FTestFile) + '.atropos-*.bak');
+  Assert.AreEqual(1, Length(LBackupFiles));
   FFileService.CommitBackups;
-  Assert.IsFalse(TFile.Exists(FTestFile + '.bak'));
+  LBackupFiles := TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
+    ExtractFileName(FTestFile) + '.atropos-*.bak');
+  Assert.AreEqual(0, Length(LBackupFiles));
 end;
 
 procedure TFileSystemTests.MissingFileOperationsRaiseExceptions;
@@ -133,27 +149,62 @@ begin
   end;
 end;
 
+procedure TFileSystemTests.RecoversBackupLeftByInterruptedExecution;
+var
+  LInterruptedService: IFileService;
+  LRecoveryService: IFileService;
+begin
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  LInterruptedService.WriteFileContent(FTestFile, 'interrupted change');
+
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+
+  Assert.AreEqual('initial content', LRecoveryService.ReadFileContent(FTestFile));
+  Assert.AreEqual(0, Length(TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
+    ExtractFileName(FTestFile) + '.atropos-*.bak')));
+end;
+
+procedure TFileSystemTests.ConcurrentTransactionInSameProjectIsRejected;
+var
+  LFirstService: IFileService;
+  LSecondService: IFileService;
+  LDirectory: string;
+  LRejected: Boolean;
+begin
+  LDirectory := TPath.GetDirectoryName(FTestFile);
+  LFirstService := TFileSystemAdapter.Create;
+  LSecondService := TFileSystemAdapter.Create;
+  LFirstService.RecoverPendingBackups(LDirectory);
+  LRejected := False;
+  try
+    LSecondService.RecoverPendingBackups(LDirectory);
+  except
+    on E: Exception do
+      LRejected := True;
+  end;
+  Assert.IsTrue(LRejected);
+  LFirstService.CommitBackups;
+end;
+
 procedure TFileSystemTests.TearDown;
 begin
-  if TFile.Exists(FTestFile) then
-    TFile.Delete(FTestFile);
-  if TFile.Exists(FTestFile + '.bak') then
-    TFile.Delete(FTestFile + '.bak');
+  FFileService := nil;
+  if TDirectory.Exists(TPath.GetDirectoryName(FTestFile)) then
+    TDirectory.Delete(TPath.GetDirectoryName(FTestFile), True);
 end;
 
 procedure TFileSystemTests.Test_BackupFile_CreatesBakFile;
 var
-  LBakFile: string;
+  LBackupFiles: TArray<string>;
 begin
-  LBakFile := FTestFile + '.bak';
-  
-  if TFile.Exists(LBakFile) then
-    TFile.Delete(LBakFile);
-    
   FFileService.BackupFile(FTestFile);
-  
-  Assert.IsTrue(TFile.Exists(LBakFile), 'Backup file was not created');
-  Assert.AreEqual('initial content', TFile.ReadAllText(LBakFile, TEncoding.UTF8), 'Backup content mismatch');
+  LBackupFiles := TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
+    ExtractFileName(FTestFile) + '.atropos-*.bak');
+  Assert.AreEqual(1, Length(LBackupFiles), 'Backup file was not created');
+  Assert.AreEqual('initial content', TFile.ReadAllText(LBackupFiles[0],
+    TEncoding.UTF8), 'Backup content mismatch');
 end;
 
 procedure TFileSystemTests.Test_ReadWriteContent;
