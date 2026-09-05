@@ -22,6 +22,12 @@ type
     [Test]
     [TestCase('Read and write content', 'Should accurately read and write file contents')]
     procedure Test_ReadWriteContent;
+    [Test]
+    procedure ExistingUserBackupIsPreserved;
+    [Test]
+    procedure RepeatedBackupKeepsOriginalContent;
+    [Test]
+    procedure UTF8WithoutBOMIsPreserved;
   end;
 
 implementation
@@ -29,8 +35,55 @@ implementation
 procedure TFileSystemTests.Setup;
 begin
   FFileService := TFileSystemAdapter.Create;
-  FTestFile := TPath.Combine(TPath.GetTempPath, 'TestFileSystem.pas');
+  FTestFile := TPath.Combine(TPath.GetTempPath, 'Atropos-' + TGuid.NewGuid.ToString + '.pas');
   TFile.WriteAllText(FTestFile, 'initial content', TEncoding.UTF8);
+end;
+
+procedure TFileSystemTests.ExistingUserBackupIsPreserved;
+var
+  LUserBackupPath: string;
+begin
+  LUserBackupPath := FTestFile + '.bak';
+  TFile.WriteAllText(LUserBackupPath, 'user backup', TEncoding.UTF8);
+  FFileService.BackupFile(FTestFile);
+  FFileService.WriteFileContent(FTestFile, 'changed content');
+  FFileService.RestoreBackups;
+
+  Assert.AreEqual('initial content', FFileService.ReadFileContent(FTestFile));
+  Assert.AreEqual('user backup', TFile.ReadAllText(LUserBackupPath, TEncoding.UTF8));
+end;
+
+procedure TFileSystemTests.RepeatedBackupKeepsOriginalContent;
+begin
+  FFileService.BackupFile(FTestFile);
+  FFileService.WriteFileContent(FTestFile, 'first change');
+  FFileService.BackupFile(FTestFile);
+  FFileService.WriteFileContent(FTestFile, 'second change');
+  FFileService.RestoreBackups;
+
+  Assert.AreEqual('initial content', FFileService.ReadFileContent(FTestFile));
+end;
+
+procedure TFileSystemTests.UTF8WithoutBOMIsPreserved;
+var
+  LUTF8WithoutBOM: TUTF8Encoding;
+  LContent: string;
+  LWrittenBytes: TBytes;
+begin
+  LUTF8WithoutBOM := TUTF8Encoding.Create(False);
+  try
+    TFile.WriteAllBytes(FTestFile, LUTF8WithoutBOM.GetBytes('ação original'));
+  finally
+    LUTF8WithoutBOM.Free;
+  end;
+
+  LContent := FFileService.ReadFileContent(FTestFile);
+  Assert.AreEqual('ação original', LContent);
+  FFileService.WriteFileContent(FTestFile, 'edição concluída');
+  Assert.AreEqual('edição concluída', FFileService.ReadFileContent(FTestFile));
+  LWrittenBytes := TFile.ReadAllBytes(FTestFile);
+  Assert.IsFalse((Length(LWrittenBytes) >= 3) and (LWrittenBytes[0] = $EF) and
+    (LWrittenBytes[1] = $BB) and (LWrittenBytes[2] = $BF));
 end;
 
 procedure TFileSystemTests.TearDown;
