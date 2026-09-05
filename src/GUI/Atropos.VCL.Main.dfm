@@ -82,13 +82,23 @@ object MainForm: TMainForm
     TabOrder = 3
     OnClick = RunButtonClick
   end
-  object ExecutionProgressBar: TProgressBar
+  object CancelButton: TButton
     Left = 144
+    Top = 120
+    Width = 120
+    Height = 33
+    Caption = 'Cancelar'
+    Enabled = False
+    TabOrder = 4
+    OnClick = CancelButtonClick
+  end
+  object ExecutionProgressBar: TProgressBar
+    Left = 272
     Top = 126
-    Width = 443
+    Width = 315
     Height = 21
     Anchors = [akLeft, akTop, akRight]
-    TabOrder = 5
+    TabOrder = 6
   end
   object LogMemo: TMemo
     Left = 16
@@ -104,7 +114,7 @@ object MainForm: TMainForm
     ParentFont = False
     ReadOnly = True
     ScrollBars = ssVertical
-    TabOrder = 4
+    TabOrder = 5
   end
   object ProjectOpenDialog: TOpenDialog
     Filter = 'Projetos Delphi (*.dproj)|*.dproj'

@@ -7,14 +7,16 @@ uses
 type
   IBuildProcessRunner = interface
     ['{A44BDD56-4A86-46C5-A2B4-C95A6B2D54E2}']
-    function Execute(const ACommand: string; ATimeoutMs: Cardinal; out AOutput: string;
-      out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
   end;
 
   TWin32BuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
   public
-    function Execute(const ACommand: string; ATimeoutMs: Cardinal; out AOutput: string;
-      out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
   end;
 
   TBuildOutputParser = class
@@ -28,10 +30,12 @@ type
     FLogger: ILogger;
     FProcessRunner: IBuildProcessRunner;
     FTimeoutMs: Cardinal;
+    FShouldCancel: TCancellationCheck;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
   public
     constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
-      AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000);
+      AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000;
+      const AShouldCancel: TCancellationCheck = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
   end;
 
@@ -40,7 +44,8 @@ uses System.Classes, System.Generics.Collections, System.IOUtils, System.Math, S
   System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
-  AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal);
+  AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal;
+  const AShouldCancel: TCancellationCheck);
 begin
   FEnvService := AEnvService;
   FLogger := ALogger;
@@ -48,10 +53,12 @@ begin
   if not Assigned(FProcessRunner) then
     FProcessRunner := TWin32BuildProcessRunner.Create;
   FTimeoutMs := ATimeoutMs;
+  FShouldCancel := AShouldCancel;
 end;
 
 function TWin32BuildProcessRunner.Execute(const ACommand: string; ATimeoutMs: Cardinal;
-  out AOutput: string; out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+  const AShouldCancel: TCancellationCheck; out AOutput: string; out AExitCode: Cardinal;
+  out ATimedOut, ACancelled: Boolean): Boolean;
 var
   LSecurityAttributes: TSecurityAttributes;
   LReadPipe: THandle;
@@ -70,6 +77,7 @@ begin
   AOutput := EmptyStr;
   AExitCode := Cardinal(-1);
   ATimedOut := False;
+  ACancelled := False;
 
   LSecurityAttributes.nLength := SizeOf(TSecurityAttributes);
   LSecurityAttributes.bInheritHandle := True;
@@ -109,6 +117,13 @@ begin
           LWaitResult := WaitForSingleObject(LProcessInfo.hProcess, 10);
           if LWaitResult = WAIT_OBJECT_0 then
             Break;
+          if Assigned(AShouldCancel) and AShouldCancel() then
+          begin
+            ACancelled := True;
+            TerminateProcess(LProcessInfo.hProcess, ERROR_CANCELLED);
+            WaitForSingleObject(LProcessInfo.hProcess, 5000);
+            Break;
+          end;
           if (ATimeoutMs > 0) and (GetTickCount64 - LStartTick >= ATimeoutMs) then
           begin
             ATimedOut := True;
@@ -126,7 +141,7 @@ begin
       end;
 
       if GetExitCodeProcess(LProcessInfo.hProcess, AExitCode) then
-        Result := not ATimedOut;
+        Result := not (ATimedOut or ACancelled);
       CloseHandle(LProcessInfo.hProcess);
       CloseHandle(LProcessInfo.hThread);
     end;
@@ -232,6 +247,7 @@ var
   LStartTick: UInt64;
   LExitCode: Cardinal;
   LTimedOut: Boolean;
+  LCancelled: Boolean;
 begin
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
@@ -261,10 +277,13 @@ begin
 
   LStartTick := GetTickCount64;
   try
-    if not FProcessRunner.Execute(LBdsCmd, FTimeoutMs, LOutput, LExitCode, LTimedOut) then
+    if not FProcessRunner.Execute(LBdsCmd, FTimeoutMs, FShouldCancel, LOutput,
+      LExitCode, LTimedOut, LCancelled) then
     begin
       Result.Success := False;
-      if LTimedOut then
+      if LCancelled then
+        Result.ErrorMessage := 'bds.exe build was cancelled.'
+      else if LTimedOut then
         Result.ErrorMessage := Format('bds.exe build timed out after %d ms.', [FTimeoutMs])
       else
         Result.ErrorMessage := 'Failed to execute bds.exe process.';

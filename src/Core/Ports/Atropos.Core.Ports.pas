@@ -3,6 +3,8 @@ unit Atropos.Core.Ports;
 interface
 
 type
+  TCancellationCheck = reference to function: Boolean;
+
   TInlineHint = record
     HintType: string;
     FilePath: string;

@@ -73,11 +73,13 @@ type
     ExecuteResult: Boolean;
     ExitCode: Cardinal;
     TimedOut: Boolean;
+    Cancelled: Boolean;
     TimeoutMs: Cardinal;
     ErrorFileContent: string;
     Command: string;
-    function Execute(const ACommand: string; ATimeoutMs: Cardinal; out AOutput: string;
-      out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+    function Execute(const ACommand: string; ATimeoutMs: Cardinal;
+      const AShouldCancel: TCancellationCheck; out AOutput: string;
+      out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
   end;
 
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
@@ -150,6 +152,12 @@ type
     procedure BuildTimeoutReturnsSpecificFailure;
     [Test]
     procedure Win32ProcessRunnerTerminatesTimedOutProcess;
+    [Test]
+    procedure BuildCancellationReturnsSpecificFailure;
+    [Test]
+    procedure Win32ProcessRunnerTerminatesCancelledProcess;
+    [Test]
+    procedure ApplicationCancellationRollsBack;
   end;
 
 implementation
@@ -249,7 +257,8 @@ begin
 end;
 
 function TBuildProcessRunnerStub.Execute(const ACommand: string; ATimeoutMs: Cardinal;
-  out AOutput: string; out AExitCode: Cardinal; out ATimedOut: Boolean): Boolean;
+  const AShouldCancel: TCancellationCheck; out AOutput: string;
+  out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
 var
   LMatch: TMatch;
 begin
@@ -258,6 +267,7 @@ begin
   AOutput := EmptyStr;
   AExitCode := ExitCode;
   ATimedOut := TimedOut;
+  ACancelled := Cancelled;
   Result := ExecuteResult;
   if not Result then
     Exit;
@@ -738,12 +748,13 @@ var
   LOutput: string;
   LExitCode: Cardinal;
   LTimedOut: Boolean;
+  LCancelled: Boolean;
 begin
   LRunner := TWin32BuildProcessRunner.Create;
   Assert.IsTrue(LRunner.Execute(
     '"' + TPath.Combine(GetEnvironmentVariable('WINDIR'), 'System32\cmd.exe') +
-    '" /d /c "echo runner-output & exit /b 7"', 5000, LOutput, LExitCode,
-    LTimedOut));
+    '" /d /c "echo runner-output & exit /b 7"', 5000, nil, LOutput,
+    LExitCode, LTimedOut, LCancelled));
   Assert.IsTrue(LOutput.Contains('runner-output'));
   Assert.AreEqual(Cardinal(7), LExitCode);
   Assert.IsFalse(LTimedOut);
@@ -783,15 +794,96 @@ var
   LOutput: string;
   LExitCode: Cardinal;
   LTimedOut: Boolean;
+  LCancelled: Boolean;
   LPowerShell: string;
 begin
   LPowerShell := TPath.Combine(
     GetEnvironmentVariable('WINDIR'), 'System32\WindowsPowerShell\v1.0\powershell.exe');
   LRunner := TWin32BuildProcessRunner.Create;
   Assert.IsFalse(LRunner.Execute('"' + LPowerShell +
-    '" -NoProfile -Command "Start-Sleep -Seconds 5"', 50, LOutput,
-    LExitCode, LTimedOut));
+    '" -NoProfile -Command "Start-Sleep -Seconds 5"', 50, nil, LOutput,
+    LExitCode, LTimedOut, LCancelled));
   Assert.IsTrue(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.BuildCancellationReturnsSpecificFailure;
+var
+  LRoot, LBin: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot, 'bin');
+  TDirectory.CreateDirectory(LBin);
+  TFile.WriteAllText(TPath.Combine(LBin, 'bds.exe'), EmptyStr);
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := False;
+    LRunner.Cancelled := True;
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner);
+    LMetrics := LService.BuildProject('Sample.dproj');
+    Assert.IsFalse(LMetrics.Success);
+    Assert.IsTrue(LMetrics.ErrorMessage.Contains('cancelled'));
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.Win32ProcessRunnerTerminatesCancelledProcess;
+var
+  LRunner: IBuildProcessRunner;
+  LOutput: string;
+  LExitCode: Cardinal;
+  LTimedOut, LCancelled: Boolean;
+  LPowerShell: string;
+begin
+  LPowerShell := TPath.Combine(
+    GetEnvironmentVariable('WINDIR'), 'System32\WindowsPowerShell\v1.0\powershell.exe');
+  LRunner := TWin32BuildProcessRunner.Create;
+  Assert.IsFalse(LRunner.Execute('"' + LPowerShell +
+    '" -NoProfile -Command "Start-Sleep -Seconds 5"', 5000,
+    function: Boolean
+    begin
+      Result := True;
+    end,
+    LOutput, LExitCode, LTimedOut, LCancelled));
+  Assert.IsTrue(LCancelled);
+  Assert.IsFalse(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.ApplicationCancellationRollsBack;
+var
+  LParser: TProjectParserSpy;
+  LFiles: TFileServiceSpy;
+  LService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+begin
+  LParser := TProjectParserSpy.Create;
+  LParser.Units := ['any-unit.pas'];
+  LFiles := TFileServiceSpy.Create;
+  LConfig := TToolConfig.Default;
+  LService := TProjectCleanerAppService.Create(LParser, TASTParserStub.Create,
+    LFiles, TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
+    TExternalResolverStub.Create, TSuccessfulBuildService.Create, LConfig,
+    function: Boolean
+    begin
+      Result := True;
+    end);
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        LService.Execute('Project.dproj');
+      end,
+      EAbort);
+    Assert.AreEqual(1, LFiles.RestoreCallCount);
+  finally
+    LService.Free;
+  end;
 end;
 
 initialization
