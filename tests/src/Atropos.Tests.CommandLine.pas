@@ -28,7 +28,8 @@ var
   LOptions: TCommandLineOptions;
 begin
   LOptions := TCommandLineParser.Parse([
-    '-dproj', 'Project.dproj', '--remove', '--move', '--debug', '-html', '-txt']);
+    '-dproj', 'Project.dproj', '--remove', '--move', '--debug', '-html', '-txt',
+    '--output', 'reports']);
   Assert.IsTrue(LOptions.IsValid);
   Assert.AreEqual('Project.dproj', LOptions.ProjectPath);
   Assert.IsTrue(LOptions.Config.RemoveUnused);
@@ -36,12 +37,14 @@ begin
   Assert.IsTrue(LOptions.Config.EnableDebug);
   Assert.IsTrue(LOptions.Config.ExportHTML);
   Assert.IsTrue(LOptions.Config.ExportTXT);
+  Assert.AreEqual('reports', LOptions.Config.OutputDirectory);
 end;
 
 procedure TCommandLineParserTests.RejectsMissingProjectAndMissingValue;
 begin
   Assert.IsFalse(TCommandLineParser.Parse([]).IsValid);
   Assert.IsFalse(TCommandLineParser.Parse(['-dproj']).IsValid);
+  Assert.IsFalse(TCommandLineParser.Parse(['--output']).IsValid);
 end;
 
 procedure TCommandLineParserTests.RejectsUnknownOption;

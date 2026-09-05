@@ -54,12 +54,14 @@ begin
   LUpdatedConfig := LDefaultConfig
     .WithRemoveUnused(True)
     .WithMoveToImplementation(True)
-    .WithEnableDebug(True);
+    .WithEnableDebug(True)
+    .WithOutputDirectory('reports');
 
   Assert.IsFalse(LDefaultConfig.RemoveUnused);
   Assert.IsTrue(LUpdatedConfig.RemoveUnused);
   Assert.IsTrue(LUpdatedConfig.MoveToImplementation);
   Assert.IsTrue(LUpdatedConfig.EnableDebug);
+  Assert.AreEqual('reports', LUpdatedConfig.OutputDirectory);
 end;
 
 initialization

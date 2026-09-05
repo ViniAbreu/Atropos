@@ -32,6 +32,8 @@ type
     procedure CommitDeletesCreatedBackup;
     [Test]
     procedure MissingFileOperationsRaiseExceptions;
+    [Test]
+    procedure EnsureDirectoryCreatesNestedPath;
   end;
 
 implementation
@@ -115,6 +117,20 @@ begin
   end;
   Assert.IsTrue(LBackupRaised);
   Assert.IsTrue(LReadRaised);
+end;
+
+procedure TFileSystemTests.EnsureDirectoryCreatesNestedPath;
+var
+  LDirectory: string;
+begin
+  LDirectory := TPath.Combine(TPath.GetTempPath,
+    TGuid.NewGuid.ToString + '\nested\reports');
+  try
+    FFileService.EnsureDirectory(LDirectory);
+    Assert.IsTrue(TDirectory.Exists(LDirectory));
+  finally
+    TDirectory.Delete(TPath.GetDirectoryName(TPath.GetDirectoryName(LDirectory)), True);
+  end;
 end;
 
 procedure TFileSystemTests.TearDown;

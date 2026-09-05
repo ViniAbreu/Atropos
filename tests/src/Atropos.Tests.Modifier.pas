@@ -15,6 +15,7 @@ type
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
     
@@ -75,6 +76,10 @@ begin
 end;
 
 procedure TMockFileService.CommitBackups;
+begin
+end;
+
+procedure TMockFileService.EnsureDirectory(const ADirectory: string);
 begin
 end;
 

@@ -19,6 +19,7 @@ type
     procedure BackupFile(const AFilePath: string);
     procedure RestoreBackups;
     procedure CommitBackups;
+    procedure EnsureDirectory(const ADirectory: string);
     function ReadFileContent(const AFilePath: string): string;
     procedure WriteFileContent(const AFilePath: string; const AContent: string);
   end;
@@ -29,6 +30,13 @@ uses System.IOUtils;
 constructor TFileSystemAdapter.Create;
 begin
   FBackupPaths := TDictionary<string, string>.Create;
+end;
+
+procedure TFileSystemAdapter.EnsureDirectory(const ADirectory: string);
+begin
+  if ADirectory.IsEmpty then
+    Exit;
+  TDirectory.CreateDirectory(ADirectory);
 end;
 
 destructor TFileSystemAdapter.Destroy;
