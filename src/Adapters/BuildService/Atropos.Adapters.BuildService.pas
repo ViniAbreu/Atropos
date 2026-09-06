@@ -323,11 +323,14 @@ begin
     begin
       Result.Success := False;
       if LCancelled then
-        Result.ErrorMessage := AToolName + ' build was cancelled.'
-      else if LTimedOut then
+      begin
+        Result.ErrorMessage := AToolName + ' build was cancelled.';
+        Exit;
+      end;
+      if LTimedOut then
         Result.ErrorMessage := Format('%s build timed out after %d ms.',
-          [AToolName, FTimeoutMs])
-      else
+          [AToolName, FTimeoutMs]);
+      if not LTimedOut then
         Result.ErrorMessage := 'Failed to execute ' + AToolName + ' process.';
       Exit;
     end;

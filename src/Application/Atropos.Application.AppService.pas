@@ -358,10 +358,10 @@ begin
   LFullPath := TPath.GetFullPath(ADprojPath);
   LBasePath := TPath.GetDirectoryName(LFullPath);
   LReportOutputDirectory := FConfig.OutputDirectory;
-  if LReportOutputDirectory.IsEmpty then
-    LReportOutputDirectory := LBasePath
-  else
+  if not LReportOutputDirectory.IsEmpty then
     LReportOutputDirectory := ResolvePath(LBasePath, LReportOutputDirectory);
+  if LReportOutputDirectory.IsEmpty then
+    LReportOutputDirectory := LBasePath;
 
   FFileService.RecoverPendingBackups(LBasePath);
   

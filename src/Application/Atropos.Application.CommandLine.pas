@@ -51,16 +51,34 @@ begin
       end;
       Inc(I);
       Result.ProjectPath := AArgs[I];
-    end
-    else if SameText(LArg, '--remove') then
-      Result.Config.RemoveUnused := True
-    else if SameText(LArg, '--move') then
-      Result.Config.MoveToImplementation := True
-    else if SameText(LArg, '--debug') then
-      Result.Config.EnableDebug := True
-    else if SameText(LArg, '--dry-run') then
-      Result.Config.DryRun := True
-    else if SameText(LArg, '--target') then
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '--remove') then
+    begin
+      Result.Config.RemoveUnused := True;
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '--move') then
+    begin
+      Result.Config.MoveToImplementation := True;
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '--debug') then
+    begin
+      Result.Config.EnableDebug := True;
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '--dry-run') then
+    begin
+      Result.Config.DryRun := True;
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '--target') then
     begin
       if I + 1 >= Length(AArgs) then
       begin
@@ -74,12 +92,22 @@ begin
         Exit;
       end;
       Result.Config.AddBuildTarget(LBuildTarget);
-    end
-    else if SameText(LArg, '-html') then
-      Result.Config.ExportHTML := True
-    else if SameText(LArg, '-txt') then
-      Result.Config.ExportTXT := True
-    else if SameText(LArg, '--output') then
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '-html') then
+    begin
+      Result.Config.ExportHTML := True;
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '-txt') then
+    begin
+      Result.Config.ExportTXT := True;
+      Inc(I);
+      Continue;
+    end;
+    if SameText(LArg, '--output') then
     begin
       if I + 1 >= Length(AArgs) then
       begin
@@ -88,15 +116,18 @@ begin
       end;
       Inc(I);
       Result.Config.OutputDirectory := AArgs[I];
-    end
-    else if SameText(LArg, '--help') or SameText(LArg, '-h') or SameText(LArg, '/?') then
-      Result.ShowHelp := True
-    else
-    begin
-      Result.ErrorMessage := 'Unknown option: ' + LArg;
-      Exit;
+      Inc(I);
+      Continue;
     end;
-    Inc(I);
+    if SameText(LArg, '--help') or SameText(LArg, '-h') or
+      SameText(LArg, '/?') then
+    begin
+      Result.ShowHelp := True;
+      Inc(I);
+      Continue;
+    end;
+    Result.ErrorMessage := 'Unknown option: ' + LArg;
+    Exit;
   end;
 
   if Result.ProjectPath.IsEmpty and not Result.ShowHelp then
