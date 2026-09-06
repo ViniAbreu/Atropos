@@ -1,18 +1,18 @@
-# Compatibilidade
+# Compatibility
 
-## Validado automaticamente
+## Automatically validated
 
-| Item | Evidência |
+| Item | Evidence |
 | --- | --- |
-| Windows Win32 | Build, 84 testes e smoke aprovados |
-| Windows Win64 | Build, 84 testes e smoke aprovados |
-| RAD Studio BDS 23.0 | Ambiente do quality gate atual |
-| DelphiAST | Commit fixado no submódulo |
+| Windows Win32 | Successful build, DUnitX suite, and smoke tests |
+| Windows Win64 | Successful build, DUnitX suite, and smoke tests |
+| RAD Studio BDS 23.0 | Current quality-gate environment |
+| DelphiAST | Commit pinned by the submodule |
 
-Isso não certifica todas as combinações de Delphi, componentes e projetos.
+This does not certify every combination of Delphi version, component set, and project type.
 
-O resolvedor reconhece `ProjectVersion` associados a BDS 15.0 até 23.0. Reconhecimento não equivale a validação. Se não houver mapeamento, tenta a maior instalação e depois a variável `BDS`.
+The resolver recognizes `ProjectVersion` values associated with BDS 15.0 through 23.0. Recognition is not equivalent to validation. When no mapping exists, it tries the highest installed version and then the `BDS` environment variable.
 
-O foco atual é `.dproj` Delphi para Windows. Packages, DLLs, services, project groups, projetos multiplataforma e toolchains remotos exigem corpus específico antes de serem declarados suportados.
+The current focus is Delphi `.dproj` projects for Windows. Packages, DLLs, services, project groups, cross-platform projects, and remote toolchains require a dedicated test corpus before they can be declared supported.
 
-Uma combinação só deve entrar na matriz validada após builds, DUnitX, smoke isolado e registro da versão/arquitetura no PR.
+A combination should enter the validated matrix only after builds, DUnitX, an isolated smoke test, and recording its version and architecture in the pull request.

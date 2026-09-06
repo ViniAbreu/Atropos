@@ -1,33 +1,33 @@
-# Referência da CLI
+# CLI reference
 
 ```text
-AtroposCLI.exe -dproj <arquivo.dproj> [opções]
+AtroposCLI.exe -dproj <file.dproj> [options]
 ```
 
-| Opção | Efeito |
+| Option | Effect |
 | --- | --- |
-| `-dproj <arquivo>` | Projeto analisado; obrigatória, exceto com ajuda. |
-| `--remove` | Remove units classificadas como não utilizadas. |
-| `--move` | Move para `implementation` as units usadas somente nela. |
-| `-html` | Grava `AtroposReport.html`. |
-| `-txt` | Grava `AtroposReport.txt`. |
-| `--output <diretório>` | Pasta dos relatórios; caminho relativo parte da pasta do `.dproj`. |
-| `--debug` | Habilita diagnóstico detalhado. |
-| `--help`, `-h`, `/?` | Exibe ajuda. |
+| `-dproj <file>` | Project to analyze; required except when requesting help. |
+| `--remove` | Remove units classified as unused. |
+| `--move` | Move units used only by `implementation` into that section. |
+| `-html` | Write `AtroposReport.html`. |
+| `-txt` | Write `AtroposReport.txt`. |
+| `--output <directory>` | Report directory; a relative path starts at the `.dproj` directory. |
+| `--debug` | Enable detailed diagnostics. |
+| `--help`, `-h`, `/?` | Display help. |
 
-Sem `--output`, relatórios solicitados são gravados ao lado do projeto. O resumo textual também aparece no console sem `-txt`.
+Without `--output`, requested reports are written next to the project. The text summary is also printed to the console without `-txt`.
 
-## Códigos de saída
+## Exit codes
 
-| Código | Significado |
+| Code | Meaning |
 | --- | --- |
-| `0` | Sucesso, inclusive sem mudanças necessárias. |
-| `1` | Falha operacional, de build final ou exceção. |
-| `2` | Opção inválida, valor ausente ou projeto inexistente. |
+| `0` | Success, including when no changes are necessary. |
+| `1` | Operational failure, final-build failure, or exception. |
+| `2` | Invalid option, missing value, or nonexistent project. |
 
 ```powershell
 & .\AtroposCLI.exe -dproj $project --remove -txt --output reports
-if ($LASTEXITCODE -ne 0) { throw "Atropos falhou: $LASTEXITCODE" }
+if ($LASTEXITCODE -ne 0) { throw "Atropos failed: $LASTEXITCODE" }
 ```
 
-Não há `--dry-run` nem cancelamento próprio da CLI. Comece em uma branch limpa, revise o diff e não execute duas instâncias sobre os mesmos fontes.
+The CLI has no `--dry-run` or interactive cancellation option. Start from a clean branch, review the diff, and do not run two instances against the same source files.
