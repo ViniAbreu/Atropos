@@ -10,7 +10,7 @@ Antes de modificar fontes, compila o projeto para estabelecer uma linha de base.
 
 - CLI e interface VCL para Windows.
 - Builds nativos Win32 e Win64 validados.
-- 96 testes automatizados executados nas duas arquiteturas.
+- Suíte automatizada executada integralmente nas duas arquiteturas.
 - Smoke tests de compilação, modificação, relatório e preservação do fixture.
 - Fixtures representativos para console e VCL executados em Win32 e Win64.
 - Cobertura protegida por gate mínimo de 85%.
