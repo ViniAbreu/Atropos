@@ -88,7 +88,7 @@ When an unqualified identifier is exported by more than one visible unit, Atropo
 
 - ✅ Automated unit and integration tests run on Win32 and Win64.
 - ✅ CLI and VCL builds are validated on both architectures.
-- ✅ Smoke tests exercise compilation, optimization, reporting, rollback, and fixture preservation.
+- ✅ Smoke tests exercise compilation, optimization, reporting, rollback, and representative console and VCL projects.
 - ✅ Line coverage is protected by a minimum quality gate.
 - ✅ DelphiAST is pinned as a Git submodule.
 
