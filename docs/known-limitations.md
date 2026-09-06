@@ -1,16 +1,15 @@
-# Limitações conhecidas
+# Known limitations
 
-- O modo `--dry-run` relata candidatos, mas não gera um patch aplicável.
-- A VCL não exporta relatório nem escolhe diretório de saída.
-- A CLI não tem opção própria de cancelamento.
-- A análise depende das units e search paths obtidos do `.dproj`.
-- Dependências não localizadas são preservadas conservadoramente.
-- Identificadores não qualificados exportados por várias units são preservados
-  e registrados no relatório para evitar alterações semanticamente ambíguas.
-- Inicialização e referências condicionais podem impedir alterações.
-- RTTI dinâmica, carregamento por nome, side effects e código gerado podem escapar da análise estática.
-- Library Paths e componentes globais podem variar entre máquinas.
-- A validação atual concentra-se em Windows e BDS 23.0.
-- UI visual e todas as versões reais do RAD Studio não estão integralmente cobertas.
+- `--dry-run` reports candidates but does not produce an applicable patch.
+- The VCL interface does not export reports or select an output directory.
+- The CLI has no interactive cancellation option.
+- Analysis depends on units and search paths obtained from the `.dproj`.
+- Unresolved dependencies are preserved conservatively.
+- Unqualified identifiers exported by multiple units are preserved and reported to prevent semantically ambiguous changes.
+- Initialization sections and conditional references may prevent changes.
+- Dynamic RTTI, name-based loading, side effects, and generated code may escape static analysis.
+- Library Paths and globally installed components may differ between machines.
+- Current validation focuses on Windows and BDS 23.0.
+- Visual UI behavior and every supported RAD Studio version are not fully covered.
 
-Em produção, use uma branch, revise todas as mudanças e rode a suíte funcional do projeto analisado.
+For production use, work on a branch, review every change, and run the analyzed project's functional test suite.
