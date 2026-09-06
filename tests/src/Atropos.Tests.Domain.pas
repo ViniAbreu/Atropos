@@ -125,8 +125,8 @@ begin
 
   // Asserts
   // Forms deve ter sido movida
-  Assert.AreEqual(1, Length(LResult.UnitsToMoveToImpl));
-  Assert.AreEqual('Vcl.Forms', LResult.UnitsToMoveToImpl[0]);
+  Assert.AreEqual(1, Integer(Length(LResult.UnitsToMoveToImpl)));
+  Assert.AreEqual<string>('Vcl.Forms', LResult.UnitsToMoveToImpl[0]);
   
   // Nenhuma foi "completamente não usada" neste cenário, oh wait, TForm was used.
   // Vamos adicionar uma não usada:
@@ -134,8 +134,8 @@ begin
   LMockTreeObj.IntfUses := ['System.SysUtils', 'System.Classes', 'Vcl.Forms', 'UnusedUnit'];
   LResult := FAnalyzer.Execute(LMockTree, FContext);
   
-  Assert.AreEqual(1, Length(LResult.UnusedUnits));
-  Assert.AreEqual('UnusedUnit', LResult.UnusedUnits[0]);
+  Assert.AreEqual(1, Integer(Length(LResult.UnusedUnits)));
+  Assert.AreEqual<string>('UnusedUnit', LResult.UnusedUnits[0]);
 end;
 
 procedure TDomainTests.HelpersAndQualifiedIdentifiersAreResolved;

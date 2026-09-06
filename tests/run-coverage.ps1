@@ -12,13 +12,14 @@ $repositoryRoot = Split-Path $PSScriptRoot -Parent
 $rsvars = "C:\Program Files (x86)\Embarcadero\Studio\$BdsVersion\bin\rsvars.bat"
 $msbuild = "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
 $testProject = Join-Path $PSScriptRoot 'AtroposTests.dproj'
-$testExecutable = Join-Path $PSScriptRoot 'AtroposTests.exe'
-$mapFile = Join-Path $PSScriptRoot 'AtroposTests.map'
+$testExecutable = Join-Path $PSScriptRoot 'Win32\Debug\AtroposTests.exe'
+$mapFile = Join-Path $PSScriptRoot 'Win32\Debug\AtroposTests.map'
 
 if (-not (Test-Path -LiteralPath $CodeCoveragePath)) { throw "Coverage executable not found: $CodeCoveragePath" }
 if (-not (Test-Path -LiteralPath $rsvars)) { throw "RAD Studio environment not found: $rsvars" }
 
-$buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config=Debug /p:Platform=Win32 /nologo /v:minimal"
+$libraryPath = "C:\Program Files (x86)\Embarcadero\Studio\$BdsVersion\lib\Win32\Debug"
+$buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config=Debug /p:Platform=Win32 /p:DelphiLibraryPath=`"$libraryPath`" /nologo /v:minimal"
 & cmd.exe /d /c $buildCommand
 if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE" }
 

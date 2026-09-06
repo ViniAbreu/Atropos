@@ -121,7 +121,7 @@ begin
     
     // In an integration test, we simulate what CLI does
     LUnits := LProjectParser.GetProjectUnits(FDummyProjPath);
-    Assert.AreEqual(2, Length(LUnits), 'Should find UnitA and UnitB');
+    Assert.AreEqual(2, Integer(Length(LUnits)), 'Should find UnitA and UnitB');
     
     for LUnit in LUnits do
     begin

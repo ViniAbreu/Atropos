@@ -169,7 +169,7 @@ type
     [Test]
     procedure ApplicationCancellationRollsBack;
     [Test]
-    procedure BuildAlwaysCleansTemporaryRegistryProfile;
+    procedure BuildDoesNotCreateTemporaryRegistryProfile;
     [Test]
     procedure WindowsProfileCleanerRemovesRegistryTree;
     [Test]
@@ -449,7 +449,7 @@ begin
   Assert.IsTrue(LMetrics.Success);
   Assert.AreEqual(1, LMetrics.Hints);
   Assert.AreEqual(1, LMetrics.Warnings);
-  Assert.AreEqual(1, Length(LMetrics.InlineHints));
+  Assert.AreEqual(1, Integer(Length(LMetrics.InlineHints)));
   Assert.AreEqual('System.SysUtils', LMetrics.InlineHints[0].UnitNeeded);
 end;
 
@@ -715,6 +715,7 @@ begin
     Assert.IsTrue(LMetrics.Success);
     Assert.AreEqual(1, LMetrics.Warnings);
     Assert.IsTrue(LRunner.Command.Contains('-b -ns'));
+    Assert.IsFalse(LRunner.Command.Contains(' -r'));
     Assert.IsTrue(LRunner.Command.Contains(LProject));
     Assert.AreEqual(ExtractFileName(LRoot), LMetrics.DelphiVersion);
   finally
@@ -917,7 +918,7 @@ begin
   end;
 end;
 
-procedure TBuildReliabilityTests.BuildAlwaysCleansTemporaryRegistryProfile;
+procedure TBuildReliabilityTests.BuildDoesNotCreateTemporaryRegistryProfile;
 var
   LRoot, LBin: string;
   LEnvironment: TDelphiEnvironmentStub;
@@ -938,7 +939,7 @@ begin
     LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner,
       600000, nil, LCleaner);
     LService.BuildProject('Sample.dproj');
-    Assert.IsTrue(LCleaner.ProfileName.StartsWith('$atropos-ce-tmp\'));
+    Assert.IsTrue(LCleaner.ProfileName.IsEmpty);
   finally
     TDirectory.Delete(LRoot, True);
   end;

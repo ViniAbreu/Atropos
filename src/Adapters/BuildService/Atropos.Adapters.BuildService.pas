@@ -331,8 +331,8 @@ begin
   end;
 
   LErrFile := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString + '.err');
-  LRegEntry := '$atropos-ce-tmp\' + TGuid.NewGuid.ToString;
-  LBdsCmd := Format('"%s" -b -ns -o"%s" -r"%s" "%s"', [LBdsExe, LErrFile, LRegEntry, AProjectPath]);
+  LRegEntry := EmptyStr;
+  LBdsCmd := Format('"%s" -b -ns -o"%s" "%s"', [LBdsExe, LErrFile, AProjectPath]);
 
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
 
