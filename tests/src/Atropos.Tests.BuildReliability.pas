@@ -1109,6 +1109,7 @@ begin
   Assert.IsTrue(LRunner.Command.Contains('/p:Config="Release"'));
   Assert.IsTrue(LRunner.Command.Contains('/p:Platform="Win64"'));
   Assert.IsTrue(LRunner.Command.Contains('/p:DelphiLibraryPath='));
+  Assert.IsTrue(LRunner.Command.Contains('lib\Win64\release'));
   Assert.IsFalse(LRunner.Command.Contains('/flp:'));
 end;
 

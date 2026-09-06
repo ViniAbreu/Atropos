@@ -22,6 +22,12 @@ O smoke confere o PE, copia o fixture, executa a CLI, remove uma dependência, g
 Ele também solicita explicitamente os targets `Debug|Win32` e `Debug|Win64`,
 validando a matriz configurada pelo usuário.
 
+O gate executa ainda os projetos em `tests\Fixtures` nas duas arquiteturas. O
+fixture console cobre namespaces, alias `in`, condicionais e
+initialization/finalization; o fixture VCL compila um formulário DFM real. Cada
+execução ocorre em diretório temporário e confirma que os fixtures versionados
+permanecem inalterados.
+
 Somente cobertura:
 
 ```powershell

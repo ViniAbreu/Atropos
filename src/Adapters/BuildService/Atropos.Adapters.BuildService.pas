@@ -390,7 +390,7 @@ begin
   LCommandProcessorPath := GetEnvironmentVariable('ComSpec');
   LEnvironmentScriptPath := TPath.Combine(LDelphiPath, 'bin\rsvars.bat');
   LDelphiLibraryPath := TPath.Combine(LDelphiPath,
-    Format('lib\%s\%s', [ATarget.Platform, ATarget.Configuration]));
+    Format('lib\%s\release', [ATarget.Platform]));
   if not TFile.Exists(LEnvironmentScriptPath) then
   begin
     Result.ErrorMessage := 'rsvars.bat not found at ' + LEnvironmentScriptPath;
