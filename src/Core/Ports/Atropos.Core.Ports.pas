@@ -2,8 +2,23 @@ unit Atropos.Core.Ports;
 
 interface
 
+uses
+  System.SysUtils;
+
 type
   TCancellationCheck = reference to function: Boolean;
+
+  TBuildTarget = record
+  private
+    class function IsValidPart(const AValue: string): Boolean; static;
+  public
+    Configuration: string;
+    Platform: string;
+    constructor Create(const AConfiguration, APlatform: string);
+    function IsValid: Boolean;
+    class function TryParse(const AValue: string;
+      out ATarget: TBuildTarget): Boolean; static;
+  end;
 
   TInlineHint = record
     HintType: string;
@@ -86,8 +101,56 @@ type
   IBuildService = interface
     ['{69A27F11-EAA0-4BB1-8F0E-0744743C3A00}']
     function BuildProject(const AProjectPath: string): TBuildMetrics;
+    function BuildProjectForTarget(const AProjectPath: string;
+      const ATarget: TBuildTarget): TBuildMetrics;
   end;
 
 implementation
+
+constructor TBuildTarget.Create(const AConfiguration, APlatform: string);
+begin
+  Configuration := AConfiguration;
+  Platform := APlatform;
+end;
+
+function TBuildTarget.IsValid: Boolean;
+begin
+  Result := IsValidPart(Configuration) and IsValidPart(Platform);
+end;
+
+class function TBuildTarget.IsValidPart(const AValue: string): Boolean;
+var
+  LCharacter: Char;
+begin
+  Result := not AValue.IsEmpty;
+  if not Result then
+    Exit;
+  for LCharacter in AValue do
+  begin
+    Result := CharInSet(LCharacter, ['a'..'z', 'A'..'Z', '0'..'9',
+      '_', '-', '.']);
+    if not Result then
+      Exit;
+  end;
+end;
+
+class function TBuildTarget.TryParse(const AValue: string;
+  out ATarget: TBuildTarget): Boolean;
+var
+  LSeparatorPosition: Integer;
+begin
+  LSeparatorPosition := Pos('|', AValue);
+  Result := (LSeparatorPosition > 1) and
+    (LSeparatorPosition < Length(AValue));
+  if not Result then
+    Exit;
+  Result := Pos('|', AValue, LSeparatorPosition + 1) = 0;
+  if not Result then
+    Exit;
+  ATarget := TBuildTarget.Create(
+    Copy(AValue, 1, LSeparatorPosition - 1).Trim,
+    Copy(AValue, LSeparatorPosition + 1, MaxInt).Trim);
+  Result := ATarget.IsValid;
+end;
 
 end.

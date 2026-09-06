@@ -18,7 +18,7 @@ For Win32 and Win64, the gate builds and runs DUnitX, builds CLI/VCL Release, an
   -MinimumLineCoverage 85
 ```
 
-The smoke test verifies the PE architecture, copies the fixture, runs the CLI, removes a dependency, generates a report, and confirms that the original fixture remains unchanged.
+The smoke test verifies the PE architecture, copies the fixture, runs the CLI, removes a dependency, generates a report, and confirms that the original fixture remains unchanged. It explicitly requests the `Debug|Win32` and `Debug|Win64` targets, validating the user-configured matrix.
 
 Coverage only:
 

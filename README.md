@@ -64,6 +64,7 @@ See the complete [installation and build guide](docs/installation.md) for suppor
 AtroposCLI.exe -dproj "C:\Projects\MyApplication\MyApplication.dproj" --remove --move -html -txt
 AtroposCLI.exe -dproj "C:\Projects\MyApplication\MyApplication.dproj" --remove -txt --output reports
 AtroposCLI.exe -dproj "C:\Projects\MyApplication\MyApplication.dproj" --remove --dry-run -html -txt
+AtroposCLI.exe -dproj "C:\Projects\MyApplication\MyApplication.dproj" --remove --dry-run --target "Debug|Win32" --target "Debug|Win64"
 ```
 
 Common options:
@@ -72,6 +73,7 @@ Common options:
 - `--remove`: remove dependencies proven to be unused;
 - `--move`: move eligible dependencies from `interface` to `implementation`;
 - `--dry-run`: report optimization candidates without modifying source files;
+- `--target <configuration|platform>`: add a build target to the validation matrix; repeat the option to validate multiple targets;
 - `-html`: generate an HTML report;
 - `-txt`: generate a text report;
 - `--output <directory>`: select the report directory;

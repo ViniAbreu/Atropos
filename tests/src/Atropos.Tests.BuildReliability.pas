@@ -103,19 +103,26 @@ type
   public
     CallCount: Integer;
     function BuildProject(const AProjectPath: string): TBuildMetrics;
+    function BuildProjectForTarget(const AProjectPath: string;
+      const ATarget: TBuildTarget): TBuildMetrics;
   end;
 
   TSuccessfulBuildService = class(TInterfacedObject, IBuildService)
   public
     CallCount: Integer;
     function BuildProject(const AProjectPath: string): TBuildMetrics;
+    function BuildProjectForTarget(const AProjectPath: string;
+      const ATarget: TBuildTarget): TBuildMetrics;
   end;
 
   TSequencedBuildService = class(TInterfacedObject, IBuildService)
   public
     CallCount: Integer;
     Results: TArray<TBuildMetrics>;
+    Targets: TArray<TBuildTarget>;
     function BuildProject(const AProjectPath: string): TBuildMetrics;
+    function BuildProjectForTarget(const AProjectPath: string;
+      const ATarget: TBuildTarget): TBuildMetrics;
   end;
 
   [TestFixture]
@@ -171,6 +178,14 @@ type
     procedure BuildDoesNotUseAlternateRegistryProfile;
     [Test]
     procedure DryRunReportsCandidatesWithoutWritingFiles;
+    [Test]
+    procedure ExplicitBuildTargetUsesMSBuildProperties;
+    [Test]
+    procedure ExplicitBuildTargetRejectsUnsafeValues;
+    [Test]
+    procedure BuildMatrixRunsEveryTargetBeforeAndAfterChanges;
+    [Test]
+    procedure FailedTargetInFinalMatrixRollsBackChanges;
   end;
 
 implementation
@@ -297,6 +312,8 @@ begin
   if not Result then
     Exit;
   LMatch := TRegEx.Match(ACommand, '-o"([^"]+)"');
+  if not LMatch.Success then
+    LMatch := TRegEx.Match(ACommand, '/flp:logfile="([^"]+)"');
   if LMatch.Success then
     TFile.WriteAllText(LMatch.Groups[1].Value, ErrorFileContent);
 end;
@@ -328,6 +345,12 @@ begin
   Result.ErrorMessage := 'Baseline failed';
 end;
 
+function TFailingBuildService.BuildProjectForTarget(const AProjectPath: string;
+  const ATarget: TBuildTarget): TBuildMetrics;
+begin
+  Result := BuildProject(AProjectPath);
+end;
+
 function TSuccessfulBuildService.BuildProject(const AProjectPath: string): TBuildMetrics;
 begin
   Inc(CallCount);
@@ -335,10 +358,24 @@ begin
   Result.Success := True;
 end;
 
+function TSuccessfulBuildService.BuildProjectForTarget(const AProjectPath: string;
+  const ATarget: TBuildTarget): TBuildMetrics;
+begin
+  Result := BuildProject(AProjectPath);
+end;
+
 function TSequencedBuildService.BuildProject(const AProjectPath: string): TBuildMetrics;
 begin
   Result := Results[CallCount];
   Inc(CallCount);
+end;
+
+function TSequencedBuildService.BuildProjectForTarget(const AProjectPath: string;
+  const ATarget: TBuildTarget): TBuildMetrics;
+begin
+  SetLength(Targets, Length(Targets) + 1);
+  Targets[High(Targets)] := ATarget;
+  Result := BuildProject(AProjectPath);
 end;
 
 procedure TBuildReliabilityTests.NonZeroExitCodeFailsBuildWithoutErrorText;
@@ -1043,6 +1080,141 @@ begin
       Assert.AreEqual(1, LReports.AddUnitCallCount);
       Assert.AreEqual(0, LFiles.BackupCallCount);
       Assert.AreEqual(0, LFiles.WriteCallCount);
+    finally
+      LService.Free;
+    end;
+  finally
+    TFile.Delete(LTempFile);
+  end;
+end;
+
+procedure TBuildReliabilityTests.ExplicitBuildTargetUsesMSBuildProperties;
+var
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LEnvironment := TDelphiEnvironmentStub.Create;
+  LEnvironment.DelphiPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0';
+  LRunner := TBuildProcessRunnerStub.Create;
+  LRunner.ExecuteResult := True;
+  LRunner.ErrorFileContent := 'Build succeeded.';
+  LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner);
+  LMetrics := LService.BuildProjectForTarget('Sample.dproj',
+    TBuildTarget.Create('Release', 'Win64'));
+  Assert.IsTrue(LMetrics.Success);
+  Assert.IsTrue(LRunner.Command.Contains('/p:Config="Release"'));
+  Assert.IsTrue(LRunner.Command.Contains('/p:Platform="Win64"'));
+  Assert.IsTrue(LRunner.Command.Contains('/p:DelphiLibraryPath='));
+  Assert.IsFalse(LRunner.Command.Contains('/flp:'));
+end;
+
+procedure TBuildReliabilityTests.ExplicitBuildTargetRejectsUnsafeValues;
+var
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LEnvironment := TDelphiEnvironmentStub.Create;
+  LEnvironment.DelphiPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0';
+  LRunner := TBuildProcessRunnerStub.Create;
+  LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner);
+  LMetrics := LService.BuildProjectForTarget('Sample.dproj',
+    TBuildTarget.Create('Release" /t:Clean', 'Win64'));
+  Assert.IsFalse(LMetrics.Success);
+  Assert.AreEqual('Invalid build target.', LMetrics.ErrorMessage);
+  Assert.AreEqual('', LRunner.Command);
+end;
+
+procedure TBuildReliabilityTests.BuildMatrixRunsEveryTargetBeforeAndAfterChanges;
+var
+  LParser: TProjectParserSpy;
+  LAST: TASTParserStub;
+  LFiles: TFileServiceSpy;
+  LResolver: TExternalResolverStub;
+  LBuild: TSequencedBuildService;
+  LService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+  LSuccess: TBuildMetrics;
+  LTempFile: string;
+begin
+  LTempFile := TPath.GetTempFileName;
+  try
+    LParser := TProjectParserSpy.Create;
+    LParser.Units := [LTempFile];
+    LAST := TASTParserStub.Create;
+    LAST.SyntaxTree := TUnitSyntaxTreeStub.Create;
+    LFiles := TFileServiceSpy.Create;
+    LFiles.Content := 'unit TestUnit;' + sLineBreak + 'interface' + sLineBreak +
+      'uses Unused.Unit;' + sLineBreak + 'implementation' + sLineBreak + 'end.';
+    LResolver := TExternalResolverStub.Create;
+    LResolver.ResolveKnownUnits := True;
+    LSuccess := Default(TBuildMetrics);
+    LSuccess.Success := True;
+    LBuild := TSequencedBuildService.Create;
+    LBuild.Results := [LSuccess, LSuccess, LSuccess, LSuccess];
+    LConfig := TToolConfig.Default;
+    LConfig.RemoveUnused := True;
+    LConfig.AddBuildTarget(TBuildTarget.Create('Debug', 'Win32'));
+    LConfig.AddBuildTarget(TBuildTarget.Create('Release', 'Win64'));
+    LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles,
+      TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create, LResolver,
+      LBuild, LConfig);
+    try
+      Assert.IsTrue(LService.Execute('Project.dproj'));
+      Assert.AreEqual(4, LBuild.CallCount);
+      Assert.AreEqual(4, Integer(Length(LBuild.Targets)));
+      Assert.AreEqual('Debug', LBuild.Targets[0].Configuration);
+      Assert.AreEqual('Win64', LBuild.Targets[3].Platform);
+    finally
+      LService.Free;
+    end;
+  finally
+    TFile.Delete(LTempFile);
+  end;
+end;
+
+procedure TBuildReliabilityTests.FailedTargetInFinalMatrixRollsBackChanges;
+var
+  LParser: TProjectParserSpy;
+  LAST: TASTParserStub;
+  LFiles: TFileServiceSpy;
+  LResolver: TExternalResolverStub;
+  LBuild: TSequencedBuildService;
+  LService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+  LSuccess: TBuildMetrics;
+  LFailure: TBuildMetrics;
+  LTempFile: string;
+begin
+  LTempFile := TPath.GetTempFileName;
+  try
+    LParser := TProjectParserSpy.Create;
+    LParser.Units := [LTempFile];
+    LAST := TASTParserStub.Create;
+    LAST.SyntaxTree := TUnitSyntaxTreeStub.Create;
+    LFiles := TFileServiceSpy.Create;
+    LResolver := TExternalResolverStub.Create;
+    LResolver.ResolveKnownUnits := True;
+    LSuccess := Default(TBuildMetrics);
+    LSuccess.Success := True;
+    LFailure := Default(TBuildMetrics);
+    LFailure.ErrorMessage := 'Release Win64 failed';
+    LBuild := TSequencedBuildService.Create;
+    LBuild.Results := [LSuccess, LSuccess, LSuccess, LFailure];
+    LConfig := TToolConfig.Default;
+    LConfig.RemoveUnused := True;
+    LConfig.AddBuildTarget(TBuildTarget.Create('Debug', 'Win32'));
+    LConfig.AddBuildTarget(TBuildTarget.Create('Release', 'Win64'));
+    LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles,
+      TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create, LResolver,
+      LBuild, LConfig);
+    try
+      Assert.IsFalse(LService.Execute('Project.dproj'));
+      Assert.AreEqual(1, LFiles.RestoreCallCount);
+      Assert.AreEqual(0, LFiles.CommitCallCount);
     finally
       LService.Free;
     end;

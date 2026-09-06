@@ -13,6 +13,7 @@ AtroposCLI.exe -dproj <file.dproj> [options]
 | `-txt` | Write `AtroposReport.txt`. |
 | `--output <directory>` | Report directory; a relative path starts at the `.dproj` directory. |
 | `--dry-run` | Analyze and report candidates without modifying source files. |
+| `--target <configuration\|platform>` | Validate a target before and after processing; repeat to create a matrix. |
 | `--debug` | Enable detailed diagnostics. |
 | `--help`, `-h`, `/?` | Display help. |
 

@@ -21,6 +21,10 @@ type
     procedure HelpDoesNotRequireProject;
     [Test]
     procedure ParsesDryRunOption;
+    [Test]
+    procedure ParsesRepeatedBuildTargets;
+    [Test]
+    procedure RejectsInvalidBuildTarget;
   end;
 
 implementation
@@ -74,6 +78,30 @@ begin
   LOptions := TCommandLineParser.Parse(['-dproj', 'sample.dproj', '--dry-run']);
   Assert.IsTrue(LOptions.IsValid);
   Assert.IsTrue(LOptions.Config.DryRun);
+end;
+
+procedure TCommandLineParserTests.ParsesRepeatedBuildTargets;
+var
+  LOptions: TCommandLineOptions;
+begin
+  LOptions := TCommandLineParser.Parse(['-dproj', 'sample.dproj',
+    '--target', 'Debug|Win32', '--target', 'Release|Win64']);
+  Assert.IsTrue(LOptions.IsValid);
+  Assert.AreEqual(2, Integer(Length(LOptions.Config.BuildTargets)));
+  Assert.AreEqual('Debug', LOptions.Config.BuildTargets[0].Configuration);
+  Assert.AreEqual('Win32', LOptions.Config.BuildTargets[0].Platform);
+  Assert.AreEqual('Release', LOptions.Config.BuildTargets[1].Configuration);
+  Assert.AreEqual('Win64', LOptions.Config.BuildTargets[1].Platform);
+end;
+
+procedure TCommandLineParserTests.RejectsInvalidBuildTarget;
+begin
+  Assert.IsFalse(TCommandLineParser.Parse(['-dproj', 'sample.dproj',
+    '--target', 'Win64']).IsValid);
+  Assert.IsFalse(TCommandLineParser.Parse(['-dproj', 'sample.dproj',
+    '--target']).IsValid);
+  Assert.IsFalse(TCommandLineParser.Parse(['-dproj', 'sample.dproj',
+    '--target', 'Release" /t:Clean|Win64']).IsValid);
 end;
 
 initialization
