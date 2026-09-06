@@ -13,6 +13,8 @@ $msbuild = "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
 
 if (-not (Test-Path -LiteralPath $rsvars)) { throw "RAD Studio environment not found: $rsvars" }
 
+& (Join-Path $PSScriptRoot 'test-documentation.ps1')
+
 function Invoke-DelphiBuild([string]$Project, [string]$Configuration, [string]$Platform) {
     $projectPath = Join-Path $repositoryRoot $Project
     $libraryPath = "C:\Program Files (x86)\Embarcadero\Studio\$BdsVersion\lib\$Platform\$Configuration"
