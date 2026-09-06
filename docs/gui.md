@@ -1,13 +1,13 @@
-# Interface VCL
+# VCL interface
 
-Execute `AtroposVCL.exe`, selecione um `.dproj` e escolha:
+Run `AtroposVCL.exe`, select a `.dproj`, and choose:
 
-- **Remove Unused:** remove dependências não utilizadas;
-- **Move to Implementation:** move dependências usadas apenas na implementação;
-- **Enable Debug Logging:** detalha o processamento.
+- **Remove Unused:** remove unused dependencies;
+- **Move to Implementation:** move dependencies used only by the implementation;
+- **Enable Debug Logging:** show detailed processing information.
 
-Clique em **Iniciar Limpeza**. A barra acompanha as units e o painel registra builds e decisões. **Cancelar** solicita interrupção segura; a janela não fecha enquanto a execução estiver ativa. Cancelamentos e exceções restauram os backups da transação.
+Click **Iniciar Limpeza** (Start Cleanup). The progress bar tracks the units, while the log panel records builds and decisions. **Cancelar** (Cancel) requests a safe interruption; the window cannot close while execution is active. Cancellation and exceptions restore the transaction backups.
 
-## Limitação atual
+## Current limitation
 
-A VCL ainda não expõe relatório HTML/TXT nem diretório de saída. Use a CLI para persistir relatórios; o resumo textual aparece no painel de log.
+The VCL interface does not yet export HTML/TXT reports or select an output directory. Use the CLI to persist reports; the text summary appears in the log panel.
