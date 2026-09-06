@@ -13,7 +13,6 @@ type
   private
     FDummyProjPath: string;
     FUnitAPath: string;
-    FUnitABakPath: string;
     
     procedure RestoreUnitA;
   public
@@ -30,11 +29,14 @@ type
 implementation
 
 procedure TIntegrationTests.RestoreUnitA;
+var
+  LBackupPath: string;
 begin
-  if TFile.Exists(FUnitABakPath) then
+  for LBackupPath in TDirectory.GetFiles(TPath.GetDirectoryName(FUnitAPath),
+    ExtractFileName(FUnitAPath) + '.atropos-*.bak') do
   begin
-    TFile.Copy(FUnitABakPath, FUnitAPath, True);
-    TFile.Delete(FUnitABakPath);
+    TFile.Copy(LBackupPath, FUnitAPath, True);
+    TFile.Delete(LBackupPath);
   end;
 end;
 
@@ -45,14 +47,12 @@ begin
   LBaseDir := TPath.GetFullPath('DummyProject');
   FDummyProjPath := TPath.Combine(LBaseDir, 'DummyProject.dproj');
   FUnitAPath := TPath.Combine(LBaseDir, 'UnitA.pas');
-  FUnitABakPath := TPath.Combine(LBaseDir, 'UnitA.pas.bak');
   
   if not TFile.Exists(FDummyProjPath) then
   begin
     LBaseDir := TPath.Combine(ExtractFilePath(ParamStr(0)), 'DummyProject');
     FDummyProjPath := TPath.Combine(LBaseDir, 'DummyProject.dproj');
     FUnitAPath := TPath.Combine(LBaseDir, 'UnitA.pas');
-    FUnitABakPath := TPath.Combine(LBaseDir, 'UnitA.pas.bak');
   end;
 
   if not TFile.Exists(FDummyProjPath) then
@@ -60,7 +60,6 @@ begin
     LBaseDir := TPath.GetFullPath('tests\DummyProject');
     FDummyProjPath := TPath.Combine(LBaseDir, 'DummyProject.dproj');
     FUnitAPath := TPath.Combine(LBaseDir, 'UnitA.pas');
-    FUnitABakPath := TPath.Combine(LBaseDir, 'UnitA.pas.bak');
   end;
   
   if not TFile.Exists(FDummyProjPath) then
@@ -68,7 +67,6 @@ begin
     LBaseDir := TPath.GetFullPath('..\..\DummyProject');
     FDummyProjPath := TPath.Combine(LBaseDir, 'DummyProject.dproj');
     FUnitAPath := TPath.Combine(LBaseDir, 'UnitA.pas');
-    FUnitABakPath := TPath.Combine(LBaseDir, 'UnitA.pas.bak');
   end;
   
   RestoreUnitA; // Ensure clean state before test
@@ -145,7 +143,8 @@ begin
     
     // Assert
     // Check if backup exists
-    Assert.IsTrue(TFile.Exists(FUnitABakPath), 'Backup file UnitA.pas.bak should be created');
+    Assert.AreEqual(1, Integer(Length(TDirectory.GetFiles(LBasePath,
+      'UnitA.pas.atropos-*.bak'))), 'Atropos backup should be created');
     
     // Check if UnitB was physically removed from UnitA.pas
     LContentAfter := TFile.ReadAllText(FUnitAPath);

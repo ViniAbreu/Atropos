@@ -19,6 +19,8 @@ type
     procedure RejectsUnknownOption;
     [Test]
     procedure HelpDoesNotRequireProject;
+    [Test]
+    procedure ParsesDryRunOption;
   end;
 
 implementation
@@ -63,6 +65,15 @@ begin
   LOptions := TCommandLineParser.Parse(['--help']);
   Assert.IsTrue(LOptions.IsValid);
   Assert.IsTrue(LOptions.ShowHelp);
+end;
+
+procedure TCommandLineParserTests.ParsesDryRunOption;
+var
+  LOptions: TCommandLineOptions;
+begin
+  LOptions := TCommandLineParser.Parse(['-dproj', 'sample.dproj', '--dry-run']);
+  Assert.IsTrue(LOptions.IsValid);
+  Assert.IsTrue(LOptions.Config.DryRun);
 end;
 
 initialization

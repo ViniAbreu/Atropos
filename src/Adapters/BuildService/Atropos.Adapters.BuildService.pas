@@ -12,16 +12,6 @@ type
       out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
   end;
 
-  IBuildProfileCleaner = interface
-    ['{80823598-223C-4A44-B8BD-191842BEE019}']
-    procedure Cleanup(const AProfileName: string);
-  end;
-
-  TWindowsBuildProfileCleaner = class(TInterfacedObject, IBuildProfileCleaner)
-  public
-    procedure Cleanup(const AProfileName: string);
-  end;
-
   TWin32BuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
   public
     function Execute(const ACommand: string; ATimeoutMs: Cardinal;
@@ -41,23 +31,21 @@ type
     FProcessRunner: IBuildProcessRunner;
     FTimeoutMs: Cardinal;
     FShouldCancel: TCancellationCheck;
-    FProfileCleaner: IBuildProfileCleaner;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
   public
     constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
       AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000;
-      const AShouldCancel: TCancellationCheck = nil;
-      AProfileCleaner: IBuildProfileCleaner = nil);
+      const AShouldCancel: TCancellationCheck = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
   end;
 
 implementation
-uses System.Classes, System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions, System.Win.Registry, Winapi.Windows,
+uses System.Classes, System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions, Winapi.Windows,
   System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
   AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal;
-  const AShouldCancel: TCancellationCheck; AProfileCleaner: IBuildProfileCleaner);
+  const AShouldCancel: TCancellationCheck);
 begin
   FEnvService := AEnvService;
   FLogger := ALogger;
@@ -66,26 +54,6 @@ begin
     FProcessRunner := TWin32BuildProcessRunner.Create;
   FTimeoutMs := ATimeoutMs;
   FShouldCancel := AShouldCancel;
-  FProfileCleaner := AProfileCleaner;
-  if not Assigned(FProfileCleaner) then
-    FProfileCleaner := TWindowsBuildProfileCleaner.Create;
-end;
-
-procedure TWindowsBuildProfileCleaner.Cleanup(const AProfileName: string);
-var
-  LRegistryPath: string;
-  LRegistry: TRegistry;
-begin
-  if AProfileName.IsEmpty then
-    Exit;
-  LRegistryPath := 'Software\Embarcadero\' + AProfileName;
-  LRegistry := TRegistry.Create(KEY_ALL_ACCESS);
-  try
-    LRegistry.RootKey := HKEY_CURRENT_USER;
-    LRegistry.DeleteKey(LRegistryPath);
-  finally
-    LRegistry.Free;
-  end;
 end;
 
 function TWin32BuildProcessRunner.Execute(const ACommand: string; ATimeoutMs: Cardinal;
@@ -303,7 +271,6 @@ var
   LBdsExe: string;
   LBdsCmd: string;
   LErrFile: string;
-  LRegEntry: string;
   LOutput: string;
   LStartTick: UInt64;
   LExitCode: Cardinal;
@@ -331,7 +298,6 @@ begin
   end;
 
   LErrFile := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString + '.err');
-  LRegEntry := EmptyStr;
   LBdsCmd := Format('"%s" -b -ns -o"%s" "%s"', [LBdsExe, LErrFile, AProjectPath]);
 
   if Assigned(FLogger) then FLogger.Log('Executing Build via bds.exe (Universal Compiler): ' + LBdsCmd);
@@ -365,7 +331,6 @@ begin
   finally
     if TFile.Exists(LErrFile) then
       TFile.Delete(LErrFile);
-    FProfileCleaner.Cleanup(LRegEntry);
   end;
 end;
 

@@ -21,6 +21,7 @@ type
     class function RewriteConditionalUses(const ASource, AUnitToAdd: string; AImplPos, AWordPos, ASemiPos: Integer): string;
     class function SanitizeUsesKeyword(const ASource: string; AWordPos, ASemiPos: Integer; out ANewSemiPos: Integer): string;
     class function RelocateSemicolon(const ASource: string; AImplPos, ASemiPos: Integer): string;
+    class function FindClauseTerminator(const ASource: string; AStartPos: Integer): Integer;
   public
     constructor Create(AFileService: IFileService; AConfig: TToolConfig);
     procedure Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);
@@ -36,6 +37,69 @@ constructor TApplyUsesChanges.Create(AFileService: IFileService; AConfig: TToolC
 begin
   FFileService := AFileService;
   FConfig := AConfig;
+end;
+
+class function TApplyUsesChanges.FindClauseTerminator(const ASource: string;
+  AStartPos: Integer): Integer;
+type
+  TScanState = (ssCode, ssString, ssLineComment, ssBraceComment, ssParenComment);
+var
+  I: Integer;
+  LState: TScanState;
+begin
+  Result := 0;
+  LState := ssCode;
+  I := AStartPos;
+  while I <= Length(ASource) do
+  begin
+    case LState of
+      ssCode:
+        begin
+          if ASource[I] = ';' then
+            Exit(I);
+          if ASource[I] = '''' then
+            LState := ssString;
+          if ASource[I] = '{' then
+            LState := ssBraceComment;
+          if (ASource[I] = '/') and (I < Length(ASource)) and
+            (ASource[I + 1] = '/') then
+          begin
+            LState := ssLineComment;
+            Inc(I);
+          end;
+          if (ASource[I] = '(') and (I < Length(ASource)) and
+            (ASource[I + 1] = '*') then
+          begin
+            LState := ssParenComment;
+            Inc(I);
+          end;
+        end;
+      ssString:
+        if ASource[I] = '''' then
+        begin
+          LState := ssCode;
+          if (I < Length(ASource)) and (ASource[I + 1] = '''') then
+          begin
+            LState := ssString;
+            Inc(I);
+          end;
+        end;
+      ssLineComment:
+        if CharInSet(ASource[I], [#10, #13]) then
+          LState := ssCode;
+      ssBraceComment:
+        if ASource[I] = '}' then
+          LState := ssCode;
+      ssParenComment:
+        if (ASource[I] = '*') and (I < Length(ASource)) and
+          (ASource[I + 1] = ')') then
+        begin
+          LState := ssCode;
+          Inc(I);
+        end;
+    end;
+    Inc(I);
+  end;
 end;
 
 class function TApplyUsesChanges.RemoveUnitSafely(const ASource, AUnitToRemove: string): string;
@@ -60,10 +124,10 @@ begin
     Exit;
   end;
 
-  LRegex := TRegEx.Create('(?is),\s*' + LBoundary + LAlias + LTrivia);
+  LRegex := TRegEx.Create('(?is),(' + LTrivia + ')' + LBoundary + LAlias + LTrivia);
   if LRegex.IsMatch(Result) then
   begin
-    Result := LRegex.Replace(Result, '', 1);
+    Result := LRegex.Replace(Result, '$1', 1);
     Exit;
   end;
 
@@ -108,7 +172,7 @@ begin
       Exit; 
   end;
 
-  LSemiPos := Pos(';', ASource, LUsesPos);
+  LSemiPos := FindClauseTerminator(ASource, LUsesPos);
   if LSemiPos = 0 then
     Exit;
   
@@ -290,7 +354,7 @@ begin
   end;
   
   LUsesPos := LMatch.Index;
-  LSemiPos := Pos(';', ASource, LUsesPos);
+  LSemiPos := FindClauseTerminator(ASource, LUsesPos);
   
   if LSemiPos = 0 then
     Exit;
@@ -307,7 +371,7 @@ begin
       Exit;
       
     LUsesPos := LMatch.Index;
-    LSemiPos := Pos(';', Result, LUsesPos);
+    LSemiPos := FindClauseTerminator(Result, LUsesPos);
   end;
   
   LWordPos := LUsesPos + LMatch.Length - 4; 

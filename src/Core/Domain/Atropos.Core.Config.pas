@@ -11,6 +11,7 @@ type
     FExportHTML: Boolean;
     FExportTXT: Boolean;
     FOutputDirectory: string;
+    FDryRun: Boolean;
   public
     property MoveToImplementation: Boolean read FMoveToImplementation write FMoveToImplementation;
     property RemoveUnused: Boolean read FRemoveUnused write FRemoveUnused;
@@ -18,6 +19,7 @@ type
     property ExportHTML: Boolean read FExportHTML write FExportHTML;
     property ExportTXT: Boolean read FExportTXT write FExportTXT;
     property OutputDirectory: string read FOutputDirectory write FOutputDirectory;
+    property DryRun: Boolean read FDryRun write FDryRun;
 
     class function Default: TToolConfig; static;
     function WithMoveToImplementation(const AValue: Boolean): TToolConfig;
@@ -36,6 +38,7 @@ begin
   Result.FExportHTML := False;
   Result.FExportTXT := False;
   Result.FOutputDirectory := '';
+  Result.FDryRun := False;
 end;
 
 function TToolConfig.WithOutputDirectory(const AValue: string): TToolConfig;

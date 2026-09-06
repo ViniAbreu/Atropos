@@ -1,6 +1,6 @@
 # Known limitations
 
-- There is no dry-run mode or diff generation without writing files.
+- `--dry-run` reports candidates but does not produce an applicable patch.
 - The VCL interface does not export reports or select an output directory.
 - The CLI has no interactive cancellation option.
 - Analysis depends on units and search paths obtained from the `.dproj`.

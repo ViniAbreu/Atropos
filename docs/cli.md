@@ -12,6 +12,7 @@ AtroposCLI.exe -dproj <file.dproj> [options]
 | `-html` | Write `AtroposReport.html`. |
 | `-txt` | Write `AtroposReport.txt`. |
 | `--output <directory>` | Report directory; a relative path starts at the `.dproj` directory. |
+| `--dry-run` | Analyze and report candidates without modifying source files. |
 | `--debug` | Enable detailed diagnostics. |
 | `--help`, `-h`, `/?` | Display help. |
 
@@ -30,4 +31,4 @@ Without `--output`, requested reports are written next to the project. The text 
 if ($LASTEXITCODE -ne 0) { throw "Atropos failed: $LASTEXITCODE" }
 ```
 
-The CLI has no `--dry-run` or interactive cancellation option. Start from a clean branch, review the diff, and do not run two instances against the same source files.
+The CLI has no interactive cancellation option. Start from a clean branch, review the diff, and do not run two instances against the same source files.

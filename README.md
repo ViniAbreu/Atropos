@@ -63,6 +63,7 @@ See the complete [installation and build guide](docs/installation.md) for suppor
 ```powershell
 AtroposCLI.exe -dproj "C:\Projects\MyApplication\MyApplication.dproj" --remove --move -html -txt
 AtroposCLI.exe -dproj "C:\Projects\MyApplication\MyApplication.dproj" --remove -txt --output reports
+AtroposCLI.exe -dproj "C:\Projects\MyApplication\MyApplication.dproj" --remove --dry-run -html -txt
 ```
 
 Common options:
@@ -70,13 +71,14 @@ Common options:
 - `-dproj <path>`: path to the Delphi project file;
 - `--remove`: remove dependencies proven to be unused;
 - `--move`: move eligible dependencies from `interface` to `implementation`;
+- `--dry-run`: report optimization candidates without modifying source files;
 - `-html`: generate an HTML report;
 - `-txt`: generate a text report;
 - `--output <directory>`: select the report directory;
 - `--debug`: enable verbose logging;
 - `--help`: display the complete command reference.
 
-Without `--remove` or `--move`, Atropos performs the initial validation but does not request source changes. See the [CLI reference](docs/cli.md) for the complete contract and exit codes.
+Without `--remove` or `--move`, Atropos performs the initial validation but does not request source changes. Use `--dry-run` to review candidates and generate reports without modifying source files. See the [CLI reference](docs/cli.md) for the complete contract and exit codes.
 
 ## 🧪 Quality and compatibility
 
