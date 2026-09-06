@@ -1,26 +1,26 @@
-# Segurança, backups e rollback
+# Safety, backups, and rollback
 
-Cada execução é tratada como uma transação:
+Each execution is handled as a transaction:
 
-1. compila o projeto original;
-2. se a linha de base falhar, encerra sem alterar fontes;
-3. cria backup interno único antes de cada escrita;
-4. aplica as transformações;
-5. compila novamente;
-6. no sucesso, confirma e remove os backups internos;
-7. em falha, cancelamento ou exceção, restaura os arquivos.
+1. build the original project;
+2. stop without changing source files if the baseline fails;
+3. create one internal backup before each write;
+4. apply the transformations;
+5. build again;
+6. commit and remove internal backups on success;
+7. restore the files after a failure, cancellation, or exception.
 
-Backups `.bak` existentes do usuário são preservados. O rollback não substitui Git nem testes funcionais.
+Existing user-created `.bak` files are preserved. Rollback is not a replacement for Git or functional tests.
 
-## Prática recomendada
+## Recommended practice
 
-- mantenha o worktree limpo e versionado;
-- execute uma instância por projeto;
-- revise o diff e rode os testes do projeto;
-- faça backup externo se não houver controle de versão.
+- keep the worktree clean and under version control;
+- run one instance per project;
+- review the diff and run the project's tests;
+- create an external backup when version control is unavailable.
 
-O AutoBuild usa `bds.exe`. Processos filhos são reunidos em um Windows Job Object para encerramento conjunto; o timeout padrão é de 10 minutos.
+AutoBuild uses `bds.exe`. Child processes are assigned to a Windows Job Object so they can be terminated together; the default timeout is 10 minutes.
 
-## Script legado
+## Legacy script
 
-`clean_and_move_uses.ps1`, na raiz, não faz parte do fluxo seguro. Ele apaga `.bak` recursivamente e altera fontes sem a mesma verificação e rollback. Não o use em produção.
+The root-level `clean_and_move_uses.ps1` is not part of the safe workflow. It recursively deletes `.bak` files and changes source files without the same verification and rollback guarantees. Do not use it in production.

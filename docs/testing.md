@@ -1,31 +1,29 @@
-# Testes, cobertura e quality gates
+# Tests, coverage, and quality gates
 
-`tests\AtroposTests.dproj` cobre domínio, `.dproj`, DelphiAST, resolução, arquivos, modificador, relatórios, CLI, lifecycle, build e integração.
+`tests\AtroposTests.dproj` covers the domain, `.dproj` parsing, DelphiAST, resolution, files, modifier, reports, CLI, lifecycle, builds, and integration.
 
 ```powershell
 msbuild tests\AtroposTests.dproj /t:Build /p:Config=Debug /p:Platform=Win64
 .\tests\Win64\Debug\AtroposTests.exe --consolemode:quiet
 ```
 
-## Gate completo
+## Complete gate
 
-Para Win32 e Win64, compila e executa DUnitX, gera CLI/VCL Release e roda smoke real simulado. Depois mede cobertura Win32 e exige o limite.
+For Win32 and Win64, the gate builds and runs DUnitX, builds CLI/VCL Release, and runs simulated real-use smoke tests. It then measures Win32 coverage and enforces the threshold.
 
 ```powershell
 .\tests\run-quality-gates.ps1 `
   -BdsVersion '23.0' `
-  -CodeCoveragePath 'D:\Ferramentas\DelphiCodeCoverage\CodeCoverage.exe' `
+  -CodeCoveragePath 'D:\Tools\DelphiCodeCoverage\CodeCoverage.exe' `
   -MinimumLineCoverage 85
 ```
 
-O smoke confere o PE, copia o fixture, executa a CLI, remove uma dependência, gera relatório e garante que o original não mudou.
-Ele também solicita explicitamente os targets `Debug|Win32` e `Debug|Win64`,
-validando a matriz configurada pelo usuário.
+The smoke test verifies the PE architecture, copies the fixture, runs the CLI, removes a dependency, generates a report, and confirms that the original fixture remains unchanged. It explicitly requests the `Debug|Win32` and `Debug|Win64` targets, validating the user-configured matrix.
 
-Somente cobertura:
+Coverage only:
 
 ```powershell
-.\tests\run-coverage.ps1 -CodeCoveragePath 'D:\Ferramentas\DelphiCodeCoverage\CodeCoverage.exe' -BdsVersion '23.0' -MinimumLineCoverage 85
+.\tests\run-coverage.ps1 -CodeCoveragePath 'D:\Tools\DelphiCodeCoverage\CodeCoverage.exe' -BdsVersion '23.0' -MinimumLineCoverage 85
 ```
 
-O workflow `.github\workflows\delphi-quality.yml` requer runner self-hosted Windows com RAD Studio e `DELPHI_CODE_COVERAGE` configurado.
+The `.github\workflows\delphi-quality.yml` workflow requires a self-hosted Windows runner with RAD Studio and `DELPHI_CODE_COVERAGE` configured.
