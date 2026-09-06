@@ -60,7 +60,8 @@ type
     AddUnitCallCount: Integer;
     AddMetricsCallCount: Integer;
     SetInfoCallCount: Integer;
-    procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
+    procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses,
+      AMovedUses, APreservedAmbiguities: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
     procedure SetAnalysisInfo(const AProjectName: string; AAnalysisTimeMs: Int64; AUnitsAnalyzed, ASearchPaths: Integer);
     function GetReportContentTXT: string;
@@ -266,7 +267,8 @@ begin
   Content := AContent;
 end;
 
-procedure TReportGeneratorStub.AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
+procedure TReportGeneratorStub.AddUnitProcessed(const AUnitName: string;
+  const ARemovedUses, AMovedUses, APreservedAmbiguities: TArray<string>);
 begin
   Inc(AddUnitCallCount);
 end;

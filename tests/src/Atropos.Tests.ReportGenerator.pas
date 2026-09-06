@@ -28,6 +28,8 @@ type
     procedure RegressedMetricsAreRenderedInTextAndHTML;
     [Test]
     procedure HTMLWithoutMetricsStillRendersIssues;
+    [Test]
+    procedure PreservedAmbiguityReasonIsRendered;
   end;
 
 implementation
@@ -46,9 +48,9 @@ procedure TReportGeneratorTests.Test_GenerateReportContent;
 var
   LResult: string;
 begin
-  FReport.AddUnitProcessed('Unit1.pas', ['SysUtils'], ['Classes']);
-  FReport.AddUnitProcessed('Unit2.pas', [], []);
-  FReport.AddUnitProcessed('Unit3.pas', ['Windows'], []);
+  FReport.AddUnitProcessed('Unit1.pas', ['SysUtils'], ['Classes'], []);
+  FReport.AddUnitProcessed('Unit2.pas', [], [], []);
+  FReport.AddUnitProcessed('Unit3.pas', ['Windows'], [], []);
   
   LResult := FReport.GetReportContentTXT;
   
@@ -68,7 +70,7 @@ procedure TReportGeneratorTests.Test_NoChanges;
 var
   LResult: string;
 begin
-  FReport.AddUnitProcessed('CleanUnit.pas', [], []);
+  FReport.AddUnitProcessed('CleanUnit.pas', [], [], []);
   LResult := FReport.GetReportContentTXT;
   Assert.IsTrue(LResult.Contains('No files were processed.'));
 end;
@@ -94,7 +96,7 @@ begin
   LAfter.ResolvedInlineHintsCount := 3;
   FReport.SetAnalysisInfo('Project.dproj', 1250, 10, 4);
   FReport.AddMetrics(LBefore, LAfter);
-  FReport.AddUnitProcessed('Unit1.pas', ['Unused.Unit'], ['Moved.Unit']);
+  FReport.AddUnitProcessed('Unit1.pas', ['Unused.Unit'], ['Moved.Unit'], []);
 
   LText := FReport.GetReportContentTXT;
   LHTML := FReport.GetReportContentHTML;
@@ -133,10 +135,25 @@ var
   LHTML: string;
 begin
   FReport.SetAnalysisInfo('Project.dproj', 0, 1, 1);
-  FReport.AddUnitProcessed('Unit1.pas', ['Unused.Unit'], []);
+  FReport.AddUnitProcessed('Unit1.pas', ['Unused.Unit'], [], []);
   LHTML := FReport.GetReportContentHTML;
   Assert.IsTrue(LHTML.Contains('No metrics available'));
   Assert.IsTrue(LHTML.Contains('Unused.Unit'));
+end;
+
+procedure TReportGeneratorTests.PreservedAmbiguityReasonIsRendered;
+var
+  LText: string;
+  LHTML: string;
+begin
+  FReport.AddUnitProcessed('Consumer.pas', [], [],
+    ['TShared is exported by First.Unit, Second.Unit']);
+  LText := FReport.GetReportContentTXT;
+  LHTML := FReport.GetReportContentHTML;
+  Assert.IsTrue(LText.Contains('Preserved Ambiguous Uses:'));
+  Assert.IsTrue(LText.Contains('TShared is exported by First.Unit, Second.Unit'));
+  Assert.IsTrue(LHTML.Contains('Preserved'));
+  Assert.IsTrue(LHTML.Contains('TShared is exported by First.Unit, Second.Unit'));
 end;
 
 initialization

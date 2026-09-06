@@ -82,6 +82,8 @@ Common options:
 
 Without `--remove` or `--move`, Atropos performs the initial validation but does not request source changes. Use `--dry-run` to review candidates and generate reports without modifying source files. See the [CLI reference](docs/cli.md) for the complete contract and exit codes.
 
+When an unqualified identifier is exported by more than one visible unit, Atropos preserves every candidate and records the reason in the TXT and HTML reports. Fully qualified references select only the named unit, allowing unrelated collisions to be removed safely.
+
 ## 🧪 Quality and compatibility
 
 - ✅ Automated unit and integration tests run on Win32 and Win64.

@@ -41,6 +41,12 @@ type
     procedure HelpersAndQualifiedIdentifiersAreResolved;
     [Test]
     procedure InitializationUnitsArePreservedUnlessNative;
+    [Test]
+    procedure CollidingUnqualifiedIdentifierPreservesEveryCandidate;
+    [Test]
+    procedure QualifiedIdentifierPreservesOnlyNamedUnit;
+    [Test]
+    procedure UniqueIdentifierDoesNotPreserveUnrelatedUnit;
   end;
 
 implementation
@@ -157,6 +163,59 @@ begin
   Assert.IsTrue(FContext.UnitHasInitialization('SideEffect.Unit'));
   Assert.IsFalse(FContext.UnitHasInitialization('Native.Unit'));
   Assert.IsFalse(FContext.UnitHasInitialization('Missing.Unit'));
+end;
+
+procedure TDomainTests.CollidingUnqualifiedIdentifierPreservesEveryCandidate;
+var
+  LSyntaxTree: TMockSyntaxTree;
+  LResult: TUnitAnalysisResult;
+begin
+  FContext.RegisterUnitExports('First.Unit', ['TShared']);
+  FContext.RegisterUnitExports('Second.Unit', ['TShared']);
+  LSyntaxTree := TMockSyntaxTree.Create;
+  LSyntaxTree.UnitName := 'Consumer.Unit';
+  LSyntaxTree.IntfUses := ['Second.Unit', 'First.Unit'];
+  LSyntaxTree.IntfIdents := ['TShared'];
+  LResult := FAnalyzer.Execute(LSyntaxTree, FContext);
+  Assert.AreEqual(0, Integer(Length(LResult.UnusedUnits)));
+  Assert.AreEqual(1, Integer(Length(LResult.PreservedAmbiguities)));
+  Assert.IsTrue(Pos('TShared', LResult.PreservedAmbiguities[0]) > 0);
+  Assert.IsTrue(Pos('First.Unit', LResult.PreservedAmbiguities[0]) > 0);
+  Assert.IsTrue(Pos('Second.Unit', LResult.PreservedAmbiguities[0]) > 0);
+end;
+
+procedure TDomainTests.QualifiedIdentifierPreservesOnlyNamedUnit;
+var
+  LSyntaxTree: TMockSyntaxTree;
+  LResult: TUnitAnalysisResult;
+begin
+  FContext.RegisterUnitExports('First.Unit', ['TShared']);
+  FContext.RegisterUnitExports('Second.Unit', ['TShared']);
+  LSyntaxTree := TMockSyntaxTree.Create;
+  LSyntaxTree.UnitName := 'Consumer.Unit';
+  LSyntaxTree.IntfUses := ['Second.Unit', 'First.Unit'];
+  LSyntaxTree.IntfIdents := ['First.Unit.TShared'];
+  LResult := FAnalyzer.Execute(LSyntaxTree, FContext);
+  Assert.AreEqual(1, Integer(Length(LResult.UnusedUnits)));
+  Assert.AreEqual('Second.Unit', LResult.UnusedUnits[0]);
+  Assert.AreEqual(0, Integer(Length(LResult.PreservedAmbiguities)));
+end;
+
+procedure TDomainTests.UniqueIdentifierDoesNotPreserveUnrelatedUnit;
+var
+  LSyntaxTree: TMockSyntaxTree;
+  LResult: TUnitAnalysisResult;
+begin
+  FContext.RegisterUnitExports('Used.Unit', ['TUnique']);
+  FContext.RegisterUnitExports('Unused.Unit', ['TOther']);
+  LSyntaxTree := TMockSyntaxTree.Create;
+  LSyntaxTree.UnitName := 'Consumer.Unit';
+  LSyntaxTree.IntfUses := ['Used.Unit', 'Unused.Unit'];
+  LSyntaxTree.IntfIdents := ['TUnique'];
+  LResult := FAnalyzer.Execute(LSyntaxTree, FContext);
+  Assert.AreEqual(1, Integer(Length(LResult.UnusedUnits)));
+  Assert.AreEqual('Unused.Unit', LResult.UnusedUnits[0]);
+  Assert.AreEqual(0, Integer(Length(LResult.PreservedAmbiguities)));
 end;
 
 initialization

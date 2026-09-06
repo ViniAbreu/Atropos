@@ -24,11 +24,17 @@ type
     FMissingUnits: TDictionary<string, Boolean>;
     FResolver: IExternalUnitResolver;
     FLogger: ILogger;
+    function TryResolveQualifiedUnit(const AIdentifier: string;
+      out AUnitName, ABaseIdentifier: string): Boolean;
+    function FindExportingUnits(const AIdentifier: string;
+      const AVisibleUnits: TArray<string>): TArray<string>;
   public
     constructor Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
     destructor Destroy; override;
     procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False; AIsNative: Boolean = False);
     function UnitExportsIdentifier(const AUnitName, AIdentifier: string; const AAllUsedIdents: TArray<string>): Boolean;
+    function FindAmbiguities(const AVisibleUnits,
+      AIdentifiers: TArray<string>): TArray<string>;
     function HasUnit(const AUnitName: string): Boolean;
     function UnitHasInitialization(const AUnitName: string): Boolean;
   end;
@@ -37,6 +43,7 @@ type
     UnitName: string;
     UnusedUnits: TArray<string>;
     UnitsToMoveToImpl: TArray<string>;
+    PreservedAmbiguities: TArray<string>;
   end;
   
   TAnalyzeUnitUses = class
@@ -158,11 +165,21 @@ var
   LTargetTypes: TList<string>;
   LTarget: string;
   LUsedLower: string;
+  LQualifiedUnit: string;
+  LQualifiedBaseIdentifier: string;
 begin
   Result := False;
   if FUnitExports.TryGetValue(LowerCase(AUnitName), LExports) then
   begin
     LBaseIdent := LowerCase(AIdentifier);
+
+    if TryResolveQualifiedUnit(AIdentifier, LQualifiedUnit,
+      LQualifiedBaseIdentifier) then
+    begin
+      if not SameText(LQualifiedUnit, AUnitName) then
+        Exit;
+      LBaseIdent := LowerCase(LQualifiedBaseIdentifier);
+    end;
     
     // Remover argumentos genéricos (ex: TArray<string> -> tarray)
     LPos := Pos('<', LBaseIdent);
@@ -196,6 +213,86 @@ begin
   end;
 end;
 
+function TProjectContext.TryResolveQualifiedUnit(const AIdentifier: string;
+  out AUnitName, ABaseIdentifier: string): Boolean;
+var
+  LRegisteredUnit: string;
+  LLowerIdentifier: string;
+  LPrefix: string;
+begin
+  Result := False;
+  AUnitName := EmptyStr;
+  ABaseIdentifier := AIdentifier;
+  LLowerIdentifier := LowerCase(AIdentifier);
+  for LRegisteredUnit in FUnitExports.Keys do
+  begin
+    LPrefix := LRegisteredUnit + '.';
+    if not LLowerIdentifier.StartsWith(LPrefix) then
+      Continue;
+    if Length(LRegisteredUnit) <= Length(AUnitName) then
+      Continue;
+    AUnitName := LRegisteredUnit;
+    ABaseIdentifier := Copy(AIdentifier, Length(LPrefix) + 1, MaxInt);
+    Result := True;
+  end;
+end;
+
+function TProjectContext.FindExportingUnits(const AIdentifier: string;
+  const AVisibleUnits: TArray<string>): TArray<string>;
+var
+  LUnitName: string;
+  LMatches: TList<string>;
+begin
+  LMatches := TList<string>.Create;
+  try
+    for LUnitName in AVisibleUnits do
+    begin
+      if not HasUnit(LUnitName) then
+        Continue;
+      if not UnitExportsIdentifier(LUnitName, AIdentifier, []) then
+        Continue;
+      LMatches.Add(LUnitName);
+    end;
+    Result := LMatches.ToArray;
+  finally
+    LMatches.Free;
+  end;
+end;
+
+function TProjectContext.FindAmbiguities(const AVisibleUnits,
+  AIdentifiers: TArray<string>): TArray<string>;
+var
+  LIdentifier: string;
+  LVisibleUnit: string;
+  LQualifiedUnit: string;
+  LBaseIdentifier: string;
+  LExportingUnits: TArray<string>;
+  LAmbiguities: TList<string>;
+begin
+  LAmbiguities := TList<string>.Create;
+  try
+    for LVisibleUnit in AVisibleUnits do
+      HasUnit(LVisibleUnit);
+    for LIdentifier in AIdentifiers do
+    begin
+      if TryResolveQualifiedUnit(LIdentifier, LQualifiedUnit,
+        LBaseIdentifier) then
+        Continue;
+      LExportingUnits := FindExportingUnits(LIdentifier, AVisibleUnits);
+      if Length(LExportingUnits) < 2 then
+        Continue;
+      LBaseIdentifier := Format('%s is exported by %s', [LIdentifier,
+        string.Join(', ', LExportingUnits)]);
+      if LAmbiguities.Contains(LBaseIdentifier) then
+        Continue;
+      LAmbiguities.Add(LBaseIdentifier);
+    end;
+    Result := LAmbiguities.ToArray;
+  finally
+    LAmbiguities.Free;
+  end;
+end;
+
 constructor TAnalyzeUnitUses.Create(ALogger: ILogger = nil);
 begin
   FLogger := ALogger;
@@ -225,6 +322,7 @@ var
   LImplIdents: TArray<string>;
   LUnused: TList<string>;
   LMoved: TList<string>;
+  LAmbiguities: TList<string>;
   LUnitName: string;
   LUsedInIntf: Boolean;
   LUsedInImpl: Boolean;
@@ -232,11 +330,15 @@ begin
   Result.UnitName := ASyntaxTree.GetUnitName;
   LUnused := TList<string>.Create;
   LMoved := TList<string>.Create;
+  LAmbiguities := TList<string>.Create;
   try
     LIntfUses := ASyntaxTree.GetInterfaceUses;
     LImplUses := ASyntaxTree.GetImplementationUses;
     LIntfIdents := ASyntaxTree.GetIdentifiersUsedInInterface;
     LImplIdents := ASyntaxTree.GetIdentifiersUsedInImplementation;
+
+    LAmbiguities.AddRange(AContext.FindAmbiguities(LIntfUses, LIntfIdents));
+    LAmbiguities.AddRange(AContext.FindAmbiguities(LImplUses, LImplIdents));
 
     for LUnitName in LIntfUses do
     begin
@@ -277,7 +379,9 @@ begin
 
     Result.UnusedUnits := LUnused.ToArray;
     Result.UnitsToMoveToImpl := LMoved.ToArray;
+    Result.PreservedAmbiguities := LAmbiguities.ToArray;
   finally
+    LAmbiguities.Free;
     LUnused.Free;
     LMoved.Free;
   end;
