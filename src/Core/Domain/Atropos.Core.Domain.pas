@@ -99,24 +99,23 @@ begin
   LExports := TUnitExports.Create(AUnitName, AHasInit, AIsNative);
   for LIdent in AIdentifiers do
   begin
-    if LIdent.StartsWith('!HELPER:') then
+    if not LIdent.StartsWith('!HELPER:') then
     begin
-      LParts := LIdent.Split([':']);
-      if Length(LParts) >= 3 then
-      begin
-        LMethod := LParts[1].ToLower;
-        LTarget := LParts[2].ToLower;
-        if not LExports.ExportedHelpers.TryGetValue(LMethod, LList) then
-        begin
-          LList := TList<string>.Create;
-          LExports.ExportedHelpers.Add(LMethod, LList);
-        end;
-        if not LList.Contains(LTarget) then
-          LList.Add(LTarget);
-      end;
-    end
-    else
       LExports.ExportedIdentifiers.Add(LIdent.ToLower);
+      Continue;
+    end;
+    LParts := LIdent.Split([':']);
+    if Length(LParts) < 3 then
+      Continue;
+    LMethod := LParts[1].ToLower;
+    LTarget := LParts[2].ToLower;
+    if not LExports.ExportedHelpers.TryGetValue(LMethod, LList) then
+    begin
+      LList := TList<string>.Create;
+      LExports.ExportedHelpers.Add(LMethod, LList);
+    end;
+    if not LList.Contains(LTarget) then
+      LList.Add(LTarget);
   end;
   FUnitExports.AddOrSetValue(AUnitName.ToLower, LExports);
 end;
@@ -148,13 +147,11 @@ var
   LExports: TUnitExports;
 begin
   Result := False;
-  if FUnitExports.TryGetValue(AUnitName.ToLower, LExports) then
-  begin
-    if LExports.IsNative then
-      Result := False
-    else
-      Result := LExports.HasInitialization;
-  end;
+  if not FUnitExports.TryGetValue(AUnitName.ToLower, LExports) then
+    Exit;
+  if LExports.IsNative then
+    Exit;
+  Result := LExports.HasInitialization;
 end;
 
 function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string; const AAllUsedIdents: TArray<string>): Boolean;

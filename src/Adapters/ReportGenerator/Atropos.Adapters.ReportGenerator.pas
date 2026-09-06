@@ -381,13 +381,13 @@ begin
     begin
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', '');
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', '0s');
-    end
-    else if LTimeDelta < 0 then
+    end;
+    if LTimeDelta < 0 then
     begin
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-positive');
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('%.2fs', [LTimeDelta]));
-    end
-    else if LTimeDelta > 0 then
+    end;
+    if LTimeDelta > 0 then
     begin
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-negative');
       LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('+%.2fs', [LTimeDelta]));
@@ -412,14 +412,14 @@ begin
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', '');
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', '0');
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', '');
-      end
-      else if LSizeDelta < 0 then
+      end;
+      if LSizeDelta < 0 then
       begin
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-positive');
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('%.2f', [LSizeDelta]));
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta / (FMetricsBefore.ExeSizeBytes / (1024.0*1024.0)) * 100, False));
-      end
-      else if LSizeDelta > 0 then
+      end;
+      if LSizeDelta > 0 then
       begin
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-negative');
         LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('+%.2f', [LSizeDelta]));
