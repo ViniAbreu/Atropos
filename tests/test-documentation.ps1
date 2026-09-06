@@ -2,10 +2,12 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
 $markdownFiles = @(
     Get-Item -LiteralPath (Join-Path $repositoryRoot 'README.md')
+    Get-Item -LiteralPath (Join-Path $repositoryRoot 'CONTRIBUTING.md')
     Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'docs') -Filter '*.md' -File -Recurse
     Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'Fixtures') -Filter '*.md' -File -Recurse
 )
 $failures = [System.Collections.Generic.List[string]]::new()
+$portugueseProsePattern = '(?i)\b(não|para|projeto|projetos|compilação|configuração|plataforma|antes|depois|alterações|arquivos|fontes|relatório|relatórios|segurança|limitações|documentação|instalação|contribuir|usuário|unidade|unidades|nenhuma|quando|somente|diretório|execução|cobertura|testes)\b|[áàâãéêíóôõúç]'
 
 foreach ($markdownFile in $markdownFiles) {
     $content = Get-Content -Raw -LiteralPath $markdownFile.FullName
@@ -19,8 +21,11 @@ foreach ($markdownFile in $markdownFiles) {
             $failures.Add("Broken link in $($markdownFile.FullName): $target")
         }
     }
-    if ($content -match '\b\d+ testes automatizados\b' -or $content -match '\b\d+ testes e smoke\b') {
+    if ($content -match '\b\d+ automated tests\b' -or $content -match '\b\d+ tests and smoke\b') {
         $failures.Add("Brittle test count in $($markdownFile.FullName)")
+    }
+    if ($content -match $portugueseProsePattern) {
+        $failures.Add("Portuguese prose in English documentation: $($markdownFile.FullName)")
     }
 }
 

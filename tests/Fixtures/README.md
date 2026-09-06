@@ -1,16 +1,9 @@
-# Fixtures representativos
+# Representative fixtures
 
-`RepresentativeConsole` valida namespaces, alias `in`, diretivas condicionais,
-unit não utilizada e preservação de `initialization`/`finalization`.
+`RepresentativeConsole` validates namespaces, `in` aliases, conditional directives, an unused unit, and preservation of `initialization`/`finalization` sections.
 
-`RepresentativeVCL` valida um projeto VCL com formulário DFM real e uma
-dependência removível.
+`RepresentativeVCL` validates a VCL project with a real DFM form and a removable dependency.
 
-`RollbackConsole` força uma falha determinística apenas no segundo build e
-confirma que o fonte modificado é restaurado. O fixture console principal também
-começa com um backup transacional pendente para validar a recuperação automática.
+`RollbackConsole` forces a deterministic failure only during the second build and confirms that the modified source file is restored. The main console fixture also starts with a pending transactional backup to validate automatic recovery.
 
-Os projetos não dependem de componentes comerciais externos. O gate copia cada
-fixture para uma pasta temporária, executa o Atropos e confirma build, relatório,
-transformação esperada e preservação dos arquivos versionados. Project groups,
-packages e DLLs continuam fora do escopo declarado.
+The projects do not depend on external commercial components. The gate copies each fixture to a temporary directory, runs Atropos, and confirms the build, report, expected transformation, and preservation of versioned files. Project groups, packages, and DLLs remain outside the declared scope.

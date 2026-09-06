@@ -1,27 +1,27 @@
-# Arquitetura
+# Architecture
 
 ```text
-CLI / VCL -> Application Service -> Core (domínio e ports)
+CLI / VCL -> Application Service -> Core (domain and ports)
                                       ^
                                       |
-          Adapters (AST, XML, arquivos, build, ambiente, relatório)
+          Adapters (AST, XML, files, build, environment, reports)
 ```
 
-## Camadas
+## Layers
 
-- `src\Core`: modelos, configuração, regras, modificador e ports. Não conhece UI ou infraestrutura.
-- `src\Application`: orquestra ambiente, builds, análise, commit, rollback, logs e progresso.
-- `src\Adapters`: integra DelphiAST, `.dproj`, units externas, arquivos, BDS, registro e relatórios.
-- `src\CLI` e `src\GUI`: contratos de apresentação sobre o mesmo serviço de aplicação.
+- `src\Core`: models, configuration, rules, modifier, and ports. It does not know about UI or infrastructure.
+- `src\Application`: orchestrates environment discovery, builds, analysis, commit, rollback, logs, and progress.
+- `src\Adapters`: integrates DelphiAST, `.dproj`, external units, files, BDS, the registry, and reports.
+- `src\CLI` and `src\GUI`: presentation contracts over the same application service.
 
-Adapters e apresentação dependem das abstrações do Core. O domínio não deve importar VCL, XML, registro, filesystem ou DelphiAST. Novas integrações devem implementar uma port e ser conectadas pela factory.
+Adapters and presentation depend on Core abstractions. The domain must not import VCL, XML, registry, filesystem, or DelphiAST units. New integrations must implement a port and be connected by the factory.
 
-Responsabilidades principais dos adapters:
+Main adapter responsibilities:
 
-- `DelphiAST`: visão sintática dos fontes;
-- `ProjectParser`: propriedades condicionais, units e search paths;
-- `ExternalUnitResolver`: localização e símbolos exportados;
-- `FileSystem`: I/O e transação de backups;
-- `BuildService`: AutoBuild, timeout, cancelamento e métricas;
-- `DelphiEnvironment`: versão do projeto e instalação do RAD Studio;
-- `ReportGenerator`: texto e HTML.
+- `DelphiAST`: syntactic view of source files;
+- `ProjectParser`: conditional properties, units, and search paths;
+- `ExternalUnitResolver`: unit location and exported symbols;
+- `FileSystem`: I/O and backup transactions;
+- `BuildService`: AutoBuild, timeout, cancellation, and metrics;
+- `DelphiEnvironment`: project version and RAD Studio installation discovery;
+- `ReportGenerator`: text and HTML output.
