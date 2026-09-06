@@ -5,6 +5,8 @@
 - A CLI não tem opção própria de cancelamento.
 - A análise depende das units e search paths obtidos do `.dproj`.
 - Dependências não localizadas são preservadas conservadoramente.
+- Identificadores não qualificados exportados por várias units são preservados
+  e registrados no relatório para evitar alterações semanticamente ambíguas.
 - Inicialização e referências condicionais podem impedir alterações.
 - RTTI dinâmica, carregamento por nome, side effects e código gerado podem escapar da análise estática.
 - Library Paths e componentes globais podem variar entre máquinas.

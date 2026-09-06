@@ -197,6 +197,8 @@ var
   i: Integer;
   LResult: TUnitAnalysisResult;
   LSyntaxTree: IUnitSyntaxTree;
+  LHasConfiguredChanges: Boolean;
+  LHasAmbiguity: Boolean;
 begin
   ATotalRemoved := 0;
   ATotalMoved := 0;
@@ -239,23 +241,31 @@ begin
     end;
 
     if FConfig.DryRun and ((Length(LResult.UnusedUnits) > 0) or
-      (Length(LResult.UnitsToMoveToImpl) > 0)) then
+      (Length(LResult.UnitsToMoveToImpl) > 0) or
+      (Length(LResult.PreservedAmbiguities) > 0)) then
     begin
       FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits,
-        LResult.UnitsToMoveToImpl);
+        LResult.UnitsToMoveToImpl, LResult.PreservedAmbiguities);
       Progress(AUnitCount, i + 1);
       Continue;
     end;
 
-    if (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
-      (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0)) then
+    LHasConfiguredChanges :=
+      (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
+      (FConfig.MoveToImplementation and
+        (Length(LResult.UnitsToMoveToImpl) > 0));
+    LHasAmbiguity := Length(LResult.PreservedAmbiguities) > 0;
+    if LHasConfiguredChanges then
     begin
       LModifier.Execute(LUnitPath, LResult);
       Inc(ATotalRemoved, Length(LResult.UnusedUnits));
       Inc(ATotalMoved, Length(LResult.UnitsToMoveToImpl));
-      FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits, LResult.UnitsToMoveToImpl);
       Log('Cleaned: ' + ExtractFileName(LUnitPath));
     end;
+
+    if LHasConfiguredChanges or LHasAmbiguity then
+      FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits,
+        LResult.UnitsToMoveToImpl, LResult.PreservedAmbiguities);
     
     Progress(AUnitCount, i + 1);
   end;

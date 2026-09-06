@@ -20,7 +20,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
+    procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses,
+      AMovedUses, APreservedAmbiguities: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
     procedure SetAnalysisInfo(const AProjectName: string; AAnalysisTimeMs: Int64; AUnitsAnalyzed, ASearchPaths: Integer);
     function GetReportContentTXT: string;
@@ -182,11 +183,13 @@ begin
   inherited;
 end;
 
-procedure TReportGeneratorAdapter.AddUnitProcessed(const AUnitName: string; const ARemovedUses, AMovedUses: TArray<string>);
+procedure TReportGeneratorAdapter.AddUnitProcessed(const AUnitName: string;
+  const ARemovedUses, AMovedUses, APreservedAmbiguities: TArray<string>);
 var
   LUses: string;
 begin
-  if (Length(ARemovedUses) = 0) and (Length(AMovedUses) = 0) then
+  if (Length(ARemovedUses) = 0) and (Length(AMovedUses) = 0) and
+    (Length(APreservedAmbiguities) = 0) then
     Exit;
     
   FReportLines.Add('File: ' + AUnitName);
@@ -202,6 +205,13 @@ begin
   begin
     FReportLines.Add('  Moved to Implementation Uses:');
     for LUses in AMovedUses do
+      FReportLines.Add('    - ' + LUses);
+  end;
+
+  if Length(APreservedAmbiguities) > 0 then
+  begin
+    FReportLines.Add('  Preserved Ambiguous Uses:');
+    for LUses in APreservedAmbiguities do
       FReportLines.Add('    - ' + LUses);
   end;
   
@@ -461,6 +471,12 @@ begin
           LMode := 'moved';
           Continue;
         end;
+
+        if LLine.Contains('Preserved Ambiguous Uses:') then
+        begin
+          LMode := 'preserved';
+          Continue;
+        end;
         
         if LLine.StartsWith('    -') then
         begin
@@ -481,6 +497,16 @@ begin
             LItemHtml := LItemHtml.Replace('{{ICON_CHAR}}', 'M');
             LItemHtml := LItemHtml.Replace('{{ACTION_NAME}}', 'Moved');
             LItemHtml := LItemHtml.Replace('{{IMPACT_DESC}}', 'Moved to implementation');
+          end;
+
+
+          if LMode = 'preserved' then
+          begin
+            LItemHtml := LItemHtml.Replace('{{ICON_CLASS}}', 'icon-mv');
+            LItemHtml := LItemHtml.Replace('{{ICON_CHAR}}', 'P');
+            LItemHtml := LItemHtml.Replace('{{ACTION_NAME}}', 'Preserved');
+            LItemHtml := LItemHtml.Replace('{{IMPACT_DESC}}',
+              'Ambiguous dependency kept for semantic safety');
           end;
           
           LIssuesBuilder.AppendLine(LItemHtml);

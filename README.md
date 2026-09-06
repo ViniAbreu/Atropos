@@ -57,6 +57,11 @@ antes e depois da análise.
 6. Recompila e confirma as mudanças ou restaura os arquivos.
 7. Exibe o resumo e, quando solicitado pela CLI, grava TXT e/ou HTML.
 
+Quando um identificador não qualificado é exportado por mais de uma unit
+visível, todas as candidatas são preservadas e o motivo é registrado nos
+relatórios TXT e HTML. Referências totalmente qualificadas selecionam somente a
+unit nomeada, permitindo remover colisões não relacionadas com segurança.
+
 Casos considerados inseguros são preservados de forma conservadora. Veja as [limitações](docs/known-limitations.md).
 
 ## Licença
