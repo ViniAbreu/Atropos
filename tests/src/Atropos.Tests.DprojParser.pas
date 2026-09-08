@@ -28,6 +28,10 @@ type
     [Test]
     procedure ExpandsInheritedSearchPathInDeclarationOrder;
     [Test]
+    procedure PreservesUnresolvedSelfInheritanceWithoutCycleWarning;
+    [Test]
+    procedure ExpandsRepeatedSelfInheritanceOnlyOnce;
+    [Test]
     procedure EvaluatesDelphiGeneratedBooleanConditions;
     [Test]
     procedure RespectsNestedLogicalParentheses;
@@ -186,6 +190,59 @@ begin
   LPaths := LParser.GetSearchPaths(FTestDprojPath);
   Assert.AreEqual(1, Integer(Length(LPaths)));
   Assert.AreEqual('win32-only', LPaths[0]);
+end;
+
+procedure TDprojParserTests.PreservesUnresolvedSelfInheritanceWithoutCycleWarning;
+var
+  LXML: TStringList;
+  LPaths: TArray<string>;
+  LWarnings: TArray<string>;
+begin
+  LXML := TStringList.Create;
+  try
+    LXML.Text :=
+      '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+      '<PropertyGroup>' +
+      '<DCC_Define>BASE;$(DCC_Define)</DCC_Define>' +
+      '<DCC_Namespace>System;$(DCC_Namespace)</DCC_Namespace>' +
+      '<DCC_UsePackage>rtl;$(DCC_UsePackage)</DCC_UsePackage>' +
+      '<DCC_UnitSearchPath>source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' +
+      '</PropertyGroup></Project>';
+    LXML.SaveToFile(FTestDprojPath, TEncoding.UTF8);
+  finally
+    LXML.Free;
+  end;
+  LPaths := FParser.GetSearchPaths(FTestDprojPath);
+  LWarnings := FParser.TakeWarnings;
+  Assert.AreEqual(1, Integer(Length(LPaths)));
+  Assert.AreEqual('source', LPaths[0]);
+  Assert.AreEqual(0, Integer(Length(LWarnings)));
+end;
+
+procedure TDprojParserTests.ExpandsRepeatedSelfInheritanceOnlyOnce;
+var
+  LXML: TStringList;
+  LPaths: TArray<string>;
+  LWarnings: TArray<string>;
+begin
+  LXML := TStringList.Create;
+  try
+    LXML.Text :=
+      '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+      '<PropertyGroup><DCC_UnitSearchPath>base;$(DCC_UnitSearchPath)' +
+      '</DCC_UnitSearchPath></PropertyGroup>' +
+      '<PropertyGroup><DCC_UnitSearchPath>specific;$(DCC_UnitSearchPath)' +
+      '</DCC_UnitSearchPath></PropertyGroup></Project>';
+    LXML.SaveToFile(FTestDprojPath, TEncoding.UTF8);
+  finally
+    LXML.Free;
+  end;
+  LPaths := FParser.GetSearchPaths(FTestDprojPath);
+  LWarnings := FParser.TakeWarnings;
+  Assert.AreEqual(2, Integer(Length(LPaths)));
+  Assert.AreEqual('specific', LPaths[0]);
+  Assert.AreEqual('base', LPaths[1]);
+  Assert.AreEqual(0, Integer(Length(LWarnings)));
 end;
 
 procedure TDprojParserTests.RespectsNestedLogicalParentheses;

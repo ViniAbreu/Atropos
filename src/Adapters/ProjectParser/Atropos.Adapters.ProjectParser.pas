@@ -17,7 +17,8 @@ type
     FWarnings: TList<string>;
     procedure AddWarning(const AMessage: string);
     function HasKnownPropertyReference(const AValue: string;
-      AProperties: TDictionary<string, string>): Boolean;
+      AProperties: TDictionary<string, string>;
+      const AIgnoredProperty: string = ''): Boolean;
     function HasWrappingParentheses(const ACondition: string): Boolean;
     function TrySplitLogicalCondition(const ACondition, AOperator: string;
       out AParts: TArray<string>): Boolean;
@@ -25,7 +26,11 @@ type
       AProperties: TDictionary<string, string>): TConditionEvaluation;
     function EvaluateExists(const ACondition: string;
       out AEvaluation: TConditionEvaluation): Boolean;
-    function ExpandProperties(const AValue: string; AProperties: TDictionary<string, string>): string;
+    function ExpandProperties(const AValue: string;
+      AProperties: TDictionary<string, string>;
+      const AIgnoredProperty: string = ''): string;
+    function ExpandPropertyValue(const APropertyName, AValue: string;
+      AProperties: TDictionary<string, string>): string;
     function ConditionMatches(const ACondition: string; AProperties: TDictionary<string, string>): Boolean;
     function LoadProperties(const ARoot: IXMLNode): TDictionary<string, string>;
   public
@@ -40,8 +45,8 @@ type
   end;
 
 implementation
-uses System.IOUtils, System.SysUtils, System.RegularExpressions, Xml.XMLDoc,
-  Winapi.ActiveX;
+uses System.IOUtils, System.SysUtils, System.StrUtils,
+  System.RegularExpressions, Xml.XMLDoc, Winapi.ActiveX;
 
 constructor TDprojParserAdapter.Create(const AConfiguration, APlatform: string);
 begin
@@ -74,14 +79,19 @@ begin
 end;
 
 function TDprojParserAdapter.HasKnownPropertyReference(const AValue: string;
-  AProperties: TDictionary<string, string>): Boolean;
+  AProperties: TDictionary<string, string>;
+  const AIgnoredProperty: string): Boolean;
 var
   LPair: TPair<string, string>;
 begin
   Result := False;
   for LPair in AProperties do
-    if AValue.Contains('$(' + LPair.Key + ')') then
+  begin
+    if SameText(LPair.Key, AIgnoredProperty) then
+      Continue;
+    if ContainsText(AValue, '$(' + LPair.Key + ')') then
       Exit(True);
+  end;
 end;
 
 function TDprojParserAdapter.HasWrappingParentheses(
@@ -171,7 +181,8 @@ begin
 end;
 
 function TDprojParserAdapter.ExpandProperties(const AValue: string;
-  AProperties: TDictionary<string, string>): string;
+  AProperties: TDictionary<string, string>;
+  const AIgnoredProperty: string): string;
 var
   LPair: TPair<string, string>;
   LPrevious: string;
@@ -182,13 +193,29 @@ begin
   begin
     LPrevious := Result;
     for LPair in AProperties do
+    begin
+      if SameText(LPair.Key, AIgnoredProperty) then
+        Continue;
       Result := Result.Replace('$(' + LPair.Key + ')', LPair.Value,
         [rfReplaceAll, rfIgnoreCase]);
+    end;
     if Result = LPrevious then
       Break;
   end;
-  if HasKnownPropertyReference(Result, AProperties) then
+  if HasKnownPropertyReference(Result, AProperties, AIgnoredProperty) then
     AddWarning('cyclic property expansion detected in: ' + AValue);
+end;
+
+function TDprojParserAdapter.ExpandPropertyValue(const APropertyName,
+  AValue: string; AProperties: TDictionary<string, string>): string;
+var
+  LPreviousValue: string;
+begin
+  Result := AValue;
+  if AProperties.TryGetValue(APropertyName, LPreviousValue) then
+    Result := Result.Replace('$(' + APropertyName + ')', LPreviousValue,
+      [rfReplaceAll, rfIgnoreCase]);
+  Result := ExpandProperties(Result, AProperties, APropertyName);
 end;
 
 function TDprojParserAdapter.EvaluateExists(const ACondition: string;
@@ -316,7 +343,8 @@ begin
         LCondition := LProperty.Attributes['Condition'];
       if not ConditionMatches(LCondition, Result) then
         Continue;
-      LValue := ExpandProperties(LProperty.Text, Result);
+      LValue := ExpandPropertyValue(LProperty.LocalName, LProperty.Text,
+        Result);
       Result.AddOrSetValue(LProperty.LocalName, LValue);
     end;
   end;
