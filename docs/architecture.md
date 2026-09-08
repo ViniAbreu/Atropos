@@ -16,6 +16,10 @@ CLI / VCL -> Application Service -> Core (domain and ports)
 
 Adapters and presentation depend on Core abstractions. The domain must not import VCL, XML, registry, filesystem, or DelphiAST units. New integrations must implement a port and be connected by the factory.
 
+## Enforced boundaries
+
+`tests\test-architecture.ps1` rejects reverse dependencies from Core, presentation dependencies from Application or Adapters, named nested routines, `else`, source files above 600 lines, and routines above 120 lines. `Atropos.Application.Factory` is the explicit composition root and is the only Application unit allowed to reference concrete Adapters. The guard has isolated regression fixtures for every rule and runs before compilation in the complete quality gate.
+
 Main adapter responsibilities:
 
 - `DelphiAST`: syntactic view of source files;

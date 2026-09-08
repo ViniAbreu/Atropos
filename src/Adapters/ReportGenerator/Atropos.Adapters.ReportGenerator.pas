@@ -18,6 +18,12 @@ type
     FUnitsAnalyzed: Integer;
     FSearchPaths: Integer;
     function FormatDeltaPct(ADiff: Double; AIsTimeMetric: Boolean): string;
+    procedure ApplyTimeMetrics(var AHTML: string);
+    procedure ApplySizeMetrics(var AHTML: string);
+    function BuildMetricsHTML: string;
+    function BuildWarningsHTML: string;
+    function BuildIssueItem(const AMode, ALine: string): string;
+    function BuildReportIssuesHTML: string;
   public
     constructor Create;
     destructor Destroy; override;
@@ -356,207 +362,208 @@ begin
   end;
 end;
 
-function TReportGeneratorAdapter.GetReportContentHTML: string;
+procedure TReportGeneratorAdapter.ApplyTimeMetrics(var AHTML: string);
 var
-  LHtml: string;
-  LMetricsHtml: string;
-  LIssuesHtml: string;
-  LItemHtml: string;
-  LLine: string;
-  LMode: string;
-  LFileName: string;
-  LIsFile: Boolean;
   LTimeDelta: Double;
-  LSizeDelta: Double;
-  LIssuesBuilder: TStringBuilder;
-  LWarningsBuilder: TStringBuilder;
 begin
-  if (FReportLines.Count = 0) and (FWarnings.Count = 0) and not FHasMetrics then
-    Exit('<html><head><title>Atropos Report</title></head><body style="background:#18181b; color:#fff; font-family: sans-serif; text-align:center; padding: 50px;"><h2>No files were processed.</h2></body></html>');
-
-  LHtml := HTML_BASE_TEMPLATE;
-  LHtml := LHtml.Replace('{{PROJECT_NAME}}', FProjectName);
-  LHtml := LHtml.Replace('{{DELPHI_VERSION}}', IfThen(FHasMetrics, FMetricsBefore.DelphiVersion, 'Unknown'));
-  
-  LHtml := LHtml.Replace('{{ANALYSIS_TIME}}', FormatTimeMs(FAnalysisTimeMs));
-    
-  LHtml := LHtml.Replace('{{UNITS_ANALYZED}}', FUnitsAnalyzed.ToString);
-  LHtml := LHtml.Replace('{{SEARCH_PATHS}}', FSearchPaths.ToString);
-
-  if not FHasMetrics then
-    LMetricsHtml := '        <div class="metric-card"><div class="metric-title">No metrics available</div></div>';
-
-  if FHasMetrics then
+  LTimeDelta := (FMetricsAfter.CompileTimeMs -
+    FMetricsBefore.CompileTimeMs) / 1000.0;
+  if SameValue(LTimeDelta, 0.0, 0.001) then
   begin
-    LTimeDelta := (FMetricsAfter.CompileTimeMs - FMetricsBefore.CompileTimeMs) / 1000.0;
-    LSizeDelta := (FMetricsAfter.ExeSizeBytes - FMetricsBefore.ExeSizeBytes) / (1024.0 * 1024.0);
-    
-    LMetricsHtml := HTML_METRICS_TEMPLATE;
-    LMetricsHtml := LMetricsHtml.Replace('{{CLEANED_COUNT}}', FMetricsAfter.RemovedUnitsCount.ToString);
-    LMetricsHtml := LMetricsHtml.Replace('{{MOVED_COUNT}}', FMetricsAfter.MovedUnitsCount.ToString);
-    LMetricsHtml := LMetricsHtml.Replace('{{HINTS_FIXED_COUNT}}', FMetricsAfter.ResolvedInlineHintsCount.ToString);
-    
-    LMetricsHtml := LMetricsHtml.Replace('{{COMPILE_TIME}}', FormatTimeMs(FMetricsAfter.CompileTimeMs));
-    
-    if SameValue(LTimeDelta, 0.0, 0.001) then
-    begin
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', '');
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', '0s');
-    end;
-    if LTimeDelta < 0 then
-    begin
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-positive');
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('%.2fs', [LTimeDelta]));
-    end;
-    if LTimeDelta > 0 then
-    begin
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_COLOR}}', 'delta-negative');
-      LMetricsHtml := LMetricsHtml.Replace('{{TIME_DELTA}}', Format('+%.2fs', [LTimeDelta]));
-    end;
-    
-    LMetricsHtml := LMetricsHtml.Replace('{{TIME_PCT}}', FormatDeltaPct(LTimeDelta / (FMetricsBefore.CompileTimeMs / 1000.0) * 100, True));
-    
-    if (FMetricsBefore.ExeSizeBytes = 0) and (FMetricsAfter.ExeSizeBytes = 0) then
-    begin
-      LMetricsHtml := LMetricsHtml.Replace('{{EXE_SIZE}}', '0.0');
-      LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', '');
-      LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', '0');
-      LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', '');
-    end;
-    
-    if (FMetricsBefore.ExeSizeBytes > 0) or (FMetricsAfter.ExeSizeBytes > 0) then
-    begin
-      LMetricsHtml := LMetricsHtml.Replace('{{EXE_SIZE}}', Format('%.1f', [FMetricsAfter.ExeSizeBytes / (1024.0 * 1024.0)]));
-      
-      if SameValue(LSizeDelta, 0.0, 0.01) then
-      begin
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', '');
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', '0');
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', '');
-      end;
-      if LSizeDelta < 0 then
-      begin
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-positive');
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('%.2f', [LSizeDelta]));
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta / (FMetricsBefore.ExeSizeBytes / (1024.0*1024.0)) * 100, False));
-      end;
-      if LSizeDelta > 0 then
-      begin
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_COLOR}}', 'delta-negative');
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_DELTA}}', Format('+%.2f', [LSizeDelta]));
-        LMetricsHtml := LMetricsHtml.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta / (FMetricsBefore.ExeSizeBytes / (1024.0*1024.0)) * 100, False));
-      end;
-    end;
+    AHTML := AHTML.Replace('{{TIME_COLOR}}', '');
+    AHTML := AHTML.Replace('{{TIME_DELTA}}', '0s');
   end;
+  if LTimeDelta < 0 then
+  begin
+    AHTML := AHTML.Replace('{{TIME_COLOR}}', 'delta-positive');
+    AHTML := AHTML.Replace('{{TIME_DELTA}}', Format('%.2fs', [LTimeDelta]));
+  end;
+  if LTimeDelta > 0 then
+  begin
+    AHTML := AHTML.Replace('{{TIME_COLOR}}', 'delta-negative');
+    AHTML := AHTML.Replace('{{TIME_DELTA}}', Format('+%.2fs', [LTimeDelta]));
+  end;
+  AHTML := AHTML.Replace('{{TIME_PCT}}', FormatDeltaPct(
+    LTimeDelta / (FMetricsBefore.CompileTimeMs / 1000.0) * 100, True));
+end;
 
-  LHtml := LHtml.Replace('{{METRICS_HTML}}', LMetricsHtml);
+procedure TReportGeneratorAdapter.ApplySizeMetrics(var AHTML: string);
+var
+  LSizeDelta: Double;
+begin
+  if (FMetricsBefore.ExeSizeBytes = 0) and
+    (FMetricsAfter.ExeSizeBytes = 0) then
+  begin
+    AHTML := AHTML.Replace('{{EXE_SIZE}}', '0.0');
+    AHTML := AHTML.Replace('{{SIZE_COLOR}}', '');
+    AHTML := AHTML.Replace('{{SIZE_DELTA}}', '0');
+    AHTML := AHTML.Replace('{{SIZE_PCT}}', '');
+    Exit;
+  end;
+  LSizeDelta := (FMetricsAfter.ExeSizeBytes -
+    FMetricsBefore.ExeSizeBytes) / (1024.0 * 1024.0);
+  AHTML := AHTML.Replace('{{EXE_SIZE}}', Format('%.1f',
+    [FMetricsAfter.ExeSizeBytes / (1024.0 * 1024.0)]));
+  if SameValue(LSizeDelta, 0.0, 0.01) then
+  begin
+    AHTML := AHTML.Replace('{{SIZE_COLOR}}', '');
+    AHTML := AHTML.Replace('{{SIZE_DELTA}}', '0');
+    AHTML := AHTML.Replace('{{SIZE_PCT}}', '');
+  end;
+  if LSizeDelta < 0 then
+  begin
+    AHTML := AHTML.Replace('{{SIZE_COLOR}}', 'delta-positive');
+    AHTML := AHTML.Replace('{{SIZE_DELTA}}', Format('%.2f', [LSizeDelta]));
+    AHTML := AHTML.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta /
+      (FMetricsBefore.ExeSizeBytes / (1024.0 * 1024.0)) * 100, False));
+  end;
+  if LSizeDelta > 0 then
+  begin
+    AHTML := AHTML.Replace('{{SIZE_COLOR}}', 'delta-negative');
+    AHTML := AHTML.Replace('{{SIZE_DELTA}}', Format('+%.2f', [LSizeDelta]));
+    AHTML := AHTML.Replace('{{SIZE_PCT}}', FormatDeltaPct(LSizeDelta /
+      (FMetricsBefore.ExeSizeBytes / (1024.0 * 1024.0)) * 100, False));
+  end;
+end;
 
-  LWarningsBuilder := TStringBuilder.Create;
+function TReportGeneratorAdapter.BuildMetricsHTML: string;
+begin
+  if not FHasMetrics then
+    Exit('        <div class="metric-card"><div class="metric-title">No metrics available</div></div>');
+  Result := HTML_METRICS_TEMPLATE;
+  Result := Result.Replace('{{CLEANED_COUNT}}',
+    FMetricsAfter.RemovedUnitsCount.ToString);
+  Result := Result.Replace('{{MOVED_COUNT}}',
+    FMetricsAfter.MovedUnitsCount.ToString);
+  Result := Result.Replace('{{HINTS_FIXED_COUNT}}',
+    FMetricsAfter.ResolvedInlineHintsCount.ToString);
+  Result := Result.Replace('{{COMPILE_TIME}}',
+    FormatTimeMs(FMetricsAfter.CompileTimeMs));
+  ApplyTimeMetrics(Result);
+  ApplySizeMetrics(Result);
+end;
+
+function TReportGeneratorAdapter.BuildWarningsHTML: string;
+var
+  LBuilder: TStringBuilder;
+  LLine: string;
+begin
+  LBuilder := TStringBuilder.Create;
   try
     for LLine in FWarnings do
-      LWarningsBuilder.AppendLine(
+      LBuilder.AppendLine(
         '        <div class="issue-item"><div class="issue-summary">' +
         '<span class="issue-icon">!</span><span class="issue-file">Warning: ' +
         TNetEncoding.HTML.Encode(LLine) + '</span></div></div>');
-    LIssuesHtml := LWarningsBuilder.ToString;
+    Result := LBuilder.ToString;
   finally
-    LWarningsBuilder.Free;
+    LBuilder.Free;
   end;
+end;
 
-  if FReportLines.Count = 0 then
-    LIssuesHtml := LIssuesHtml +
-      '        <p style="color: var(--text-muted); text-align: center; margin-top: 50px;">No unit modifications.</p>';
-
-  if FReportLines.Count > 0 then
+function TReportGeneratorAdapter.BuildIssueItem(const AMode,
+  ALine: string): string;
+begin
+  Result := HTML_ISSUE_ITEM_TEMPLATE.Replace('{{UNIT_NAME}}',
+    ALine.Substring(6).Trim);
+  if AMode = 'removed' then
   begin
-    LIssuesBuilder := TStringBuilder.Create;
-    try
-      LMode := EmptyStr;
-      LIsFile := False;
-      
-      for LLine in FReportLines do
-      begin
-        if LLine.IsEmpty or LLine.Contains('Atropos - Processing Report') or LLine.Contains('=====') then
-          Continue;
-          
-        if LLine.StartsWith('File:') then
-        begin
-          if LIsFile then
-            LIssuesBuilder.AppendLine(HTML_ISSUE_TEMPLATE_END);
-
-          LIsFile := True;
-          LMode := EmptyStr;
-          LFileName := LLine.Substring(5).Trim;
-          
-          LItemHtml := HTML_ISSUE_TEMPLATE_START;
-          LItemHtml := LItemHtml.Replace('{{FILE_NAME}}', ExtractFileName(LFileName));
-          LIssuesBuilder.AppendLine(LItemHtml);
-          Continue;
-        end;
-        
-        if LLine.Contains('Removed Uses:') then
-        begin
-          LMode := 'removed';
-          Continue;
-        end;
-        
-        if LLine.Contains('Moved to Implementation Uses:') then
-        begin
-          LMode := 'moved';
-          Continue;
-        end;
-
-        if LLine.Contains('Preserved Ambiguous Uses:') then
-        begin
-          LMode := 'preserved';
-          Continue;
-        end;
-        
-        if LLine.StartsWith('    -') then
-        begin
-          LItemHtml := HTML_ISSUE_ITEM_TEMPLATE;
-          LItemHtml := LItemHtml.Replace('{{UNIT_NAME}}', LLine.Substring(6).Trim);
-          
-          if LMode = 'removed' then
-          begin
-            LItemHtml := LItemHtml.Replace('{{ICON_CLASS}}', 'icon-rm');
-            LItemHtml := LItemHtml.Replace('{{ICON_CHAR}}', 'R');
-            LItemHtml := LItemHtml.Replace('{{ACTION_NAME}}', 'Removed');
-            LItemHtml := LItemHtml.Replace('{{IMPACT_DESC}}', 'Unused dependency cleaned');
-          end;
-          
-          if LMode = 'moved' then
-          begin
-            LItemHtml := LItemHtml.Replace('{{ICON_CLASS}}', 'icon-mv');
-            LItemHtml := LItemHtml.Replace('{{ICON_CHAR}}', 'M');
-            LItemHtml := LItemHtml.Replace('{{ACTION_NAME}}', 'Moved');
-            LItemHtml := LItemHtml.Replace('{{IMPACT_DESC}}', 'Moved to implementation');
-          end;
-
-
-          if LMode = 'preserved' then
-          begin
-            LItemHtml := LItemHtml.Replace('{{ICON_CLASS}}', 'icon-mv');
-            LItemHtml := LItemHtml.Replace('{{ICON_CHAR}}', 'P');
-            LItemHtml := LItemHtml.Replace('{{ACTION_NAME}}', 'Preserved');
-            LItemHtml := LItemHtml.Replace('{{IMPACT_DESC}}',
-              'Ambiguous dependency kept for semantic safety');
-          end;
-          
-          LIssuesBuilder.AppendLine(LItemHtml);
-        end;
-      end;
-      
-      if LIsFile then
-        LIssuesBuilder.AppendLine(HTML_ISSUE_TEMPLATE_END);
-      
-      LIssuesHtml := LIssuesHtml + LIssuesBuilder.ToString;
-    finally
-      LIssuesBuilder.Free;
-    end;
+    Result := Result.Replace('{{ICON_CLASS}}', 'icon-rm');
+    Result := Result.Replace('{{ICON_CHAR}}', 'R');
+    Result := Result.Replace('{{ACTION_NAME}}', 'Removed');
+    Result := Result.Replace('{{IMPACT_DESC}}', 'Unused dependency cleaned');
   end;
+  if AMode = 'moved' then
+  begin
+    Result := Result.Replace('{{ICON_CLASS}}', 'icon-mv');
+    Result := Result.Replace('{{ICON_CHAR}}', 'M');
+    Result := Result.Replace('{{ACTION_NAME}}', 'Moved');
+    Result := Result.Replace('{{IMPACT_DESC}}', 'Moved to implementation');
+  end;
+  if AMode = 'preserved' then
+  begin
+    Result := Result.Replace('{{ICON_CLASS}}', 'icon-mv');
+    Result := Result.Replace('{{ICON_CHAR}}', 'P');
+    Result := Result.Replace('{{ACTION_NAME}}', 'Preserved');
+    Result := Result.Replace('{{IMPACT_DESC}}',
+      'Ambiguous dependency kept for semantic safety');
+  end;
+end;
 
-  Result := LHtml.Replace('{{ISSUES_HTML}}', LIssuesHtml);
+function TReportGeneratorAdapter.BuildReportIssuesHTML: string;
+var
+  LBuilder: TStringBuilder;
+  LLine: string;
+  LMode: string;
+  LHasFile: Boolean;
+  LItem: string;
+begin
+  if FReportLines.Count = 0 then
+    Exit('        <p style="color: var(--text-muted); text-align: center; margin-top: 50px;">No unit modifications.</p>');
+  LBuilder := TStringBuilder.Create;
+  try
+    LMode := EmptyStr;
+    LHasFile := False;
+    for LLine in FReportLines do
+    begin
+      if LLine.IsEmpty or LLine.Contains('Atropos - Processing Report') or
+        LLine.Contains('=====') then
+        Continue;
+      if LLine.StartsWith('File:') then
+      begin
+        if LHasFile then
+          LBuilder.AppendLine(HTML_ISSUE_TEMPLATE_END);
+        LHasFile := True;
+        LMode := EmptyStr;
+        LItem := HTML_ISSUE_TEMPLATE_START.Replace('{{FILE_NAME}}',
+          ExtractFileName(LLine.Substring(5).Trim));
+        LBuilder.AppendLine(LItem);
+        Continue;
+      end;
+      if LLine.Contains('Removed Uses:') then
+      begin
+        LMode := 'removed';
+        Continue;
+      end;
+      if LLine.Contains('Moved to Implementation Uses:') then
+      begin
+        LMode := 'moved';
+        Continue;
+      end;
+      if LLine.Contains('Preserved Ambiguous Uses:') then
+      begin
+        LMode := 'preserved';
+        Continue;
+      end;
+      if LLine.StartsWith('    -') then
+        LBuilder.AppendLine(BuildIssueItem(LMode, LLine));
+    end;
+    if LHasFile then
+      LBuilder.AppendLine(HTML_ISSUE_TEMPLATE_END);
+    Result := LBuilder.ToString;
+  finally
+    LBuilder.Free;
+  end;
+end;
+
+function TReportGeneratorAdapter.GetReportContentHTML: string;
+var
+  LHtml: string;
+begin
+  if (FReportLines.Count = 0) and (FWarnings.Count = 0) and
+    not FHasMetrics then
+    Exit('<html><head><title>Atropos Report</title></head><body style="background:#18181b; color:#fff; font-family: sans-serif; text-align:center; padding: 50px;"><h2>No files were processed.</h2></body></html>');
+  LHtml := HTML_BASE_TEMPLATE;
+  LHtml := LHtml.Replace('{{PROJECT_NAME}}', FProjectName);
+  LHtml := LHtml.Replace('{{DELPHI_VERSION}}', IfThen(FHasMetrics,
+    FMetricsBefore.DelphiVersion, 'Unknown'));
+  LHtml := LHtml.Replace('{{ANALYSIS_TIME}}', FormatTimeMs(FAnalysisTimeMs));
+  LHtml := LHtml.Replace('{{UNITS_ANALYZED}}', FUnitsAnalyzed.ToString);
+  LHtml := LHtml.Replace('{{SEARCH_PATHS}}', FSearchPaths.ToString);
+  LHtml := LHtml.Replace('{{METRICS_HTML}}', BuildMetricsHTML);
+  LHtml := LHtml.Replace('{{ISSUES_HTML}}', BuildWarningsHTML +
+    BuildReportIssuesHTML);
+  Result := LHtml;
 end;
 
 end.
