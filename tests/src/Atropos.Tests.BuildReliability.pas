@@ -148,6 +148,10 @@ type
     [Test]
     procedure BuildOutputCountsDiagnosticsAndInlineHints;
     [Test]
+    procedure QuotedExecutableOutputPathPreservesSpacesAndUnicode;
+    [Test]
+    procedure UnquotedExecutableOutputPathRemainsSupported;
+    [Test]
     procedure MissingDelphiEnvironmentFailsBuildGracefully;
     [Test]
     procedure HealthyProjectWithoutUnitsCommitsWithoutFinalBuild;
@@ -849,6 +853,53 @@ begin
   Assert.IsTrue(LOutput.Contains('runner-output'));
   Assert.AreEqual(Cardinal(7), LExitCode);
   Assert.IsFalse(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.QuotedExecutableOutputPathPreservesSpacesAndUnicode;
+var
+  LExecutablePath: string;
+  LMetrics: TBuildMetrics;
+  LOutputDirectory: string;
+  LProjectDirectory: string;
+  LProjectPath: string;
+begin
+  LProjectDirectory := TPath.Combine(TPath.GetTempPath,
+    'Atropos output parser ' + TGuid.NewGuid.ToString);
+  LOutputDirectory := TPath.Combine(LProjectDirectory, 'Saida com espaço');
+  TDirectory.CreateDirectory(LOutputDirectory);
+  try
+    LProjectPath := TPath.Combine(LProjectDirectory, 'Project.dproj');
+    LExecutablePath := TPath.Combine(LOutputDirectory, 'Project.exe');
+    TFile.WriteAllBytes(LExecutablePath, TBytes.Create(1, 2, 3, 4));
+    LMetrics := TBuildOutputParser.Parse(
+      '-E"Saida com espaço" -NSSystem', LProjectPath, 0);
+    Assert.AreEqual(Int64(4), LMetrics.ExeSizeBytes);
+  finally
+    TDirectory.Delete(LProjectDirectory, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.UnquotedExecutableOutputPathRemainsSupported;
+var
+  LExecutablePath: string;
+  LMetrics: TBuildMetrics;
+  LOutputDirectory: string;
+  LProjectDirectory: string;
+  LProjectPath: string;
+begin
+  LProjectDirectory := TPath.Combine(TPath.GetTempPath,
+    'AtroposOutputParser' + TGuid.NewGuid.ToString);
+  LOutputDirectory := TPath.Combine(LProjectDirectory, 'output');
+  TDirectory.CreateDirectory(LOutputDirectory);
+  try
+    LProjectPath := TPath.Combine(LProjectDirectory, 'Project.dproj');
+    LExecutablePath := TPath.Combine(LOutputDirectory, 'Project.exe');
+    TFile.WriteAllBytes(LExecutablePath, TBytes.Create(1, 2, 3));
+    LMetrics := TBuildOutputParser.Parse('-Eoutput -NSSystem', LProjectPath, 0);
+    Assert.AreEqual(Int64(3), LMetrics.ExeSizeBytes);
+  finally
+    TDirectory.Delete(LProjectDirectory, True);
+  end;
 end;
 
 procedure TBuildReliabilityTests.AnalysisWarningsReachApplicationReport;

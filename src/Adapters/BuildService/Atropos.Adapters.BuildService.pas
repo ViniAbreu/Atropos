@@ -22,6 +22,9 @@ type
   end;
 
   TBuildOutputParser = class
+  private
+    class function GetExecutableDirectory(const AOutput,
+      AProjectPath: string): string; static;
   public
     class function Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics; static;
   end;
@@ -251,15 +254,28 @@ begin
   if LMatch.Success then
     Result.CompileTimeMs := 0;
 
-  LExeDir := TPath.GetDirectoryName(AProjectPath);
-  LMatch := TRegEx.Match(AOutput, '-E([^\s]+)');
-  if LMatch.Success then
-    LExeDir := TPath.GetFullPath(TPath.Combine(LExeDir, LMatch.Groups[1].Value.Trim));
+  LExeDir := GetExecutableDirectory(AOutput, AProjectPath);
 
   LExePath := TPath.Combine(LExeDir, TPath.GetFileNameWithoutExtension(AProjectPath) + '.exe');
   Result.ExeSizeBytes := 0;
   if TFile.Exists(LExePath) then
     Result.ExeSizeBytes := TFile.GetSize(LExePath);
+end;
+
+class function TBuildOutputParser.GetExecutableDirectory(const AOutput,
+  AProjectPath: string): string;
+var
+  LMatch: TMatch;
+  LOutputDirectory: string;
+begin
+  Result := TPath.GetDirectoryName(AProjectPath);
+  LMatch := TRegEx.Match(AOutput, '-E(?:"([^"]+)"|([^\s]+))');
+  if not LMatch.Success then
+    Exit;
+  LOutputDirectory := LMatch.Groups[1].Value;
+  if LOutputDirectory.IsEmpty then
+    LOutputDirectory := LMatch.Groups[2].Value;
+  Result := TPath.GetFullPath(TPath.Combine(Result, LOutputDirectory.Trim));
 end;
 
 function TBuildServiceAdapter.GetDelphiFriendlyName(const ADelphiPath: string): string;
