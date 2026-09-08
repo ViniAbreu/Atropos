@@ -148,6 +148,8 @@ type
     [Test]
     procedure CompilerErrorTextFailsEvenWithZeroExitCode;
     [Test]
+    procedure MSBuildErrorIsReportedWithItsDiagnosticContext;
+    [Test]
     procedure BuildOutputCountsDiagnosticsAndInlineHints;
     [Test]
     procedure QuotedExecutableOutputPathPreservesSpacesAndUnicode;
@@ -519,6 +521,19 @@ begin
   Assert.AreEqual(1, Integer(Length(LMetrics.InlineHints)));
   Assert.AreEqual('System.SysUtils', LMetrics.InlineHints[0].UnitNeeded);
   Assert.AreEqual(LOutput, LMetrics.DiagnosticOutput);
+end;
+
+procedure TBuildReliabilityTests.MSBuildErrorIsReportedWithItsDiagnosticContext;
+var
+  LMetrics: TBuildMetrics;
+  LOutput: string;
+begin
+  LOutput := 'CodeGear.Delphi.Targets(804,5): error MSB3191: ' +
+    'Cannot create directory C:\Program Files\Application\Temp.';
+  LMetrics := TBuildOutputParser.Parse(LOutput, 'Project.dproj', 1);
+  Assert.IsFalse(LMetrics.Success);
+  Assert.Contains(LMetrics.ErrorMessage, 'MSB3191');
+  Assert.Contains(LMetrics.ErrorMessage, 'Cannot create directory');
 end;
 
 procedure TBuildReliabilityTests.DebugFailureLogsCompleteCompilerOutput;
