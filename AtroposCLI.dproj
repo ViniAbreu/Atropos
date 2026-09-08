@@ -104,6 +104,7 @@
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas"/>
+        <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>
         <DCCReference Include="src\Adapters\ReportGenerator\Atropos.Adapters.ReportGenerator.pas"/>
         <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
         <DCCReference Include="src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas"/>

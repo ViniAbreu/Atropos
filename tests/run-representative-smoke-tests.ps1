@@ -46,7 +46,22 @@ function Invoke-Fixture([string]$FixtureName, [string]$ProjectName, [string]$Sou
         $standardOutputPath = Join-Path $temporaryRoot 'stdout.txt'
         $standardErrorPath = Join-Path $temporaryRoot 'stderr.txt'
         if ($SimulateRecovery) {
-            Copy-Item -LiteralPath $sourcePath -Destination ($sourcePath + '.atropos-{03C7CE7A-E9C3-48EA-BA73-87AA32A1319B}.bak')
+            $transactionId = [Guid]::NewGuid().ToString('D')
+            $backupPath = $sourcePath + '.atropos-' + $transactionId + '.bak'
+            $sourceHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+            Copy-Item -LiteralPath $sourcePath -Destination $backupPath
+            @{
+                version = 1
+                transactionId = $transactionId
+                state = 'active'
+                createdUtc = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+                entries = @(@{
+                    original = $sourcePath
+                    backup = $backupPath
+                    sha256 = $sourceHash
+                })
+            } | ConvertTo-Json -Depth 4 -Compress | Set-Content -LiteralPath `
+                (Join-Path $workingFixture '.atropos-transaction.json') -Encoding utf8NoBOM
             Set-Content -LiteralPath $sourcePath -Value 'invalid source awaiting recovery' -Encoding utf8NoBOM
         }
         $process = Start-Process -FilePath $resolvedCliPath -ArgumentList @(
