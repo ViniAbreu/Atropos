@@ -31,7 +31,17 @@ implementation
 procedure TIntegrationTests.RestoreUnitA;
 var
   LBackupPath: string;
+  LRecoveryService: IFileService;
+  LManifestPath: string;
 begin
+  LManifestPath := TPath.Combine(TPath.GetDirectoryName(FUnitAPath),
+    '.atropos-transaction.json');
+  if TFile.Exists(LManifestPath) then
+  begin
+    LRecoveryService := TFileSystemAdapter.Create;
+    LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FUnitAPath));
+    LRecoveryService.CommitBackups;
+  end;
   for LBackupPath in TDirectory.GetFiles(TPath.GetDirectoryName(FUnitAPath),
     ExtractFileName(FUnitAPath) + '.atropos-*.bak') do
   begin
@@ -153,6 +163,7 @@ begin
     Assert.IsTrue(LContentAfter.Contains('System.Classes'), 'System.Classes should be preserved');
     
   finally
+    LFileService.RestoreBackups;
     LAnalyzer.Free;
     LContext.Free;
     LModifier.Free;

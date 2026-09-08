@@ -11,6 +11,8 @@ type
   private
     FFileService: IFileService;
     FTestFile: string;
+    function GetBackupPath(const AFilePath: string): string;
+    function GetManifestPath: string;
   public
     [Setup]
     procedure Setup;
@@ -39,9 +41,45 @@ type
     procedure RecoversBackupLeftByInterruptedExecution;
     [Test]
     procedure ConcurrentTransactionInSameProjectIsRejected;
+    [Test]
+    procedure BackupCreatesVersionedHashedManifest;
+    [Test]
+    procedure LegacyBackupWithoutManifestIsPreservedAndRejected;
+    [Test]
+    procedure TamperedBackupIsPreservedAndNotRestored;
+    [Test]
+    procedure MissingOriginalIsRecoveredFromVerifiedBackup;
+    [Test]
+    procedure CommittedManifestCleansBackupsWithoutRollback;
+    [Test]
+    procedure MissingBackupWithUnchangedOriginalCompletesRecovery;
+    [Test]
+    procedure InvalidManifestIsPreservedAndRejected;
+    [Test]
+    procedure MissingBackupWithChangedOriginalBlocksRecovery;
+    [Test]
+    procedure PartiallyCompletedRollbackResumesSafely;
+    [Test]
+    procedure ManifestWithMismatchedBackupPathIsRejectedBeforeRestore;
   end;
 
 implementation
+
+function TFileSystemTests.GetBackupPath(const AFilePath: string): string;
+var
+  LBackups: TArray<string>;
+begin
+  LBackups := TDirectory.GetFiles(TPath.GetDirectoryName(AFilePath),
+    TPath.GetFileName(AFilePath) + '.atropos-*.bak');
+  Assert.AreEqual(1, Integer(Length(LBackups)));
+  Result := LBackups[0];
+end;
+
+function TFileSystemTests.GetManifestPath: string;
+begin
+  Result := TPath.Combine(TPath.GetDirectoryName(FTestFile),
+    '.atropos-transaction.json');
+end;
 
 procedure TFileSystemTests.Setup;
 var
@@ -108,6 +146,7 @@ begin
   LBackupFiles := TDirectory.GetFiles(TPath.GetDirectoryName(FTestFile),
     ExtractFileName(FTestFile) + '.atropos-*.bak');
   Assert.AreEqual(0, Integer(Length(LBackupFiles)));
+  Assert.IsFalse(TFile.Exists(GetManifestPath));
 end;
 
 procedure TFileSystemTests.MissingFileOperationsRaiseExceptions;
@@ -187,6 +226,225 @@ begin
   end;
   Assert.IsTrue(LRejected);
   LFirstService.CommitBackups;
+end;
+
+procedure TFileSystemTests.BackupCreatesVersionedHashedManifest;
+var
+  LManifestContent: string;
+begin
+  FFileService.BackupFile(FTestFile);
+  Assert.IsTrue(TFile.Exists(GetManifestPath));
+  LManifestContent := TFile.ReadAllText(GetManifestPath, TEncoding.UTF8);
+  Assert.IsTrue(LManifestContent.Contains('"version":1'));
+  Assert.IsTrue(LManifestContent.Contains('"transactionId"'));
+  Assert.IsTrue(LManifestContent.Contains('"state":"active"'));
+  Assert.IsTrue(LManifestContent.Contains('"createdUtc"'));
+  Assert.IsTrue(LManifestContent.Contains('"sha256"'));
+  Assert.IsTrue(LManifestContent.Contains(GetBackupPath(FTestFile)
+    .Replace('\', '\\')));
+end;
+
+procedure TFileSystemTests.LegacyBackupWithoutManifestIsPreservedAndRejected;
+var
+  LBackupPath: string;
+  LRecoveryService: IFileService;
+  LRaised: Boolean;
+begin
+  LBackupPath := FTestFile + '.atropos-' + TGuid.NewGuid.ToString + '.bak';
+  TFile.WriteAllText(LBackupPath, 'legacy content', TEncoding.UTF8);
+  FFileService.WriteFileContent(FTestFile, 'current content');
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRaised := False;
+  try
+    LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  except
+    on E: Exception do
+      LRaised := E.Message.Contains('without a transaction manifest');
+  end;
+  Assert.IsTrue(LRaised);
+  Assert.AreEqual('current content', FFileService.ReadFileContent(FTestFile));
+  Assert.IsTrue(TFile.Exists(LBackupPath));
+end;
+
+procedure TFileSystemTests.TamperedBackupIsPreservedAndNotRestored;
+var
+  LBackupPath: string;
+  LInterruptedService: IFileService;
+  LRecoveryService: IFileService;
+  LRaised: Boolean;
+begin
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  LBackupPath := GetBackupPath(FTestFile);
+  TFile.WriteAllText(LBackupPath, 'tampered backup', TEncoding.UTF8);
+  LInterruptedService.WriteFileContent(FTestFile, 'changed content');
+  LInterruptedService := nil;
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRaised := False;
+  try
+    LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  except
+    on E: Exception do
+      LRaised := E.Message.Contains('hash mismatch');
+  end;
+  Assert.IsTrue(LRaised);
+  Assert.AreEqual('changed content', FFileService.ReadFileContent(FTestFile));
+  Assert.IsTrue(TFile.Exists(LBackupPath));
+  Assert.IsTrue(TFile.Exists(GetManifestPath));
+end;
+
+procedure TFileSystemTests.MissingOriginalIsRecoveredFromVerifiedBackup;
+var
+  LInterruptedService: IFileService;
+  LRecoveryService: IFileService;
+begin
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  TFile.Delete(FTestFile);
+  LInterruptedService := nil;
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  Assert.AreEqual('initial content', LRecoveryService.ReadFileContent(FTestFile));
+  Assert.IsFalse(TFile.Exists(GetManifestPath));
+end;
+
+procedure TFileSystemTests.CommittedManifestCleansBackupsWithoutRollback;
+var
+  LBackupPath: string;
+  LInterruptedService: IFileService;
+  LManifestContent: string;
+  LRecoveryService: IFileService;
+begin
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  LBackupPath := GetBackupPath(FTestFile);
+  LInterruptedService.WriteFileContent(FTestFile, 'committed content');
+  LManifestContent := TFile.ReadAllText(GetManifestPath, TEncoding.UTF8);
+  LManifestContent := LManifestContent.Replace('"state":"active"',
+    '"state":"committed"');
+  TFile.WriteAllText(GetManifestPath, LManifestContent, TEncoding.UTF8);
+  LInterruptedService := nil;
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  Assert.AreEqual('committed content', LRecoveryService.ReadFileContent(FTestFile));
+  Assert.IsFalse(TFile.Exists(LBackupPath));
+  Assert.IsFalse(TFile.Exists(GetManifestPath));
+end;
+
+procedure TFileSystemTests.MissingBackupWithUnchangedOriginalCompletesRecovery;
+var
+  LBackupPath: string;
+  LInterruptedService: IFileService;
+  LRecoveryService: IFileService;
+begin
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  LBackupPath := GetBackupPath(FTestFile);
+  TFile.Delete(LBackupPath);
+  LInterruptedService := nil;
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  Assert.AreEqual('initial content', LRecoveryService.ReadFileContent(FTestFile));
+  Assert.IsFalse(TFile.Exists(GetManifestPath));
+end;
+
+procedure TFileSystemTests.InvalidManifestIsPreservedAndRejected;
+var
+  LRecoveryService: IFileService;
+  LRaised: Boolean;
+begin
+  TFile.WriteAllText(GetManifestPath, '{invalid json', TEncoding.UTF8);
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRaised := False;
+  try
+    LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  except
+    on E: Exception do
+      LRaised := E.Message.Contains('JSON object');
+  end;
+  Assert.IsTrue(LRaised);
+  Assert.IsTrue(TFile.Exists(GetManifestPath));
+  Assert.AreEqual('initial content', FFileService.ReadFileContent(FTestFile));
+end;
+
+procedure TFileSystemTests.MissingBackupWithChangedOriginalBlocksRecovery;
+var
+  LBackupPath: string;
+  LInterruptedService: IFileService;
+  LRecoveryService: IFileService;
+  LRaised: Boolean;
+begin
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  LBackupPath := GetBackupPath(FTestFile);
+  TFile.Delete(LBackupPath);
+  LInterruptedService.WriteFileContent(FTestFile, 'changed content');
+  LInterruptedService := nil;
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRaised := False;
+  try
+    LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  except
+    on E: Exception do
+      LRaised := E.Message.Contains('backup is missing');
+  end;
+  Assert.IsTrue(LRaised);
+  Assert.AreEqual('changed content', FFileService.ReadFileContent(FTestFile));
+  Assert.IsTrue(TFile.Exists(GetManifestPath));
+end;
+
+procedure TFileSystemTests.PartiallyCompletedRollbackResumesSafely;
+var
+  LFirstBackupPath: string;
+  LInterruptedService: IFileService;
+  LRecoveryService: IFileService;
+  LSecondFile: string;
+begin
+  LSecondFile := TPath.Combine(TPath.GetDirectoryName(FTestFile), 'Second.pas');
+  TFile.WriteAllText(LSecondFile, 'second initial', TEncoding.UTF8);
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  LInterruptedService.BackupFile(LSecondFile);
+  LFirstBackupPath := GetBackupPath(FTestFile);
+  LInterruptedService.WriteFileContent(FTestFile, 'first changed');
+  LInterruptedService.WriteFileContent(LSecondFile, 'second changed');
+  TFile.Copy(LFirstBackupPath, FTestFile, True);
+  TFile.Delete(LFirstBackupPath);
+  LInterruptedService := nil;
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  Assert.AreEqual('initial content', LRecoveryService.ReadFileContent(FTestFile));
+  Assert.AreEqual('second initial', LRecoveryService.ReadFileContent(LSecondFile));
+  Assert.IsFalse(TFile.Exists(GetManifestPath));
+end;
+
+procedure TFileSystemTests.ManifestWithMismatchedBackupPathIsRejectedBeforeRestore;
+var
+  LBackupPath: string;
+  LInterruptedService: IFileService;
+  LManifestContent: string;
+  LRecoveryService: IFileService;
+  LRaised: Boolean;
+begin
+  LInterruptedService := TFileSystemAdapter.Create;
+  LInterruptedService.BackupFile(FTestFile);
+  LBackupPath := GetBackupPath(FTestFile);
+  LInterruptedService.WriteFileContent(FTestFile, 'changed content');
+  LManifestContent := TFile.ReadAllText(GetManifestPath, TEncoding.UTF8);
+  LManifestContent := LManifestContent.Replace('.bak"', '.invalid"');
+  TFile.WriteAllText(GetManifestPath, LManifestContent, TEncoding.UTF8);
+  LInterruptedService := nil;
+  LRecoveryService := TFileSystemAdapter.Create;
+  LRaised := False;
+  try
+    LRecoveryService.RecoverPendingBackups(TPath.GetDirectoryName(FTestFile));
+  except
+    on E: Exception do
+      LRaised := E.Message.Contains('invalid backup path');
+  end;
+  Assert.IsTrue(LRaised);
+  Assert.AreEqual('changed content', FFileService.ReadFileContent(FTestFile));
+  Assert.IsTrue(TFile.Exists(LBackupPath));
 end;
 
 procedure TFileSystemTests.TearDown;

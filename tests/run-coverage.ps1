@@ -30,6 +30,7 @@ $units = @(
     'Atropos.Application.CommandLine',
     'Atropos.Adapters.BuildService', 'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
+    'Atropos.Adapters.FileTransaction',
     'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ReportGenerator',
     'Atropos.Adapters.DelphiAST'
 )

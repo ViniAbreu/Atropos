@@ -21,7 +21,7 @@ Main adapter responsibilities:
 - `DelphiAST`: syntactic view of source files;
 - `ProjectParser`: conditional properties, units, search paths, recursive property expansion, and diagnostics for unsupported MSBuild expressions;
 - `ExternalUnitResolver`: unit location and exported symbols;
-- `FileSystem`: I/O and backup transactions;
+- `FileSystem`: encoding-aware I/O, exclusive project locks, and SHA-256-verified backup transactions with versioned manifests;
 - `BuildService`: AutoBuild, timeout, cancellation, and metrics;
 - `DelphiEnvironment`: project version and RAD Studio installation discovery;
 - `ReportGenerator`: text and HTML output.

@@ -25,6 +25,7 @@ uses
   Atropos.Tests.DelphiASTAdapter in 'src\Atropos.Tests.DelphiASTAdapter.pas',
   Atropos.Tests.CompilerDirectives in 'src\Atropos.Tests.CompilerDirectives.pas',
   Atropos.Adapters.FileSystem in '..\src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas',
+  Atropos.Adapters.FileTransaction in '..\src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas',
   Atropos.Tests.FileSystem in 'src\Atropos.Tests.FileSystem.pas',
   Atropos.Core.Modifier in '..\src\Core\Services\Atropos.Core.Modifier.pas',
   Atropos.Tests.Modifier in 'src\Atropos.Tests.Modifier.pas',
