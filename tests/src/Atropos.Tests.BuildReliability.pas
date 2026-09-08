@@ -14,6 +14,8 @@ type
   public
     ProjectUnitsCallCount: Integer;
     Units: TArray<string>;
+    Warnings: TArray<string>;
+    function TakeWarnings: TArray<string>;
     function GetSearchPaths(const ADprojPath: string): TArray<string>;
     function GetProjectUnits(const ADprojPath: string): TArray<string>;
   end;
@@ -150,7 +152,7 @@ type
     [Test]
     procedure HealthyProjectWithoutUnitsCommitsWithoutFinalBuild;
     [Test]
-    procedure ResolverWarningsReachApplicationReport;
+    procedure AnalysisWarningsReachApplicationReport;
     [Test]
     procedure FailedFinalBuildRestoresModifiedFiles;
     [Test]
@@ -284,6 +286,12 @@ end;
 procedure TReportGeneratorStub.AddMetrics(const ABefore, AAfter: TBuildMetrics);
 begin
   Inc(AddMetricsCallCount);
+end;
+
+function TProjectParserSpy.TakeWarnings: TArray<string>;
+begin
+  Result := Warnings;
+  Warnings := [];
 end;
 
 procedure TReportGeneratorStub.AddWarning(const AWarning: string);
@@ -843,7 +851,7 @@ begin
   Assert.IsFalse(LTimedOut);
 end;
 
-procedure TBuildReliabilityTests.ResolverWarningsReachApplicationReport;
+procedure TBuildReliabilityTests.AnalysisWarningsReachApplicationReport;
 var
   LProjectParser: TProjectParserSpy;
   LFileService: TFileServiceSpy;
@@ -853,6 +861,7 @@ var
   LConfig: TToolConfig;
 begin
   LProjectParser := TProjectParserSpy.Create;
+  LProjectParser.Warnings := ['Project parser: unsupported condition'];
   LFileService := TFileServiceSpy.Create;
   LReportGenerator := TReportGeneratorStub.Create;
   LResolver := TExternalResolverStub.Create;
@@ -864,7 +873,7 @@ begin
     LConfig);
   try
     Assert.IsTrue(LApplicationService.Execute('Project.dproj'));
-    Assert.AreEqual(1, LReportGenerator.WarningCallCount);
+    Assert.AreEqual(2, LReportGenerator.WarningCallCount);
   finally
     LApplicationService.Free;
   end;

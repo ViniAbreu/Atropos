@@ -19,7 +19,7 @@ Adapters and presentation depend on Core abstractions. The domain must not impor
 Main adapter responsibilities:
 
 - `DelphiAST`: syntactic view of source files;
-- `ProjectParser`: conditional properties, units, and search paths;
+- `ProjectParser`: conditional properties, units, search paths, recursive property expansion, and diagnostics for unsupported MSBuild expressions;
 - `ExternalUnitResolver`: unit location and exported symbols;
 - `FileSystem`: I/O and backup transactions;
 - `BuildService`: AutoBuild, timeout, cancellation, and metrics;

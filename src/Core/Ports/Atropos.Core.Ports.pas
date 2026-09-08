@@ -58,6 +58,7 @@ type
   
   IProjectParser = interface
     ['{EAC338C4-E143-41BE-8176-B8EA01A18FBA}']
+    function TakeWarnings: TArray<string>;
     function GetSearchPaths(const ADprojPath: string): TArray<string>;
     function GetProjectUnits(const ADprojPath: string): TArray<string>;
   end;
