@@ -30,6 +30,8 @@ type
     procedure HTMLWithoutMetricsStillRendersIssues;
     [Test]
     procedure PreservedAmbiguityReasonIsRendered;
+    [Test]
+    procedure AnalysisWarningsAreRenderedInTextAndHTML;
   end;
 
 implementation
@@ -154,6 +156,20 @@ begin
   Assert.IsTrue(LText.Contains('TShared is exported by First.Unit, Second.Unit'));
   Assert.IsTrue(LHTML.Contains('Preserved'));
   Assert.IsTrue(LHTML.Contains('TShared is exported by First.Unit, Second.Unit'));
+end;
+
+procedure TReportGeneratorTests.AnalysisWarningsAreRenderedInTextAndHTML;
+var
+  LText: string;
+  LHTML: string;
+begin
+  FReport.AddWarning('External unit resolver: directory not found: C:\Missing');
+  LText := FReport.GetReportContentTXT;
+  LHTML := FReport.GetReportContentHTML;
+  Assert.IsTrue(LText.Contains('Analysis Warnings'));
+  Assert.IsTrue(LText.Contains('directory not found'));
+  Assert.IsTrue(LHTML.Contains('Warning: External unit resolver'));
+  Assert.IsTrue(LHTML.Contains('No unit modifications.'));
 end;
 
 initialization

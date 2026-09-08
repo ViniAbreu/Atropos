@@ -39,6 +39,7 @@ type
     procedure CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
     procedure RollbackChanges(const AErrorMessage: string);
     procedure GenerateReports(const AOutputDirectory: string);
+    procedure CollectResolverWarnings;
     function SetupEnvironment(const AFullPath, ABasePath: string): Integer;
     function CreateLogger: ILogger;
     function ExecuteSafely(const ADprojPath: string): Boolean;
@@ -72,6 +73,17 @@ type
     constructor Create(const AOnLog: TLogEvent);
     procedure Log(const AMsg: string);
   end;
+
+procedure TProjectCleanerAppService.CollectResolverWarnings;
+var
+  LWarning: string;
+begin
+  for LWarning in FResolver.GetWarnings do
+  begin
+    Log('WARNING: ' + LWarning);
+    FReportGen.AddWarning(LWarning);
+  end;
+end;
 
 constructor TApplicationLogger.Create(const AOnLog: TLogEvent);
 begin
@@ -384,6 +396,7 @@ begin
   LModifier := TApplyUsesChanges.Create(FFileService, FConfig);
   try
     ProcessUnits(LBasePath, ADprojPath, LTotalRemoved, LTotalMoved, LUnitCount, LLogger, LContext, LAnalyzer, LModifier);
+    CollectResolverWarnings;
     
     if (LTotalRemoved = 0) and (LTotalMoved = 0) then
     begin

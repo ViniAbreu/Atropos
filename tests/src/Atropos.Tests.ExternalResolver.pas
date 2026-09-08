@@ -32,6 +32,7 @@ type
   public
     CallCount: Integer;
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
+    function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
   end;
 
@@ -42,6 +43,11 @@ implementation
 procedure TMockExternalResolver.Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
 begin
   // Do nothing in mock
+end;
+
+function TMockExternalResolver.GetWarnings: TArray<string>;
+begin
+  Result := [];
 end;
 
 function TMockExternalResolver.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;

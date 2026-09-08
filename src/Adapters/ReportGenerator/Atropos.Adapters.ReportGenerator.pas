@@ -9,6 +9,7 @@ type
   TReportGeneratorAdapter = class(TInterfacedObject, IReportGenerator)
   private
     FReportLines: TList<string>;
+    FWarnings: TList<string>;
     FMetricsBefore: TBuildMetrics;
     FMetricsAfter: TBuildMetrics;
     FHasMetrics: Boolean;
@@ -23,13 +24,14 @@ type
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses,
       AMovedUses, APreservedAmbiguities: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
+    procedure AddWarning(const AWarning: string);
     procedure SetAnalysisInfo(const AProjectName: string; AAnalysisTimeMs: Int64; AUnitsAnalyzed, ASearchPaths: Integer);
     function GetReportContentTXT: string;
     function GetReportContentHTML: string;
   end;
 
 implementation
-uses System.Math, System.StrUtils,
+uses System.Math, System.NetEncoding, System.StrUtils,
   System.SysUtils;
 
 const
@@ -175,12 +177,21 @@ const
 constructor TReportGeneratorAdapter.Create;
 begin
   FReportLines := TList<string>.Create;
+  FWarnings := TList<string>.Create;
 end;
 
 destructor TReportGeneratorAdapter.Destroy;
 begin
+  FWarnings.Free;
   FReportLines.Free;
   inherited;
+end;
+
+procedure TReportGeneratorAdapter.AddWarning(const AWarning: string);
+begin
+  if AWarning.IsEmpty then
+    Exit;
+  FWarnings.Add(AWarning);
 end;
 
 procedure TReportGeneratorAdapter.AddUnitProcessed(const AUnitName: string;
@@ -265,7 +276,7 @@ var
   LTimeDelta: Double;
   LSizeDelta: Double;
 begin
-  if (FReportLines.Count = 0) and not FHasMetrics then
+  if (FReportLines.Count = 0) and (FWarnings.Count = 0) and not FHasMetrics then
     Exit('No files were processed.');
 
   LResult := TStringBuilder.Create;
@@ -277,6 +288,15 @@ begin
     LResult.AppendLine('Units Analyzed: ' + FUnitsAnalyzed.ToString);
     LResult.AppendLine('Search Paths: ' + FSearchPaths.ToString);
     LResult.AppendLine('');
+
+    if FWarnings.Count > 0 then
+    begin
+      LResult.AppendLine('Analysis Warnings');
+      LResult.AppendLine('========================================================');
+      for LLine in FWarnings do
+        LResult.AppendLine('  - ' + LLine);
+      LResult.AppendLine('');
+    end;
     
     if FHasMetrics then
     begin
@@ -349,8 +369,9 @@ var
   LTimeDelta: Double;
   LSizeDelta: Double;
   LIssuesBuilder: TStringBuilder;
+  LWarningsBuilder: TStringBuilder;
 begin
-  if (FReportLines.Count = 0) and not FHasMetrics then
+  if (FReportLines.Count = 0) and (FWarnings.Count = 0) and not FHasMetrics then
     Exit('<html><head><title>Atropos Report</title></head><body style="background:#18181b; color:#fff; font-family: sans-serif; text-align:center; padding: 50px;"><h2>No files were processed.</h2></body></html>');
 
   LHtml := HTML_BASE_TEMPLATE;
@@ -430,8 +451,21 @@ begin
 
   LHtml := LHtml.Replace('{{METRICS_HTML}}', LMetricsHtml);
 
+  LWarningsBuilder := TStringBuilder.Create;
+  try
+    for LLine in FWarnings do
+      LWarningsBuilder.AppendLine(
+        '        <div class="issue-item"><div class="issue-summary">' +
+        '<span class="issue-icon">!</span><span class="issue-file">Warning: ' +
+        TNetEncoding.HTML.Encode(LLine) + '</span></div></div>');
+    LIssuesHtml := LWarningsBuilder.ToString;
+  finally
+    LWarningsBuilder.Free;
+  end;
+
   if FReportLines.Count = 0 then
-    LIssuesHtml := '        <p style="color: var(--text-muted); text-align: center; margin-top: 50px;">No unit modifications.</p>';
+    LIssuesHtml := LIssuesHtml +
+      '        <p style="color: var(--text-muted); text-align: center; margin-top: 50px;">No unit modifications.</p>';
 
   if FReportLines.Count > 0 then
   begin
@@ -516,7 +550,7 @@ begin
       if LIsFile then
         LIssuesBuilder.AppendLine(HTML_ISSUE_TEMPLATE_END);
       
-      LIssuesHtml := LIssuesBuilder.ToString;
+      LIssuesHtml := LIssuesHtml + LIssuesBuilder.ToString;
     finally
       LIssuesBuilder.Free;
     end;

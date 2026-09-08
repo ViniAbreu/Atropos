@@ -84,6 +84,8 @@ Without `--remove` or `--move`, Atropos performs the initial validation but does
 
 When an unqualified identifier is exported by more than one visible unit, Atropos preserves every candidate and records the reason in the TXT and HTML reports. Fully qualified references select only the named unit, allowing unrelated collisions to be removed safely.
 
+When an external search directory cannot be scanned or an external unit cannot be parsed, Atropos preserves the unresolved dependency and records an analysis warning in the execution log and in TXT/HTML reports.
+
 ## 🧪 Quality and compatibility
 
 - ✅ Automated unit and integration tests run on Win32 and Win64.
