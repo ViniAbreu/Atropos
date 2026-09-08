@@ -17,9 +17,11 @@ type
     function FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
     function TryReadRootDir(AReg: TRegistry; const AKeyPath: string; out ARootDir: string): Boolean;
     function GetHighestVersionFromNode(AReg: TRegistry; const ANodePath: string; out ARootDir: string): Boolean;
-    function InternalGetBDSVersion(const ADprojPath: string): string;
-    function GetBDSVersionFromDproj(const ADprojPath: string): string;
-    function GetRootDirFromRegistry(const AVersion: string): string;
+    function InternalGetProjectVersion(const ADprojPath: string): string;
+    function GetProjectVersionFromDproj(const ADprojPath: string): string;
+  protected
+    function GetRootDirFromRegistry(const AVersion: string): string; virtual;
+    function GetConfiguredBDSPath: string; virtual;
   public
     function ResolveDelphiPath(const ADprojPath: string): string;
   end;
@@ -30,7 +32,7 @@ uses System.Classes, System.SysUtils, Xml.XMLDoc, Winapi.ActiveX,
 
 class function TDelphiVersionMap.FromProjectVersion(const AProjectVersion: string): string;
 begin
-  if AProjectVersion.StartsWith('20.1') then
+  if AProjectVersion.StartsWith('20.') then
     Exit('23.0');
   if AProjectVersion.StartsWith('19.2') then
     Exit('22.0');
@@ -75,7 +77,8 @@ begin
   end;
 end;
 
-function TDelphiEnvironmentAdapter.InternalGetBDSVersion(const ADprojPath: string): string;
+function TDelphiEnvironmentAdapter.InternalGetProjectVersion(
+  const ADprojPath: string): string;
 var
   LDoc: IXMLDocument;
   LNode: IXMLNode;
@@ -84,13 +87,14 @@ begin
   try
     LDoc := LoadXMLDocument(ADprojPath);
     if FindNodeRec(LDoc.DocumentElement, 'ProjectVersion', LNode) then
-      Result := TDelphiVersionMap.FromProjectVersion(LNode.Text);
+      Result := LNode.Text.Trim;
   except
     Result := EmptyStr;
   end;
 end;
 
-function TDelphiEnvironmentAdapter.GetBDSVersionFromDproj(const ADprojPath: string): string;
+function TDelphiEnvironmentAdapter.GetProjectVersionFromDproj(
+  const ADprojPath: string): string;
 begin
   Result := EmptyStr;
   if not FileExists(ADprojPath) then
@@ -98,7 +102,7 @@ begin
 
   CoInitialize(nil);
   try
-    Result := InternalGetBDSVersion(ADprojPath);
+    Result := InternalGetProjectVersion(ADprojPath);
   finally
     CoUninitialize;
   end;
@@ -165,8 +169,15 @@ begin
     LReg.RootKey := HKEY_LOCAL_MACHINE;
     LReg.Access := KEY_READ or KEY_WOW64_64KEY; 
     
-    if not AVersion.IsEmpty and TryReadRootDir(LReg, 'Software\Embarcadero\BDS\' + AVersion, Result) then
+    if not AVersion.IsEmpty then
+    begin
+      if TryReadRootDir(LReg, 'Software\Embarcadero\BDS\' + AVersion,
+        Result) then
+        Exit;
+      TryReadRootDir(LReg, 'Software\WOW6432Node\Embarcadero\BDS\' +
+        AVersion, Result);
       Exit;
+    end;
 
     if GetHighestVersionFromNode(LReg, 'Software\Embarcadero\BDS', Result) then
       Exit;
@@ -178,15 +189,22 @@ begin
   end;
 end;
 
+function TDelphiEnvironmentAdapter.GetConfiguredBDSPath: string;
+begin
+  Result := GetEnvironmentVariable('BDS');
+end;
+
 function TDelphiEnvironmentAdapter.ResolveDelphiPath(const ADprojPath: string): string;
 var
-  LVersion: string;
+  LBDSVersion: string;
+  LProjectVersion: string;
 begin
-  LVersion := GetBDSVersionFromDproj(ADprojPath);
-  Result := GetRootDirFromRegistry(LVersion);
+  LProjectVersion := GetProjectVersionFromDproj(ADprojPath);
+  LBDSVersion := TDelphiVersionMap.FromProjectVersion(LProjectVersion);
+  Result := GetRootDirFromRegistry(LBDSVersion);
   
   if Result.IsEmpty then
-    Result := GetEnvironmentVariable('BDS');
+    Result := GetConfiguredBDSPath;
 end;
 
 end.
