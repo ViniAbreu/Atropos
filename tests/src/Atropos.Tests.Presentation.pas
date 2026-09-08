@@ -16,6 +16,7 @@ type
     [Test] procedure CLIPropagatesExecutionFailure;
     [Test] procedure CLIConvertsExecutionExceptionToCriticalError;
     [Test] procedure LoggerForwardsAndIgnoresMessagesAsConfigured;
+    [Test] procedure PersistentLoggerWritesTimestampedUtf8Messages;
     [Test] procedure DefaultFactoryCreatesApplicationService;
     [Test] procedure ExecutionPresentationTransitionsThroughRunAndCompletion;
     [Test] procedure ExecutionPresentationExposesCancellationState;
@@ -26,7 +27,7 @@ type
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils, System.IOUtils, System.Classes,
   Atropos.App.CLI,
   Atropos.Adapters.Logger,
   Atropos.Application.AppService,
@@ -121,6 +122,27 @@ begin
   LLogger := TAppLogger.Create(nil);
   LLogger.Log('ignored');
   Assert.AreEqual('message', LMessage);
+end;
+
+procedure TPresentationTests.PersistentLoggerWritesTimestampedUtf8Messages;
+var
+  LContent: string;
+  LLogPath: string;
+  LLogger: ILogger;
+begin
+  LLogPath := TPath.Combine(TPath.GetTempPath,
+    'AtroposLogger-' + TGuid.NewGuid.ToString + '.log');
+  try
+    LLogger := TAppLogger.CreatePersistent(nil, LLogPath);
+    LLogger.Log('Unicode diagnostic: compilação');
+    LLogger := nil;
+    LContent := TFile.ReadAllText(LLogPath, TEncoding.UTF8);
+    Assert.Contains(LContent, 'Unicode diagnostic: compilação');
+    Assert.IsTrue(LContent.StartsWith(FormatDateTime('yyyy-mm-dd', Now)));
+  finally
+    if TFile.Exists(LLogPath) then
+      TFile.Delete(LLogPath);
+  end;
 end;
 
 procedure TPresentationTests.DefaultFactoryCreatesApplicationService;

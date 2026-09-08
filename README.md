@@ -78,6 +78,7 @@ Common options:
 - `-txt`: generate a text report;
 - `--output <directory>`: select the report directory;
 - `--debug`: enable verbose logging;
+- `--log <file>`: write a persistent UTF-8 execution log (a timestamped file under `%LOCALAPPDATA%\Atropos\Logs` is used by default);
 - `--help`: display the complete command reference.
 
 Without `--remove` or `--move`, Atropos performs the initial validation but does not request source changes. Use `--dry-run` to review candidates and generate reports without modifying source files. See the [CLI reference](docs/cli.md) for the complete contract and exit codes.

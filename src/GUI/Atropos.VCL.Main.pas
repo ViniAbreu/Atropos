@@ -18,6 +18,8 @@ uses
   Atropos.Application.ExecutionConfig,
   Atropos.Application.ExecutionPresentation,
   Atropos.Application.Factory,
+  Atropos.Adapters.Logger,
+  Atropos.Core.Ports,
   Atropos.Core.Config;
 
 type
@@ -118,8 +120,14 @@ begin
     procedure
     var
       LAppService: TProjectCleanerAppService;
+      LLogger: ILogger;
+      LPersistentLogger: TAppLogger;
     begin
       try
+        LPersistentLogger := TAppLogger.CreatePersistent(LogMessage,
+          AConfig.LogFilePath);
+        LLogger := LPersistentLogger;
+        LLogger.Log('Log file: ' + LPersistentLogger.FilePath);
         LAppService := TAppServiceFactory.CreateDefault(AConfig,
           function: Boolean
           begin
@@ -128,7 +136,7 @@ begin
         try
           LAppService.OnLog := procedure(const AMsg: string)
             begin
-              LogMessage(AMsg);
+              LLogger.Log(AMsg);
             end;
           
           LAppService.OnProgress := procedure(AMax, APosition: Integer)

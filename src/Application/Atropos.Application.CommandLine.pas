@@ -119,6 +119,18 @@ begin
       Inc(I);
       Continue;
     end;
+    if SameText(LArg, '--log') then
+    begin
+      if I + 1 >= Length(AArgs) then
+      begin
+        Result.ErrorMessage := 'Missing value after --log.';
+        Exit;
+      end;
+      Inc(I);
+      Result.Config.LogFilePath := AArgs[I];
+      Inc(I);
+      Continue;
+    end;
     if SameText(LArg, '--help') or SameText(LArg, '-h') or
       SameText(LArg, '/?') then
     begin
