@@ -14,6 +14,7 @@ type
     FExportHTML: Boolean;
     FExportTXT: Boolean;
     FOutputDirectory: string;
+    FLogFilePath: string;
     FDryRun: Boolean;
     FBuildTargets: TArray<TBuildTarget>;
   public
@@ -23,6 +24,7 @@ type
     property ExportHTML: Boolean read FExportHTML write FExportHTML;
     property ExportTXT: Boolean read FExportTXT write FExportTXT;
     property OutputDirectory: string read FOutputDirectory write FOutputDirectory;
+    property LogFilePath: string read FLogFilePath write FLogFilePath;
     property DryRun: Boolean read FDryRun write FDryRun;
     property BuildTargets: TArray<TBuildTarget> read FBuildTargets;
 
@@ -44,6 +46,7 @@ begin
   Result.FExportHTML := False;
   Result.FExportTXT := False;
   Result.FOutputDirectory := '';
+  Result.FLogFilePath := '';
   Result.FDryRun := False;
   Result.FBuildTargets := [];
 end;

@@ -15,6 +15,7 @@ AtroposCLI.exe -dproj <file.dproj> [options]
 | `--dry-run` | Analyze and report candidates without modifying source files. |
 | `--target <configuration\|platform>` | Validate a target before and after processing; repeat to create a matrix. |
 | `--debug` | Enable detailed diagnostics. |
+| `--log <file>` | Write the persistent UTF-8 execution log to a specific file. By default, logs are stored under `%LOCALAPPDATA%\Atropos\Logs`. |
 | `--help`, `-h`, `/?` | Display help. |
 
 Without `--output`, requested reports are written next to the project. The text summary is also printed to the console without `-txt`.

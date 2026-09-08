@@ -40,6 +40,7 @@ type
     DelphiVersion: string;
     ResolvedInlineHintsCount: Integer;
     InlineHints: TArray<TInlineHint>;
+    DiagnosticOutput: string;
   end;
 
   ILogger = interface

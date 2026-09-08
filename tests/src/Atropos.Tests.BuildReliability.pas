@@ -142,6 +142,8 @@ type
     [Test]
     procedure FailedBaselineStopsBeforeProcessingOrWriting;
     [Test]
+    procedure DebugFailureLogsCompleteCompilerOutput;
+    [Test]
     procedure UnexpectedExceptionTriggersRollback;
     [Test]
     procedure CompilerErrorTextFailsEvenWithZeroExitCode;
@@ -375,6 +377,7 @@ begin
   Result := Default(TBuildMetrics);
   Result.Success := False;
   Result.ErrorMessage := 'Baseline failed';
+  Result.DiagnosticOutput := 'primary compiler error context';
 end;
 
 function TFailingBuildService.BuildProjectForTarget(const AProjectPath: string;
@@ -515,6 +518,33 @@ begin
   Assert.AreEqual(1, LMetrics.Warnings);
   Assert.AreEqual(1, Integer(Length(LMetrics.InlineHints)));
   Assert.AreEqual('System.SysUtils', LMetrics.InlineHints[0].UnitNeeded);
+  Assert.AreEqual(LOutput, LMetrics.DiagnosticOutput);
+end;
+
+procedure TBuildReliabilityTests.DebugFailureLogsCompleteCompilerOutput;
+var
+  LApplicationService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+  LOutput: string;
+begin
+  LConfig := TToolConfig.Default;
+  LConfig.EnableDebug := True;
+  LApplicationService := TProjectCleanerAppService.Create(
+    TProjectParserSpy.Create, TASTParserStub.Create, TFileServiceSpy.Create,
+    TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
+    TExternalResolverStub.Create, TFailingBuildService.Create, LConfig);
+  try
+    LApplicationService.OnLog :=
+      procedure(const AMessage: string)
+      begin
+        LOutput := LOutput + AMessage + sLineBreak;
+      end;
+    Assert.IsFalse(LApplicationService.Execute('Project.dproj'));
+    Assert.Contains(LOutput, 'DEBUG: Complete compiler output');
+    Assert.Contains(LOutput, 'primary compiler error context');
+  finally
+    LApplicationService.Free;
+  end;
 end;
 
 procedure TBuildReliabilityTests.MissingDelphiEnvironmentFailsBuildGracefully;

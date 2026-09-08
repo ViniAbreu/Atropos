@@ -28,7 +28,8 @@ type
 
 implementation
 uses System.SysUtils, System.IOUtils, Atropos.Application.Factory,
-  Atropos.Application.AppService, Atropos.Application.CommandLine;
+  Atropos.Application.AppService, Atropos.Application.CommandLine,
+  Atropos.Adapters.Logger;
 
 class procedure TCLIApp.ShowUsage(const AOutput: TCLIOutput);
 begin
@@ -43,6 +44,7 @@ begin
   AOutput('  --dry-run  Report candidates without modifying source files');
   AOutput('  --target   Build target as Configuration|Platform; may be repeated');
   AOutput('  --debug    Enable verbose debug logging');
+  AOutput('  --log FILE Persistent log file (local application data by default)');
   AOutput('  --help     Show this help');
 end;
 
@@ -60,10 +62,20 @@ class function TCLIApp.DefaultExecute(const AProjectPath: string;
   const AConfig: TToolConfig; const AOnLog: TCLIOutput): Boolean;
 var
   LAppService: TProjectCleanerAppService;
+  LLogger: ILogger;
+  LPersistentLogger: TAppLogger;
 begin
+  LPersistentLogger := TAppLogger.CreatePersistent(AOnLog,
+    AConfig.LogFilePath);
+  LLogger := LPersistentLogger;
+  LLogger.Log('Log file: ' + LPersistentLogger.FilePath);
   LAppService := TAppServiceFactory.CreateDefault(AConfig);
   try
-    LAppService.OnLog := AOnLog;
+    LAppService.OnLog :=
+      procedure(const AMessage: string)
+      begin
+        LLogger.Log(AMessage);
+      end;
     Result := LAppService.Execute(AProjectPath);
   finally
     LAppService.Free;

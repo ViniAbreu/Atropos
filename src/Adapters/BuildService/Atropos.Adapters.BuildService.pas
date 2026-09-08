@@ -213,6 +213,7 @@ var
   LProjDir: string;
 begin
   Result := Default(TBuildMetrics);
+  Result.DiagnosticOutput := AOutput;
   LProjDir := TPath.GetDirectoryName(AProjectPath);
   
   Result.Hints := 0;
