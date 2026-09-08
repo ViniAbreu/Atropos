@@ -23,6 +23,8 @@ type
 
   TBuildOutputParser = class
   private
+    class function ContainsBuildError(const AOutput: string): Boolean; static;
+    class function GetBuildError(const AOutput: string): string; static;
     class function GetExecutableDirectory(const AOutput,
       AProjectPath: string): string; static;
   public
@@ -242,14 +244,9 @@ begin
   end;
 
   Result.Success := (AExitCode = 0) and
-    not (TRegEx.IsMatch(AOutput, 'Build FAILED\.') or TRegEx.IsMatch(AOutput, '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\]'));
+    not ContainsBuildError(AOutput);
   if not Result.Success then
-  begin
-    LMatch := TRegEx.Match(AOutput, '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\][^\r\n]+');
-    Result.ErrorMessage := 'Unknown compilation error.';
-    if LMatch.Success then
-      Result.ErrorMessage := LMatch.Value;
-  end;
+    Result.ErrorMessage := GetBuildError(AOutput);
 
   LMatch := TRegEx.Match(AOutput, '(?:Time Elapsed|Elapsed time:)\s*([0-9:\.]+)');
   if LMatch.Success then
@@ -261,6 +258,38 @@ begin
   Result.ExeSizeBytes := 0;
   if TFile.Exists(LExePath) then
     Result.ExeSizeBytes := TFile.GetSize(LExePath);
+end;
+
+class function TBuildOutputParser.ContainsBuildError(
+  const AOutput: string): Boolean;
+begin
+  Result := TRegEx.IsMatch(AOutput, 'Build FAILED\.', [roIgnoreCase]);
+  if Result then
+    Exit;
+  Result := TRegEx.IsMatch(AOutput,
+    '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\]', [roIgnoreCase]);
+  if Result then
+    Exit;
+  Result := TRegEx.IsMatch(AOutput,
+    '^.*\berror\s+[A-Z]+[0-9]+\s*:[^\r\n]*$',
+    [roIgnoreCase, roMultiLine]);
+end;
+
+class function TBuildOutputParser.GetBuildError(
+  const AOutput: string): string;
+var
+  LMatch: TMatch;
+begin
+  LMatch := TRegEx.Match(AOutput,
+    '\[dcc[a-zA-Z0-9]* (Error|Fatal Error)\][^\r\n]+', [roIgnoreCase]);
+  if LMatch.Success then
+    Exit(LMatch.Value.Trim);
+  LMatch := TRegEx.Match(AOutput,
+    '^.*\berror\s+[A-Z]+[0-9]+\s*:[^\r\n]*$',
+    [roIgnoreCase, roMultiLine]);
+  if LMatch.Success then
+    Exit(LMatch.Value.Trim);
+  Result := 'Unknown compilation error.';
 end;
 
 class function TBuildOutputParser.GetExecutableDirectory(const AOutput,
