@@ -14,6 +14,7 @@ $msbuild = "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
 if (-not (Test-Path -LiteralPath $rsvars)) { throw "RAD Studio environment not found: $rsvars" }
 
 & (Join-Path $PSScriptRoot 'test-documentation.ps1')
+& (Join-Path $PSScriptRoot 'test-release.ps1')
 & (Join-Path $PSScriptRoot 'test-architecture-guard.ps1')
 & (Join-Path $PSScriptRoot 'test-architecture.ps1')
 
