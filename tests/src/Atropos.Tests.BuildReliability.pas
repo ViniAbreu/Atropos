@@ -162,6 +162,8 @@ type
     [Test]
     procedure Win32ProcessRunnerCapturesOutputAndExitCode;
     [Test]
+    procedure Win32ProcessRunnerDoesNotWaitForInheritedPipeToClose;
+    [Test]
     procedure BuildTimeoutReturnsSpecificFailure;
     [Test]
     procedure Win32ProcessRunnerTerminatesTimedOutProcess;
@@ -823,6 +825,44 @@ begin
   Assert.IsTrue(LOutput.Contains('runner-output'));
   Assert.AreEqual(Cardinal(7), LExitCode);
   Assert.IsFalse(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.Win32ProcessRunnerDoesNotWaitForInheritedPipeToClose;
+var
+  LRunner: IBuildProcessRunner;
+  LOutput: string;
+  LScriptPath: string;
+  LCommand: string;
+  LExitCode: Cardinal;
+  LTimedOut: Boolean;
+  LCancelled: Boolean;
+  LStartTick: UInt64;
+  LElapsedMs: UInt64;
+begin
+  LScriptPath := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString + '.cmd');
+  TFile.WriteAllText(LScriptPath,
+    '@echo off' + sLineBreak +
+    'start "" /b cmd.exe /d /c "ping 127.0.0.1 -n 6 ^>nul"' + sLineBreak +
+    'echo parent-output' + sLineBreak +
+    'exit /b 0');
+  try
+    LCommand := '"' + TPath.Combine(GetEnvironmentVariable('WINDIR'),
+      'System32\cmd.exe') + '" /d /c ""' + LScriptPath + '""';
+    LRunner := TWin32BuildProcessRunner.Create;
+    LStartTick := GetTickCount64;
+    Assert.IsTrue(LRunner.Execute(LCommand, 10000, nil, LOutput,
+      LExitCode, LTimedOut, LCancelled));
+    LElapsedMs := GetTickCount64 - LStartTick;
+    Assert.IsTrue(LOutput.Contains('parent-output'));
+    Assert.AreEqual(Cardinal(0), LExitCode);
+    Assert.IsFalse(LTimedOut);
+    Assert.IsFalse(LCancelled);
+    Assert.IsTrue(LElapsedMs < 3000,
+      Format('Runner waited %d ms for a descendant-owned pipe.', [LElapsedMs]));
+  finally
+    if TFile.Exists(LScriptPath) then
+      TFile.Delete(LScriptPath);
+  end;
 end;
 
 procedure TBuildReliabilityTests.BuildTimeoutReturnsSpecificFailure;
