@@ -85,6 +85,7 @@ modules/
 # Code coverage reports
 **/UsesCleaner/
 tests/coverage/
+artifacts/
 Delphi-Code-Coverage-Debug.log
 *.html
 *.xml

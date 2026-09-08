@@ -1,0 +1,80 @@
+name: Reproducible release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version without the v prefix
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-and-publish:
+    runs-on: [self-hosted, Windows, Delphi]
+    timeout-minutes: 40
+    env:
+      BDS_VERSION: '23.0'
+      MINIMUM_LINE_COVERAGE: '85'
+    steps:
+      - name: Check out tagged source and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Resolve release version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          $version = $env:INPUT_VERSION
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $version = $env:GITHUB_REF_NAME.Substring(1)
+          }
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Build reproducible packages
+        shell: pwsh
+        run: |
+          ./scripts/build-release.ps1 `
+            -Version $env:RELEASE_VERSION `
+            -BdsVersion $env:BDS_VERSION
+
+      - name: Validate configured coverage tool
+        shell: pwsh
+        run: |
+          if (-not $env:DELPHI_CODE_COVERAGE) {
+            throw 'Set DELPHI_CODE_COVERAGE on the self-hosted runner.'
+          }
+
+      - name: Run complete quality gate
+        shell: pwsh
+        run: |
+          ./tests/run-quality-gates.ps1 `
+            -BdsVersion $env:BDS_VERSION `
+            -CodeCoveragePath $env:DELPHI_CODE_COVERAGE `
+            -MinimumLineCoverage $env:MINIMUM_LINE_COVERAGE
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Atropos-${{ env.RELEASE_VERSION }}
+          path: artifacts/release/
+          if-no-files-found: error
+
+      - name: Publish tagged GitHub release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = Get-ChildItem -LiteralPath artifacts/release -File |
+            Sort-Object Name | ForEach-Object { $_.FullName }
+          gh release create $env:GITHUB_REF_NAME $assets `
+            --verify-tag --generate-notes `
+            --title "Atropos $env:RELEASE_VERSION"
