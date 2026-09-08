@@ -6,6 +6,8 @@ uses
   System.SysUtils;
 
 type
+  TLogEvent = reference to procedure(const AMsg: string);
+
   TCancellationCheck = reference to function: Boolean;
 
   TBuildTarget = record

@@ -104,7 +104,9 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="src\Atropos.Tests.Sample.pas"/>
+        <DCCReference Include="src\Atropos.Tests.Presentation.pas"/>
+        <DCCReference Include="..\src\CLI\Atropos.App.CLI.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.Factory.pas"/>
         <DCCReference Include="src\Atropos.Tests.Domain.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Config.pas"/>
@@ -132,6 +134,7 @@
         <DCCReference Include="..\src\Application\Atropos.Application.ExecutionConfig.pas"/>
         <DCCReference Include="src\Atropos.Tests.ExecutionConfig.pas"/>
         <DCCReference Include="..\src\Application\Atropos.Application.ExecutionLifecycle.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.ExecutionPresentation.pas"/>
         <DCCReference Include="src\Atropos.Tests.ExecutionLifecycle.pas"/>
         <DCCReference Include="..\src\Application\Atropos.Application.CommandLine.pas"/>
         <DCCReference Include="src\Atropos.Tests.CommandLine.pas"/>

@@ -10,7 +10,6 @@ uses
 
 type
   TProgressEvent = reference to procedure(AMax, APosition: Integer);
-  TLogEvent = reference to procedure(const AMsg: string);
 
   TProjectCleanerAppService = class
   private
