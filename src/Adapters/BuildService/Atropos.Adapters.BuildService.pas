@@ -2,7 +2,7 @@
 
 interface
 uses
-  Atropos.Core.Ports;
+  Atropos.Core.Ports, System.Classes, Winapi.Windows;
 
 type
   IBuildProcessRunner = interface
@@ -13,6 +13,8 @@ type
   end;
 
   TWin32BuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
+  private
+    procedure DrainAvailableOutput(AReadPipe: THandle; AOutputStream: TStream);
   public
     function Execute(const ACommand: string; ATimeoutMs: Cardinal;
       const AShouldCancel: TCancellationCheck; out AOutput: string;
@@ -44,7 +46,7 @@ type
   end;
 
 implementation
-uses System.Classes, System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions, Winapi.Windows,
+uses System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions,
   System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
@@ -69,9 +71,6 @@ var
   LWritePipe: THandle;
   LStartupInfo: TStartupInfo;
   LProcessInfo: TProcessInformation;
-  LBuffer: array[0..4095] of AnsiChar;
-  LBytesRead: DWORD;
-  LBytesAvailable: DWORD;
   LOutputStream: TStringStream;
   LMutableCmd: string;
   LStartTick: UInt64;
@@ -137,13 +136,7 @@ begin
         LStartTick := GetTickCount64;
         repeat
         begin
-          while PeekNamedPipe(LReadPipe, nil, 0, nil, @LBytesAvailable, nil) and
-            (LBytesAvailable > 0) do
-          begin
-            if not ReadFile(LReadPipe, LBuffer, Min(Cardinal(SizeOf(LBuffer) - 1), LBytesAvailable), LBytesRead, nil) then
-              Break;
-            LOutputStream.WriteBuffer(LBuffer, LBytesRead);
-          end;
+          DrainAvailableOutput(LReadPipe, LOutputStream);
           LWaitResult := WaitForSingleObject(LProcessInfo.hProcess, 10);
           if LWaitResult = WAIT_OBJECT_0 then
             Break;
@@ -163,8 +156,7 @@ begin
           end;
         end
         until False;
-        while ReadFile(LReadPipe, LBuffer, SizeOf(LBuffer) - 1, LBytesRead, nil) and (LBytesRead > 0) do
-          LOutputStream.WriteBuffer(LBuffer, LBytesRead);
+        DrainAvailableOutput(LReadPipe, LOutputStream);
         AOutput := LOutputStream.DataString;
       finally
         LOutputStream.Free;
@@ -182,6 +174,29 @@ begin
     if LWritePipe <> 0 then CloseHandle(LWritePipe);
     CloseHandle(LReadPipe);
   end;
+end;
+
+procedure TWin32BuildProcessRunner.DrainAvailableOutput(AReadPipe: THandle;
+  AOutputStream: TStream);
+const
+  BufferSize = 4096;
+var
+  LBuffer: array[0..BufferSize - 1] of AnsiChar;
+  LBytesAvailable: DWORD;
+  LBytesRead: DWORD;
+begin
+  repeat
+    if not PeekNamedPipe(AReadPipe, nil, 0, nil, @LBytesAvailable, nil) then
+      Exit;
+    if LBytesAvailable = 0 then
+      Exit;
+    if not ReadFile(AReadPipe, LBuffer, Min(DWORD(BufferSize), LBytesAvailable),
+      LBytesRead, nil) then
+      Exit;
+    if LBytesRead = 0 then
+      Exit;
+    AOutputStream.WriteBuffer(LBuffer, LBytesRead);
+  until False;
 end;
 
 class function TBuildOutputParser.Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics;
