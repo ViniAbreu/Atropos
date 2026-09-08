@@ -83,6 +83,7 @@ type
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses,
       AMovedUses, APreservedAmbiguities: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
+    procedure AddWarning(const AWarning: string);
     procedure SetAnalysisInfo(const AProjectName: string; AAnalysisTimeMs: Int64; AUnitsAnalyzed, ASearchPaths: Integer);
     function GetReportContentTXT: string;
     function GetReportContentHTML: string;
@@ -91,6 +92,7 @@ type
   IExternalUnitResolver = interface
     ['{946BA138-661C-4B6A-91C9-57BAE3DB3D98}']
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
+    function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
 

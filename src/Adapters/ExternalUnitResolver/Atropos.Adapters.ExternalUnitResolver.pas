@@ -13,16 +13,19 @@ type
     FDelphiPath: string;
     FProjectBasePath: string;
     FUnitPathCache: TDictionary<string, string>;
+    FWarnings: TList<string>;
+    FLogger: ILogger;
     FIsCacheBuilt: Boolean;
-    
+    procedure AddWarning(const AMessage: string);
     procedure BuildCache;
     procedure ScanDirectoryForUnits(const ADirectory: string; ARecursive: Boolean);
     function ResolvePath(const ABasePath, ARelativePath: string): string;
   public
-    constructor Create(const AASTParser: IASTParser);
+    constructor Create(const AASTParser: IASTParser; const ALogger: ILogger = nil);
     destructor Destroy; override;
     
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, AProjectBasePath: string);
+    function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
 
@@ -30,10 +33,13 @@ implementation
 uses System.IOUtils,
   System.SysUtils;
 
-constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser);
+constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser;
+  const ALogger: ILogger);
 begin
   FASTParser := AASTParser;
+  FLogger := ALogger;
   FUnitPathCache := TDictionary<string, string>.Create;
+  FWarnings := TList<string>.Create;
   FIsCacheBuilt := False;
 end;
 
@@ -43,13 +49,30 @@ begin
   FDelphiPath := ADelphiPath;
   FProjectBasePath := AProjectBasePath;
   FUnitPathCache.Clear;
+  FWarnings.Clear;
   FIsCacheBuilt := False;
 end;
 
 destructor TExternalUnitResolverAdapter.Destroy;
 begin
+  FWarnings.Free;
   FUnitPathCache.Free;
   inherited;
+end;
+
+procedure TExternalUnitResolverAdapter.AddWarning(const AMessage: string);
+var
+  LWarning: string;
+begin
+  LWarning := 'External unit resolver: ' + AMessage;
+  FWarnings.Add(LWarning);
+  if Assigned(FLogger) then
+    FLogger.Log('WARNING: ' + LWarning);
+end;
+
+function TExternalUnitResolverAdapter.GetWarnings: TArray<string>;
+begin
+  Result := FWarnings.ToArray;
 end;
 
 function TExternalUnitResolverAdapter.ResolvePath(const ABasePath, ARelativePath: string): string;
@@ -71,7 +94,10 @@ var
   LSearchOption: TSearchOption;
 begin
   if not TDirectory.Exists(ADirectory) then
+  begin
+    AddWarning('directory not found: ' + ADirectory);
     Exit;
+  end;
 
   LSearchOption := TSearchOption.soTopDirectoryOnly;
   if ARecursive then
@@ -85,7 +111,9 @@ begin
         FUnitPathCache.Add(LFileName, LFile);
     end;
   except
-    
+    on E: Exception do
+      AddWarning(Format('failed to scan directory %s: %s', [ADirectory,
+        E.Message]));
   end;
 end;
 
@@ -103,7 +131,9 @@ begin
       LResolvedPath := ResolvePath(FProjectBasePath, LPath);
       ScanDirectoryForUnits(LResolvedPath, False);
     except
-      
+      on E: Exception do
+        AddWarning(Format('failed to resolve search path %s: %s', [LPath,
+          E.Message]));
     end;
   end;
 
@@ -114,7 +144,8 @@ begin
       ScanDirectoryForUnits(LResolvedPath, True);
     end;
   except
-    
+    on E: Exception do
+      AddWarning('failed to scan the Delphi source directory: ' + E.Message);
   end;
   
   FIsCacheBuilt := True;
@@ -149,7 +180,8 @@ begin
       end;
     except
       on E: Exception do
-        Writeln('WARNING: Failed to parse external unit ', AUnitName, ' at ', LFilePath, ' - Error: ', E.Message);
+        AddWarning(Format('failed to parse unit %s at %s: %s', [AUnitName,
+          LFilePath, E.Message]));
     end;
   end;
 end;

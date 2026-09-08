@@ -60,9 +60,11 @@ type
     AddUnitCallCount: Integer;
     AddMetricsCallCount: Integer;
     SetInfoCallCount: Integer;
+    WarningCallCount: Integer;
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses,
       AMovedUses, APreservedAmbiguities: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
+    procedure AddWarning(const AWarning: string);
     procedure SetAnalysisInfo(const AProjectName: string; AAnalysisTimeMs: Int64; AUnitsAnalyzed, ASearchPaths: Integer);
     function GetReportContentTXT: string;
     function GetReportContentHTML: string;
@@ -91,7 +93,9 @@ type
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
   public
     ResolveKnownUnits: Boolean;
+    Warnings: TArray<string>;
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string); virtual;
+    function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
   end;
 
@@ -145,6 +149,8 @@ type
     procedure MissingDelphiEnvironmentFailsBuildGracefully;
     [Test]
     procedure HealthyProjectWithoutUnitsCommitsWithoutFinalBuild;
+    [Test]
+    procedure ResolverWarningsReachApplicationReport;
     [Test]
     procedure FailedFinalBuildRestoresModifiedFiles;
     [Test]
@@ -280,6 +286,11 @@ begin
   Inc(AddMetricsCallCount);
 end;
 
+procedure TReportGeneratorStub.AddWarning(const AWarning: string);
+begin
+  Inc(WarningCallCount);
+end;
+
 procedure TReportGeneratorStub.SetAnalysisInfo(const AProjectName: string; AAnalysisTimeMs: Int64; AUnitsAnalyzed, ASearchPaths: Integer);
 begin
   Inc(SetInfoCallCount);
@@ -324,6 +335,11 @@ end;
 
 procedure TExternalResolverStub.Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
 begin
+end;
+
+function TExternalResolverStub.GetWarnings: TArray<string>;
+begin
+  Result := Warnings;
 end;
 
 function TExternalResolverStub.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
@@ -825,6 +841,33 @@ begin
   Assert.IsTrue(LOutput.Contains('runner-output'));
   Assert.AreEqual(Cardinal(7), LExitCode);
   Assert.IsFalse(LTimedOut);
+end;
+
+procedure TBuildReliabilityTests.ResolverWarningsReachApplicationReport;
+var
+  LProjectParser: TProjectParserSpy;
+  LFileService: TFileServiceSpy;
+  LReportGenerator: TReportGeneratorStub;
+  LResolver: TExternalResolverStub;
+  LApplicationService: TProjectCleanerAppService;
+  LConfig: TToolConfig;
+begin
+  LProjectParser := TProjectParserSpy.Create;
+  LFileService := TFileServiceSpy.Create;
+  LReportGenerator := TReportGeneratorStub.Create;
+  LResolver := TExternalResolverStub.Create;
+  LResolver.Warnings := ['External unit resolver: directory not found'];
+  LConfig := TToolConfig.Default;
+  LApplicationService := TProjectCleanerAppService.Create(
+    LProjectParser, TASTParserStub.Create, LFileService, LReportGenerator,
+    TDelphiEnvironmentStub.Create, LResolver, TSuccessfulBuildService.Create,
+    LConfig);
+  try
+    Assert.IsTrue(LApplicationService.Execute('Project.dproj'));
+    Assert.AreEqual(1, LReportGenerator.WarningCallCount);
+  finally
+    LApplicationService.Free;
+  end;
 end;
 
 procedure TBuildReliabilityTests.Win32ProcessRunnerDoesNotWaitForInheritedPipeToClose;
