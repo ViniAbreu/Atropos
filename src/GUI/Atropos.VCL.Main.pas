@@ -16,7 +16,7 @@ uses
   Vcl.Controls,
   Atropos.Application.AppService,
   Atropos.Application.ExecutionConfig,
-  Atropos.Application.ExecutionLifecycle,
+  Atropos.Application.ExecutionPresentation,
   Atropos.Application.Factory,
   Atropos.Core.Config;
 
@@ -38,8 +38,8 @@ type
     procedure RunButtonClick(Sender: TObject);
     procedure CancelButtonClick(Sender: TObject);
   private
-    FExecutionLifecycle: TExecutionLifecycle;
-    procedure SetExecutionControlsEnabled(AEnabled: Boolean);
+    FExecutionPresentation: TExecutionPresentation;
+    procedure ApplyExecutionState;
     procedure LogMessage(const AMsg: string);
     procedure UpdateProgress(AMax, APosition: Integer);
     procedure ExecuteProcess(const ADprojPath: string; const AConfig: TToolConfig);
@@ -59,28 +59,31 @@ implementation
 constructor TMainForm.Create(AOwner: TComponent);
 begin
   inherited;
-  FExecutionLifecycle := TExecutionLifecycle.Create;
+  FExecutionPresentation := TExecutionPresentation.Create;
+  ApplyExecutionState;
 end;
 
 destructor TMainForm.Destroy;
 begin
-  FExecutionLifecycle.Free;
+  FExecutionPresentation.Free;
   inherited;
 end;
 
 function TMainForm.CloseQuery: Boolean;
 begin
-  Result := FExecutionLifecycle.CanClose;
+  Result := FExecutionPresentation.CanClose;
   if not Result then
     MessageDlg('A análise ainda está em execução. Aguarde a conclusão antes de fechar o Atropos.',
       mtWarning, [mbOK], 0);
 end;
 
-procedure TMainForm.SetExecutionControlsEnabled(AEnabled: Boolean);
+procedure TMainForm.ApplyExecutionState;
 begin
-  RunButton.Enabled := AEnabled;
-  BrowseButton.Enabled := AEnabled;
-  CancelButton.Enabled := not AEnabled;
+  RunButton.Enabled := FExecutionPresentation.State.ControlsEnabled;
+  BrowseButton.Enabled := FExecutionPresentation.State.ControlsEnabled;
+  CancelButton.Enabled := FExecutionPresentation.State.CancelEnabled;
+  ExecutionProgressBar.Max := FExecutionPresentation.State.ProgressMaximum;
+  ExecutionProgressBar.Position := FExecutionPresentation.State.ProgressPosition;
 end;
 
 procedure TMainForm.BrowseButtonClick(Sender: TObject);
@@ -104,8 +107,8 @@ begin
   TThread.Queue(TThread.CurrentThread,
     procedure
     begin
-      ExecutionProgressBar.Max := AMax;
-      ExecutionProgressBar.Position := APosition;
+      FExecutionPresentation.UpdateProgress(AMax, APosition);
+      ApplyExecutionState;
     end);
 end;
 
@@ -120,7 +123,7 @@ begin
         LAppService := TAppServiceFactory.CreateDefault(AConfig,
           function: Boolean
           begin
-            Result := FExecutionLifecycle.IsCancellationRequested;
+            Result := FExecutionPresentation.IsCancellationRequested;
           end);
         try
           LAppService.OnLog := procedure(const AMsg: string)
@@ -144,16 +147,16 @@ begin
       TThread.Queue(TThread.CurrentThread,
         procedure
         begin
-          FExecutionLifecycle.Complete;
-          SetExecutionControlsEnabled(True);
+          FExecutionPresentation.Complete;
+          ApplyExecutionState;
         end);
     end).Start;
 end;
 
 procedure TMainForm.CancelButtonClick(Sender: TObject);
 begin
-  FExecutionLifecycle.RequestCancel;
-  CancelButton.Enabled := False;
+  FExecutionPresentation.RequestCancellation;
+  ApplyExecutionState;
   LogMemo.Lines.Add('Cancellation requested. Waiting for the current operation to stop...');
 end;
 
@@ -161,19 +164,19 @@ procedure TMainForm.RunButtonClick(Sender: TObject);
 var
   LConfig: TToolConfig;
 begin
-  if not FExecutionLifecycle.TryBegin then
+  if not FExecutionPresentation.TryBegin then
     Exit;
 
   if not FileExists(ProjectEdit.Text) then
   begin
-    FExecutionLifecycle.Complete;
+    FExecutionPresentation.Complete;
+    ApplyExecutionState;
     ShowMessage('Selecione um projeto válido!');
     Exit;
   end;
   
   LogMemo.Clear;
-  SetExecutionControlsEnabled(False);
-  ExecutionProgressBar.Position := 0;
+  ApplyExecutionState;
   
   LConfig := TExecutionConfigFactory.FromSelections(
     RemoveCheckBox.Checked,

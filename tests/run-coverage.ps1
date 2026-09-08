@@ -4,7 +4,9 @@ param(
     [string]$BdsVersion = '23.0',
     [string]$OutputDirectory = (Join-Path $PSScriptRoot 'coverage'),
     [ValidateRange(0, 100)]
-    [int]$MinimumLineCoverage = 85
+    [int]$MinimumLineCoverage = 85,
+    [ValidateRange(0, 100)]
+    [int]$MinimumUnitLineCoverage = 60
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,7 +29,10 @@ $units = @(
     'Atropos.Core.Domain', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
     'Atropos.Application.ExecutionLifecycle',
+    'Atropos.Application.ExecutionPresentation',
     'Atropos.Application.CommandLine',
+    'Atropos.Application.Factory', 'Atropos.App.CLI',
+    'Atropos.Adapters.Logger',
     'Atropos.Adapters.BuildService', 'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.FileTransaction',
@@ -35,7 +40,8 @@ $units = @(
     'Atropos.Adapters.DelphiAST'
 )
 $sourcePaths = @(
-    'src\Core\Domain', 'src\Core\Services', 'src\Application',
+    'src\Core\Domain', 'src\Core\Services', 'src\Application', 'src\CLI',
+    'src\Adapters\Logger',
     'src\Adapters\BuildService', 'src\Adapters\DelphiEnvironment',
     'src\Adapters\ExternalUnitResolver', 'src\Adapters\FileSystem',
     'src\Adapters\ProjectParser', 'src\Adapters\ReportGenerator',
@@ -56,4 +62,18 @@ Write-Host "Line coverage: $($lineCoverage.value)"
 $coveragePercent = [int]([regex]::Match($lineCoverage.value, '^\d+').Value)
 if ($coveragePercent -lt $MinimumLineCoverage) {
     throw "Line coverage $coveragePercent% is below the required $MinimumLineCoverage%."
+}
+
+$unitFailures = [System.Collections.Generic.List[string]]::new()
+foreach ($unit in $report.report.data.all.package) {
+    $unitLineCoverage = $unit.coverage | Where-Object { $_.type -eq 'line, %' }
+    $unitCoveragePercent = [int]([regex]::Match($unitLineCoverage.value, '^\d+').Value)
+    Write-Host "$($unit.name): $($unitLineCoverage.value)"
+    if ($unitCoveragePercent -lt $MinimumUnitLineCoverage) {
+        $unitFailures.Add("$($unit.name): $($unitLineCoverage.value)")
+    }
+}
+
+if ($unitFailures.Count -gt 0) {
+    throw "Unit coverage below $MinimumUnitLineCoverage%: $($unitFailures -join '; ')"
 }

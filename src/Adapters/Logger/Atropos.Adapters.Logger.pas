@@ -6,8 +6,6 @@ uses
   Atropos.Core.Ports;
 
 type
-  TLogEvent = reference to procedure(const AMsg: string);
-
   TAppLogger = class(TInterfacedObject, ILogger)
   private
     FOnLog: TLogEvent;
