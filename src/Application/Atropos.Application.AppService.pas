@@ -39,6 +39,7 @@ type
     procedure CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
     procedure RollbackChanges(const AErrorMessage: string);
     procedure GenerateReports(const AOutputDirectory: string);
+    procedure CollectProjectParserWarnings;
     procedure CollectResolverWarnings;
     function SetupEnvironment(const AFullPath, ABasePath: string): Integer;
     function CreateLogger: ILogger;
@@ -73,6 +74,17 @@ type
     constructor Create(const AOnLog: TLogEvent);
     procedure Log(const AMsg: string);
   end;
+
+procedure TProjectCleanerAppService.CollectProjectParserWarnings;
+var
+  LWarning: string;
+begin
+  for LWarning in FProjectParser.TakeWarnings do
+  begin
+    Log('WARNING: ' + LWarning);
+    FReportGen.AddWarning(LWarning);
+  end;
+end;
 
 procedure TProjectCleanerAppService.CollectResolverWarnings;
 var
@@ -381,6 +393,7 @@ begin
   Log('Loading dependencies... Please wait.');
   
   LSearchPathCount := SetupEnvironment(LFullPath, LBasePath);
+  CollectProjectParserWarnings;
   LMetricsBefore := RunBaselineBuild(LFullPath);
   if not LMetricsBefore.Success then
   begin
@@ -396,6 +409,7 @@ begin
   LModifier := TApplyUsesChanges.Create(FFileService, FConfig);
   try
     ProcessUnits(LBasePath, ADprojPath, LTotalRemoved, LTotalMoved, LUnitCount, LLogger, LContext, LAnalyzer, LModifier);
+    CollectProjectParserWarnings;
     CollectResolverWarnings;
     
     if (LTotalRemoved = 0) and (LTotalMoved = 0) then
