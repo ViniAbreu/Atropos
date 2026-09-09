@@ -26,6 +26,8 @@ Coverage instruments all testable Core, Application, CLI, and Adapter units. The
 
 Parser regression coverage includes Delphi source files encoded with a UTF-8 byte-order mark, including exact-size stream buffers. Atropos normalizes the source text before invoking the vendored parser so that encoding detection cannot read beyond the input buffer.
 
+The same adapter coverage exercises modern Delphi multiline string literals. Their contents are replaced with line-preserving placeholders for syntax analysis, preventing SQL or other embedded text from being interpreted as Delphi identifiers while keeping diagnostics aligned with the original source.
+
 Coverage only:
 
 ```powershell
