@@ -11,6 +11,7 @@ type
     FParser: IASTParser;
     FTestFile: string;
     procedure CreateMockPasFile;
+    procedure WriteUtf8BomFile(const ASource: string);
   public
     [Setup]
     procedure Setup;
@@ -23,6 +24,8 @@ type
     [Test]
     [TestCase('File not found exception', 'Should throw an exception if the specified file does not exist')]
     procedure Test_FileNotFound_ThrowsException;
+    [Test]
+    procedure Test_ParseUtf8BomFileAtExactBufferBoundary;
   end;
 
 implementation
@@ -45,6 +48,20 @@ begin
   finally
     LList.Free;
   end;
+end;
+
+procedure TDelphiASTAdapterTests.WriteUtf8BomFile(const ASource: string);
+var
+  LBytes: TBytes;
+  LPayload: TBytes;
+  LPreamble: TBytes;
+begin
+  LPayload := TEncoding.UTF8.GetBytes(ASource);
+  LPreamble := TEncoding.UTF8.GetPreamble;
+  SetLength(LBytes, Length(LPreamble) + Length(LPayload));
+  Move(LPreamble[0], LBytes[0], Length(LPreamble));
+  Move(LPayload[0], LBytes[Length(LPreamble)], Length(LPayload));
+  TFile.WriteAllBytes(FTestFile, LBytes);
 end;
 
 procedure TDelphiASTAdapterTests.Setup;
@@ -88,6 +105,28 @@ begin
     end,
     EASTParserException
   );
+end;
+
+procedure TDelphiASTAdapterTests.Test_ParseUtf8BomFileAtExactBufferBoundary;
+const
+  CFileSize = 57343;
+var
+  LPaddingLength: Integer;
+  LSource: string;
+  LTree: IUnitSyntaxTree;
+begin
+  LSource := 'unit Utf8BomUnit;' + sLineBreak +
+    'interface' + sLineBreak +
+    'implementation' + sLineBreak;
+  LPaddingLength := CFileSize - Length(TEncoding.UTF8.GetPreamble) -
+    Length(TEncoding.UTF8.GetBytes(LSource + '{}' + sLineBreak + 'end.'));
+  LSource := LSource + '{' + StringOfChar('x', LPaddingLength) + '}' +
+    sLineBreak + 'end.';
+  WriteUtf8BomFile(LSource);
+
+  Assert.AreEqual<Int64>(CFileSize, TFile.GetSize(FTestFile));
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.AreEqual('Utf8BomUnit', LTree.GetUnitName);
 end;
 
 initialization

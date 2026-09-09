@@ -3,6 +3,7 @@ unit Atropos.Adapters.DelphiAST;
 interface
 uses
   System.SysUtils,
+  System.IOUtils,
   System.Generics.Collections,
   Atropos.Core.Ports,
   DelphiAST.Classes,
@@ -43,25 +44,48 @@ type
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser)
+  private
+    function CreateSourceStream(const AFilePath: string): TStringStream;
   public
     function ParseFile(const AFilePath: string): IUnitSyntaxTree;
   end;
 
 implementation
 
+function TDelphiASTAdapter.CreateSourceStream(const AFilePath: string): TStringStream;
+var
+  LSource: string;
+begin
+  LSource := TFile.ReadAllText(AFilePath);
+  Result := TStringStream.Create(LSource, TEncoding.UTF8);
+end;
+
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
 var
+  LBuilder: TPasSyntaxTreeBuilder;
   LRoot: TSyntaxNode;
+  LSourceStream: TStringStream;
 begin
   if not FileExists(AFilePath) then
     raise EASTParserException.CreateFmt('File not found: %s', [AFilePath]);
 
   try
-    LRoot := TPasSyntaxTreeBuilder.Run(AFilePath);
-    if LRoot = nil then
-      raise EASTParserException.Create('Parser returned nil tree.');
-      
-    Result := TDelphiASTSyntaxTree.Create(AFilePath, LRoot);
+    LSourceStream := CreateSourceStream(AFilePath);
+    try
+      LBuilder := TPasSyntaxTreeBuilder.Create;
+      try
+        LBuilder.InitDefinesDefinedByCompiler;
+        LRoot := LBuilder.Run(LSourceStream);
+        if LRoot = nil then
+          raise EASTParserException.Create('Parser returned nil tree.');
+
+        Result := TDelphiASTSyntaxTree.Create(AFilePath, LRoot);
+      finally
+        LBuilder.Free;
+      end;
+    finally
+      LSourceStream.Free;
+    end;
   except
     on E: Exception do
       raise EASTParserException.CreateFmt('Error parsing file "%s": %s', [AFilePath, E.Message]);
