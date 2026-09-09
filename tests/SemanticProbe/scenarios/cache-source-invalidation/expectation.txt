@@ -1,0 +1,1 @@
+Nova exportacao aparece e exportacao removida deixa de resolver.

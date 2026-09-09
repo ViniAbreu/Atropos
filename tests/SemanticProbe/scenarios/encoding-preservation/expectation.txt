@@ -1,0 +1,1 @@
+Bytes fora do trecho editado e encoding original preservados.

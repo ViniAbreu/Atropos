@@ -1,0 +1,1 @@
+Restaurar exatamente os bytes originais apos falha.

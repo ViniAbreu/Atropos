@@ -1,0 +1,1 @@
+Alteracao no include invalida todos os fatos dependentes.

@@ -1,0 +1,1 @@
+Contexto efetivo inclui propriedades de imports.

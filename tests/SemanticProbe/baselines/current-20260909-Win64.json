@@ -1,0 +1,2292 @@
+{
+  "schemaVersion": 1,
+  "kind": "current-baseline",
+  "createdUtc": "2026-09-09T23:19:48.6007203Z",
+  "sourceSummary": "results/20260909-201938-500/summary.json",
+  "sourceSummarySha256": "175B0317795F0B5701A34903281EC0C8B60DAEB6C081554DA88BA3FEE24A8AFF",
+  "build": {
+    "schemaVersion": 1,
+    "createdUtc": "2026-09-09T23:19:37.9148329Z",
+    "repositoryCommit": "7c0fd88eb7e273d4cb63333c1c65be0c6c9adeac",
+    "delphiAstCommit": "38402535ad6018b981f08920836aac99b554cb86",
+    "workingTreeStatus": [
+      " M AtroposCLI.res",
+      " M AtroposVCL.res",
+      "M  docs/testing.md",
+      "A  tests/SemanticProbe/.gitattributes",
+      "A  tests/SemanticProbe/.gitignore",
+      "A  tests/SemanticProbe/Build-Probe.ps1",
+      "A  tests/SemanticProbe/Probe.Tools.ps1",
+      "A  tests/SemanticProbe/Probe.dpr",
+      "A  tests/SemanticProbe/Probe.dproj",
+      "A  tests/SemanticProbe/README.md",
+      "A  tests/SemanticProbe/Run-Probe.ps1",
+      "A  tests/SemanticProbe/baselines/current-20260909-Win32.json",
+      "A  tests/SemanticProbe/baselines/current-20260909-Win64.json",
+      "A  tests/SemanticProbe/baselines/research-20260909.json",
+      "A  tests/SemanticProbe/scenarios/ambiguity-across-sections/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/ambiguous-implementation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/ambiguous-interface/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/anonymous-parameter-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/array-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/as-type-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/attribute-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/both-lifecycle-calls/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/cache-context-isolation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/cache-context-isolation/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/cache-include-invalidation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/cache-include-invalidation/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/cache-source-invalidation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/cache-source-invalidation/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/cancellation-transaction/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/cancellation-transaction/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/case-insensitive/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/catalog.json",
+      "A  tests/SemanticProbe/scenarios/class-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/comments-not-usage/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/compiler-helper-precedence/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/compiler-helper-precedence/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/compiler-overload-binding/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/compiler-overload-binding/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/default-parameter/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/dfm-streaming-registration/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/dfm-streaming-registration/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/dotted-unit-call/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/dotted-unit-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/empty-unit/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/encoding-preservation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/encoding-preservation/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/escaped-string/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/explicit-cast/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/field-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/finalization-call/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/for-variable-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/generic-argument/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/generic-arity/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/generic-constraint/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/generic-implementation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/generic-nested/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/generic-parameter-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/generic-vs-plain/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/global-variable/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/helper-class-use/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/helper-export/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/helper-public-export/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/helper-string-use/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/helper-unrelated-receiver/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/helper-unused/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/if-defined/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/if-nested-expression/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/ifopt-rangecheck/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/implementation-constant/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/implementation-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/inactive-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/include-declaration/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/include-declaration/declarations.inc",
+      "A  tests/SemanticProbe/scenarios/include-nested/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/include-nested/sub/inner.inc",
+      "A  tests/SemanticProbe/scenarios/include-nested/sub/outer.inc",
+      "A  tests/SemanticProbe/scenarios/include-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/include-reference/code.inc",
+      "A  tests/SemanticProbe/scenarios/include-uses/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/include-uses/uses.inc",
+      "A  tests/SemanticProbe/scenarios/inherited-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/initialization-call/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/initialization-order/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/initialization-order/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/inline-define-off/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/inline-define-on/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/inline-undef/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/inline-variable-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/interface-ancestor/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/is-type-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-both-sections/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-finalizing-unit/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-implementation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-initializing-unit/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-legacy-init-unit/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-native-effects/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-return/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-signature/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/keep-transitive-effects/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/legacy-begin-call/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/local-procedure-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/local-type-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/local-variable-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/malformed-consumer/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/malformed-dependency/Broken.pas",
+      "A  tests/SemanticProbe/scenarios/malformed-dependency/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/method-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/missing-include/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/mixed-remove-move/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/move-call/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/namespace-prefix-resolution/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/namespace-prefix-resolution/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/nested-conditionals/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/nested-type-export/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/operator-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/package-dcu-only/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/package-dcu-only/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/parameter-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/platform-win32-win64/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/platform-win32-win64/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/pointer-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/private-field/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/procedural-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/procedure-address/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/project-define-debug-release/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/project-define-debug-release/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/project-imported-props/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/project-imported-props/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/project-in-path/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/project-in-path/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/providers/Probe.Namespace.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeAttributes.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeClassHelper.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeCollision.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeDep.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeFinalize.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeGeneric.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeHelpers.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeInit.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeLegacyInit.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeNested.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeOps.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeOther.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeOverloads.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbePlain.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeScoped.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeStringOverload.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeTransitive.pas",
+      "A  tests/SemanticProbe/scenarios/providers/ProbeUnscoped.pas",
+      "A  tests/SemanticProbe/scenarios/public-constant/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/public-inheritance/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/public-property/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/qualified-call/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/qualified-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/record-field/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/repeat-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/resolver-exact/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/resolver-missing-source/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/resolver-namespaced/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/resolver-not-recursive/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/resourcestring/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-absent-unit/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-all-items/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-case-insensitive/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-comment-keyword/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-comments-preserved/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-directive-preserved/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-dotted-boundary/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-empty-plan/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-first-item/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-last-item/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-line-comment/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-middle-item/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-move-disabled/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-move-existing-clause/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-move-new-clause/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-multiple-moves/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-only-item/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-prefix-boundary/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-remove-disabled/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-remove-implementation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-semicolon-comment/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rewrite-string-preserved/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rollback-build-failure/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rollback-build-failure/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/rtti-string-registration/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/rtti-string-registration/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/scale-references-10/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/scale-references-100/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/scale-references-1000/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/scale-references-5000/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/scoped-collision/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/scoped-export/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/scoped-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/sizeof-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/strings-not-usage/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/threadvar-type/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/type-alias/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unit-alias-resolution/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unit-alias-resolution/expectation.txt",
+      "A  tests/SemanticProbe/scenarios/unit-level-shadow/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unknown-unit/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unscoped-export/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unscoped-reference/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unterminated-string/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unused-both-sections/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unused-implementation/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/unused-interface/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/uses-word-in-string/Consumer.pas",
+      "A  tests/SemanticProbe/scenarios/with-reference/Consumer.pas",
+      "A  tests/SemanticProbe/src/Probe.Engine.pas",
+      "A  tests/SemanticProbe/src/Probe.Json.pas",
+      "A  tests/SemanticProbe/src/Probe.MemoryFile.pas",
+      "A  tests/SemanticProbe/tests/Runner.Tests.ps1"
+    ],
+    "configuration": "Base",
+    "toolchain": {
+      "compilerVersion": 36.0,
+      "pointerSize": 8,
+      "platform": "Win64"
+    },
+    "bdsPath": "C:\\Program Files (x86)\\Embarcadero\\Studio\\23.0",
+    "executableSha256": "4C27D0CF379F8C74120335B01D31337C7B03B64401EB5FF34E54375358FDB187",
+    "sourceHashes": [
+      {
+        "path": "src/Adapters/BuildService/Atropos.Adapters.BuildCapability.pas",
+        "sha256": "D1254EEDEC825AA28982AEEE4B5AAE2EFB1C1D492F992B6B983AFDA282C2B0CB"
+      },
+      {
+        "path": "src/Adapters/BuildService/Atropos.Adapters.BuildService.pas",
+        "sha256": "B004F8B7E62ADB8DA48DF1FAD3F583178CBE9C6EDE966948F11962C289D13B3B"
+      },
+      {
+        "path": "src/Adapters/DelphiAST/Atropos.Adapters.DelphiAST.pas",
+        "sha256": "3CA77DB310C60956447841621D0F964580A24C4AB4C7371EB746616C44F4C0B1"
+      },
+      {
+        "path": "src/Adapters/DelphiEnvironment/Atropos.Adapters.DelphiEnvironment.pas",
+        "sha256": "A6BFB7005BC18D0ABFEB0D20DA64BC17A91F514C6354B477E41EE024D75D2C75"
+      },
+      {
+        "path": "src/Adapters/Execution/Atropos.Adapters.ExecutionThread.pas",
+        "sha256": "214DA2BC9F5229BBC36FBA990FE73579238D5B21ADF6421524E3E2DDF75B70CE"
+      },
+      {
+        "path": "src/Adapters/ExternalUnitResolver/Atropos.Adapters.ExternalUnitResolver.pas",
+        "sha256": "1C26897EF53F102B37C418F6EBDDD2815B93EA85A9FF54998F6B69E726C35120"
+      },
+      {
+        "path": "src/Adapters/FileSystem/Atropos.Adapters.FileSystem.pas",
+        "sha256": "80DF3D9AED2A0E783FEDD5D9495C3A430E27A8283BA80EB53C854C699674414D"
+      },
+      {
+        "path": "src/Adapters/FileSystem/Atropos.Adapters.FileTransaction.pas",
+        "sha256": "E3B2260FE5BF700586884E410F15E1E7A0F4C8A4EAF4503E0A0C130511E3E3F3"
+      },
+      {
+        "path": "src/Adapters/Logger/Atropos.Adapters.Logger.pas",
+        "sha256": "A45554D817F9B56BE34E3DB6B719394FBC995585F3DA4977CDDF243A13A3BB2A"
+      },
+      {
+        "path": "src/Adapters/ProjectParser/Atropos.Adapters.ProjectParser.pas",
+        "sha256": "137F6AF1E530E64DB89F86225044A1D7D44A2C71A80E9B7AD2ADE935198C2FE2"
+      },
+      {
+        "path": "src/Adapters/ReportGenerator/Atropos.Adapters.ReportGenerator.pas",
+        "sha256": "B47E603888DCCF6BFA2FD6B26FFAC8A37BEC8F591D51BEB8F245A2B3EDC2C1A3"
+      },
+      {
+        "path": "src/Application/Atropos.Application.AppService.pas",
+        "sha256": "10DBE9A692EB63BE361A512550E6BAE3D158E70408E34DD8EDFF38DDD760F404"
+      },
+      {
+        "path": "src/Application/Atropos.Application.CommandLine.pas",
+        "sha256": "443F9008AC81F65BD9E17461A354CEA73F8FE4B697BD25B9551406B1CB8EF0A7"
+      },
+      {
+        "path": "src/Application/Atropos.Application.ExecutionConfig.pas",
+        "sha256": "A4AE4CC3FE737956BA5967A3351356CAAF486C883FD5978DA6A22E70A25DB77F"
+      },
+      {
+        "path": "src/Application/Atropos.Application.ExecutionLifecycle.pas",
+        "sha256": "B1FF9A165B6EB989AAB6BC3BCAEE3FE6050042EC44B4761BCB51C9CCCF2CFA57"
+      },
+      {
+        "path": "src/Application/Atropos.Application.ExecutionPresentation.pas",
+        "sha256": "549373F1821C979D3CA838CA608B8FB0C97541EDC5EB0530F619FFB87A2231FA"
+      },
+      {
+        "path": "src/Application/Atropos.Application.Factory.pas",
+        "sha256": "836AB63C21DB59C5B38E42C12F2A13DBB3F6FDE812E3ED11A18257C1929E8BB3"
+      },
+      {
+        "path": "src/CLI/Atropos.App.CLI.pas",
+        "sha256": "101018940B92ED819437EC29D4A5336E769E5F90DCB8DBEEB5D270B19B33A2A9"
+      },
+      {
+        "path": "src/Core/Domain/Atropos.Core.Config.pas",
+        "sha256": "BC81AB63802B831FE3E7A554A482DD26D0D707CC6A43F093D7FE581090FFE19F"
+      },
+      {
+        "path": "src/Core/Domain/Atropos.Core.Domain.pas",
+        "sha256": "7820B19254D7B83B3B734DDE93D5CCACF80AD13ADE21707378B83282FC07B72F"
+      },
+      {
+        "path": "src/Core/Ports/Atropos.Core.Ports.pas",
+        "sha256": "521CE25A1205D380809B502A9EFE8E0D733102BDBD0A3FD6A1B53E91164A2600"
+      },
+      {
+        "path": "src/Core/Services/Atropos.Core.Modifier.pas",
+        "sha256": "4F7D3E846FF42F084DE6D3E84FEB7C2F8F91C1A1D1D27106BBD1FD4AA17F1DDF"
+      },
+      {
+        "path": "src/GUI/Atropos.VCL.Main.pas",
+        "sha256": "F0E506D476E21C37BA7D72A0BB8408A0836F3FFB8105E406380AECF60905FB11"
+      },
+      {
+        "path": "tests/SemanticProbe/Probe.dpr",
+        "sha256": "694B03F5AFD715FE8C51A15F6415CD1A4FAC98FE0BDFE491B1DAACBA504A05AE"
+      },
+      {
+        "path": "tests/SemanticProbe/Probe.dproj",
+        "sha256": "8AE49D0D5F6878866F92F9B8BC8D8258A259FD6D262978116AE2041C0F809D62"
+      },
+      {
+        "path": "tests/SemanticProbe/src/Probe.Engine.pas",
+        "sha256": "4C8348C60B800ED2C572433EE5A833E5F5639DF14BBF4C238A98505C76CD51FA"
+      },
+      {
+        "path": "tests/SemanticProbe/src/Probe.Json.pas",
+        "sha256": "711146916CEB58CF61D4E4F65BC8F1DE9C8A78065C141D49E4264634A9F43AFD"
+      },
+      {
+        "path": "tests/SemanticProbe/src/Probe.MemoryFile.pas",
+        "sha256": "A9974533B028BD438CDE0E87FF1FAB3465A3D496FB6D274A38289A55022A0F32"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Classes.pas",
+        "sha256": "E33BFFD15EF3530E7E780865C83CA8E4E6DCBBF8609BC108571817D91377DBD2"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Consts.pas",
+        "sha256": "623F7DF1FB190378E19279D80EA72994810C53A4C69CF89DE0228AC4A25F2D96"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.pas",
+        "sha256": "77D7FC95AF7EDF9C298B9ED1FE0400ED40AE81C20A49527280EAD8524032C735"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.ProjectIndexer.pas",
+        "sha256": "570E55882EA8811C32A6DA52E5CB677AC2F3AB785B3BC68381FA84B6E4B72476"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Serialize.Binary.pas",
+        "sha256": "EEF0B13437AE57D01B84AB016E9ED04A487BDF97439805AEBE7052D4B0A52AA1"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.SimpleParserEx.pas",
+        "sha256": "9F6D463227527B23D2FDDC39FD9A457591A358C2A60438E4D9F89E3685EE48A5"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Writer.pas",
+        "sha256": "5429780C6081788EFD485A044EC5CF9FA3D0FB030634998099DC615FD443A1CA"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Diagnostics.pas",
+        "sha256": "ABB5AC92671A84020CA87EAAF3EF76D22DD409E65398F5FB6FFEB68DDC37E698"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/FPC_StringBuilder/FPC_StringBuilder.pas",
+        "sha256": "E7DB5E23EB0216DD9A9C2D7E685D75435FA9022571A172428BED8E64BC37F628"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/FPC_StringBuilder/Src/StringBuilderUnit.pas",
+        "sha256": "4A63362BC7CA3976FCF313B53A41F5578AB1BEA61F22F649DAF82FB8C35D062F"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.collections.pas",
+        "sha256": "C1EF69A4DF6481705891EAD6D42E7F8697CECFAF8060E13E2969DB2657156CA7"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.defaults.pas",
+        "sha256": "B0F874E4F04B49FDE70A66E8247CA142513D04B7B555681BB3EB0D030AEBAFF5"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.hashes.pas",
+        "sha256": "6E50C5123456F55040D762B39BDFB6E4B716F8ED7CBBDCB7926333D083310614"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.helpers.pas",
+        "sha256": "46FEF8281E63E2ED52DF606C871E7B98B30AFDFA2D21036D9C9AD34BE0F69EA8"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.memoryexpanders.pas",
+        "sha256": "B113195BF7DFCC29DAB3FF4D6DC01E37648C42F979E2585A374C14F2CF6A5C4C"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.strings.pas",
+        "sha256": "C2097DF68318A9F8CEE4D656513F1D3DD212B6703D001BC4636F5A5299E1EA1A"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/inc/generics.dictionaries.inc",
+        "sha256": "5C69DE9461D1FE3951D103F35AD92874399A365D3C3166249A2E8A427B58EDCD"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/inc/generics.dictionariesh.inc",
+        "sha256": "C192A19BF6179CC86B75FB0D8930826F77A2F03AD1EE6EE19ACEF3E04BDB87C1"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/IOUtils.pas",
+        "sha256": "73438DBCB09FD8586F1E4C962AB79A6C5CECFA3E49AAC5AEAE5536933C9EA680"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.inc",
+        "sha256": "68D03CBFE48FB7B823F4614C178F262376B2852711B27706181C34A88CCD8F38"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.Lexer.pas",
+        "sha256": "2939C56F3FBCB1FAFE9B1D8F80A6B363389BF77A4781126DE5C7851C347502A4"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.Lexer.Types.pas",
+        "sha256": "FB3B09AC5E5AC5C51039FEF9730A181E3A0C5A2EB7913A11A4FFAAB34ECC41BA"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.pas",
+        "sha256": "FB70239BDFD880D7704CADCD372FA361B2E7B9292A53A5268756B8FA18CAC87E"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.Types.pas",
+        "sha256": "3B83B1FB78DA118335A56180800B6BA2D812447749ABC7727939F7B35BF34B6D"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/StringPool.pas",
+        "sha256": "06926208B2BA0CC7D3BBE40876A5994C8D2F118589BCA1EE85D05D5105D70DD5"
+      }
+    ]
+  },
+  "runnerSha256": "24D132F5C8A85CA7461FAD231A6ECB211876DD59CB812302EEA33F9C549179B8",
+  "catalogSha256": "65E7C43439DB73EB04688868820090631BBDB6E991DB3BBEE0A8D90F25D4550A",
+  "fixtureHashes": [
+    {
+      "path": "scenarios/catalog.json",
+      "sha256": "65E7C43439DB73EB04688868820090631BBDB6E991DB3BBEE0A8D90F25D4550A"
+    },
+    {
+      "path": "scenarios/ambiguity-across-sections/Consumer.pas",
+      "sha256": "973C82A252EED1E487398EDFF80F0BCDA3E5B6CEE8DE95C643DD1C3BE40C81F7"
+    },
+    {
+      "path": "scenarios/ambiguous-implementation/Consumer.pas",
+      "sha256": "8BB5ED58FA4AA912C35CD9715DDCED8D1F84B6CC4B89A84727FF7B2666730181"
+    },
+    {
+      "path": "scenarios/ambiguous-interface/Consumer.pas",
+      "sha256": "171D1EA2D61D5DC0D90293EB1CCFD42A7F1A4E8560159C63B7C2FAA07856DC2F"
+    },
+    {
+      "path": "scenarios/anonymous-parameter-shadow/Consumer.pas",
+      "sha256": "2BC2EBC401AD20FC9B6648BDB52DBF09135BDDD553D35BCF98D9ABB5883E10C2"
+    },
+    {
+      "path": "scenarios/array-type/Consumer.pas",
+      "sha256": "5FE9AAF44B651A73294069131D0627A75038DBA4CA5AD161FED116AA3F9D3F9B"
+    },
+    {
+      "path": "scenarios/as-type-reference/Consumer.pas",
+      "sha256": "BA424E8B2DDE74B4ED49496A9DE138FA4E2823762B93D558C9F524AFF103B97C"
+    },
+    {
+      "path": "scenarios/attribute-reference/Consumer.pas",
+      "sha256": "987D1BBE128F2BB161A9EB4F5A58B0360C20E293F129D9280EADD5F465CD238F"
+    },
+    {
+      "path": "scenarios/both-lifecycle-calls/Consumer.pas",
+      "sha256": "DF183D7F74B865DA3741A9E2C8EE4DCBDEE2184E9688CC6736069B37CB771ABF"
+    },
+    {
+      "path": "scenarios/cache-context-isolation/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/cache-context-isolation/expectation.txt",
+      "sha256": "EC886166B4D7F5BC5A4C71BD83159CDB0C5404A5C2C3AE463219225A1A498E5C"
+    },
+    {
+      "path": "scenarios/cache-include-invalidation/Consumer.pas",
+      "sha256": "F0B6EB8C6E2D00892A95AAB22E8E9EBD168687DEB86DB5A5AB9C15E919EF44A3"
+    },
+    {
+      "path": "scenarios/cache-include-invalidation/expectation.txt",
+      "sha256": "FFB85DDCB54362D2760BF736FABF4AA3597C7F24DB9CEF69F3E1AB6C5870EA27"
+    },
+    {
+      "path": "scenarios/cache-source-invalidation/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/cache-source-invalidation/expectation.txt",
+      "sha256": "8BE645DDAD8E6B10FB7E761EA1D8C95C7646D6D259641C04028381F3686C6947"
+    },
+    {
+      "path": "scenarios/cancellation-transaction/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/cancellation-transaction/expectation.txt",
+      "sha256": "2CF64BCCA2D34246E72BFE03D0908F190D944561F588C39CB258690750092222"
+    },
+    {
+      "path": "scenarios/case-insensitive/Consumer.pas",
+      "sha256": "A4AE59D9029F247FF23875FA333AA5E9938DA0FEF11EF1E42D0C821E67BCB59F"
+    },
+    {
+      "path": "scenarios/class-reference/Consumer.pas",
+      "sha256": "3571A07F6E074161D6E46FD4ECF421D41A7A77FAF71DBC63547E60BB6FBE2E43"
+    },
+    {
+      "path": "scenarios/comments-not-usage/Consumer.pas",
+      "sha256": "4011AEB33309AA935006F8CA3AF699C47C89117B7C593E269E38D0A7E63032AE"
+    },
+    {
+      "path": "scenarios/compiler-helper-precedence/Consumer.pas",
+      "sha256": "9989788333BBF97E337E6A91A0EB03FF32AEBDFFA9C4220EECEDBF7F8742352F"
+    },
+    {
+      "path": "scenarios/compiler-helper-precedence/expectation.txt",
+      "sha256": "3BFBA14BDCA970AED15BECD9142047D67FFE5AFB2EB5DC14F243EEA0F4E3986D"
+    },
+    {
+      "path": "scenarios/compiler-overload-binding/Consumer.pas",
+      "sha256": "D8B99BAF5DE2F7AF665E834B64F4708CE082A499FF54A6FE81F236E7A792C6BC"
+    },
+    {
+      "path": "scenarios/compiler-overload-binding/expectation.txt",
+      "sha256": "D84A9D37C3504C16BC85A5A77813F80AD3BCBB4B8F95460036637F64359A96D6"
+    },
+    {
+      "path": "scenarios/default-parameter/Consumer.pas",
+      "sha256": "F6B4E48543FB0272D9E84AD1AAE45FEDC4BA8D7305073F275B11C10634348642"
+    },
+    {
+      "path": "scenarios/dfm-streaming-registration/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/dfm-streaming-registration/expectation.txt",
+      "sha256": "7DEB98B46D484AC2E4DA598017D2F600FBB2EAA0B5C3EDAD469D3242C321B967"
+    },
+    {
+      "path": "scenarios/dotted-unit-call/Consumer.pas",
+      "sha256": "97BD7BE4EAFF68CCF1F5DC3810B51C26B28721D6E175A21B0157C6DDA3035E49"
+    },
+    {
+      "path": "scenarios/dotted-unit-type/Consumer.pas",
+      "sha256": "F5DEEDCA924E0528BE88C0C8FB3DBE559E35CFBDC875596FAC2FE913DFB1E5FD"
+    },
+    {
+      "path": "scenarios/empty-unit/Consumer.pas",
+      "sha256": "4736D99861EECCABEE55BAA42BF867B2BEEC2409A467E99C233291D82A39B65E"
+    },
+    {
+      "path": "scenarios/encoding-preservation/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/encoding-preservation/expectation.txt",
+      "sha256": "03AC8E519BEB1931720903C6D7713BF5252085B627A739D4AE124BC35C1732E2"
+    },
+    {
+      "path": "scenarios/escaped-string/Consumer.pas",
+      "sha256": "BA4BABE5D086A3FD2BB4783416E75D437F09595627E05F2C9FDFB440E9701405"
+    },
+    {
+      "path": "scenarios/explicit-cast/Consumer.pas",
+      "sha256": "A74B9D14043278C8FED569DBCD3C5718C5793D9AB5661342E4E63546B667F518"
+    },
+    {
+      "path": "scenarios/field-shadow/Consumer.pas",
+      "sha256": "AC91672E72BB2E4668ED33D6E5B5EF61B259B5470FB7640FFDD55EC5AFB63C6F"
+    },
+    {
+      "path": "scenarios/finalization-call/Consumer.pas",
+      "sha256": "CD251D6B28F677BD1454254F73D9BA5ECDE13BC93B192FC6715E2DB829ACD6FD"
+    },
+    {
+      "path": "scenarios/for-variable-shadow/Consumer.pas",
+      "sha256": "E358869AAC9C8C75D7925F6E427317D3CCB3C077A52DA93A0D66555BD59EE02A"
+    },
+    {
+      "path": "scenarios/generic-argument/Consumer.pas",
+      "sha256": "450F2EBF78CD0BDB017B0B39C613A3A24451D0D7B893BAEF26EB383A28C52969"
+    },
+    {
+      "path": "scenarios/generic-arity/Consumer.pas",
+      "sha256": "0DA7FE6DC9CE2D4D9F09E5CD62B79AF1EACF7B6EBD2A620E388A438EB1C646D2"
+    },
+    {
+      "path": "scenarios/generic-constraint/Consumer.pas",
+      "sha256": "D85C60CD2D69943BA52A854A13D21C7E8E7472A902C5BF5DEEAD1083FF690D20"
+    },
+    {
+      "path": "scenarios/generic-implementation/Consumer.pas",
+      "sha256": "174324CB0C5EDA9926494EAA5BBFB2CB0AF1ACA99569B3916044F774F02CA4D0"
+    },
+    {
+      "path": "scenarios/generic-nested/Consumer.pas",
+      "sha256": "D4AAC1D97FDEC6922BCFE4C8D24952457AD24C55C16AE1BFAED90DB9A7F8D251"
+    },
+    {
+      "path": "scenarios/generic-parameter-shadow/Consumer.pas",
+      "sha256": "888F6652CD58C27383D907AE1BC387405BC483ADDDBB735E57CF007692ADF1D7"
+    },
+    {
+      "path": "scenarios/generic-vs-plain/Consumer.pas",
+      "sha256": "4874E208C74BEF94EF0705C7ECA3D6198A85C271B193F18E5F95D0F62C448520"
+    },
+    {
+      "path": "scenarios/global-variable/Consumer.pas",
+      "sha256": "2184DD330659F43A5DA4586216D304D36942D4264D9648EC49E9E8F0DC76DC09"
+    },
+    {
+      "path": "scenarios/helper-class-use/Consumer.pas",
+      "sha256": "E111FAB41381C43175454D3B7A03D25E703E004EFD3CC035555BD8E3C4A2368E"
+    },
+    {
+      "path": "scenarios/helper-export/Consumer.pas",
+      "sha256": "449CD21C267AA7BAFFFD1E2EB1D6AC161F9EC8CF4232D4F774278914407692D3"
+    },
+    {
+      "path": "scenarios/helper-public-export/Consumer.pas",
+      "sha256": "EF6693803769196E0DB9DAB32F714D278F080593AB412C5A82CDB6AA018DDA5A"
+    },
+    {
+      "path": "scenarios/helper-string-use/Consumer.pas",
+      "sha256": "9FA188687CAF572748A7E1FDBD6644DB7ECDAC2F8C80EA7CC01A9E66105C715D"
+    },
+    {
+      "path": "scenarios/helper-unrelated-receiver/Consumer.pas",
+      "sha256": "220DEA1DB8D0E58C1E0ABF55BD01CD45D7FDB2890AE807CDE888730475590ECD"
+    },
+    {
+      "path": "scenarios/helper-unused/Consumer.pas",
+      "sha256": "77AD027C2C19C82EF9E5A75BE38016C91B46653CF6FF22CC23D6A5BCCA06D33B"
+    },
+    {
+      "path": "scenarios/if-defined/Consumer.pas",
+      "sha256": "30BF93EE4F137251094B2AB6F87EA30A45001FB1B46014A3FEEEE9804E4451BC"
+    },
+    {
+      "path": "scenarios/if-nested-expression/Consumer.pas",
+      "sha256": "BB67136F06B885EA62A475E6AE9AFA5D79844A244EFA37BC82A2DEC1C6405C56"
+    },
+    {
+      "path": "scenarios/ifopt-rangecheck/Consumer.pas",
+      "sha256": "93A12AD50BBAE7B2358409891E21BBF309D499507C35BAF1E4D125210E6E07C1"
+    },
+    {
+      "path": "scenarios/implementation-constant/Consumer.pas",
+      "sha256": "CCE98F6873EE4B1E07586B98BD72921F42B074C8E9D3BF8C2137CF1FAB192422"
+    },
+    {
+      "path": "scenarios/implementation-type/Consumer.pas",
+      "sha256": "1E146F77717E67BC2F6BAAF99EF9011749F3F491AD0B587A48145BA9785C20ED"
+    },
+    {
+      "path": "scenarios/inactive-reference/Consumer.pas",
+      "sha256": "0AF45A6DCE72DCD1C60D1D218371A87C0B9B7ACFB1F4F1FF9BA43520BD22DAD4"
+    },
+    {
+      "path": "scenarios/include-declaration/Consumer.pas",
+      "sha256": "37ECC987902C550231A6194B79E6CF418BAD137608CBB389B8DF113B807385A4"
+    },
+    {
+      "path": "scenarios/include-declaration/declarations.inc",
+      "sha256": "679C7908D31CF0CE1D625298231A62BDFFC296E729E395837E90B43B779CDE45"
+    },
+    {
+      "path": "scenarios/include-nested/Consumer.pas",
+      "sha256": "58182FE173E82462F4EBB491F0190F352253D70E87A2A11F7C1704B4FB7C38C8"
+    },
+    {
+      "path": "scenarios/include-nested/sub/inner.inc",
+      "sha256": "E58FE06229F5E525D6F899B4BE749960D5872AD800F5D38ACDF42FE7B450BE1E"
+    },
+    {
+      "path": "scenarios/include-nested/sub/outer.inc",
+      "sha256": "15CCAAAE716CC09B6B12DBA2193CDA0A567B439DBFC219E71BE9568483E47468"
+    },
+    {
+      "path": "scenarios/include-reference/code.inc",
+      "sha256": "8045DABE4948FFA0E7DAAFF7E14156984442CE3A7A82ADA9C9DFEC005FEE4C80"
+    },
+    {
+      "path": "scenarios/include-reference/Consumer.pas",
+      "sha256": "45ACB76626AFED31FE341489A2CF910A8531398E0D99636317D78A34DED82CC5"
+    },
+    {
+      "path": "scenarios/include-uses/Consumer.pas",
+      "sha256": "B6F1C2924BC8DE1EA0DD274DECFD9BE4BB75740A557B7679DCC26A5128CF9267"
+    },
+    {
+      "path": "scenarios/include-uses/uses.inc",
+      "sha256": "E58FE06229F5E525D6F899B4BE749960D5872AD800F5D38ACDF42FE7B450BE1E"
+    },
+    {
+      "path": "scenarios/inherited-reference/Consumer.pas",
+      "sha256": "5274E2C3C197F0A37D045124D6E6A3BF18B8FD4934AC1D38255625525548297D"
+    },
+    {
+      "path": "scenarios/initialization-call/Consumer.pas",
+      "sha256": "819E324EBB18D3B26795252F76FEA37C0E823AD230BAD196566DDE67AC000CDC"
+    },
+    {
+      "path": "scenarios/initialization-order/Consumer.pas",
+      "sha256": "CA5E7159FE3665BE04C797A4FD795A45341DE9F53708E426DB3C01C490EECA4E"
+    },
+    {
+      "path": "scenarios/initialization-order/expectation.txt",
+      "sha256": "D522BBEF27704C646C8EE948DC52404FDFE8A8A0E52988FE18EE19E1DE145644"
+    },
+    {
+      "path": "scenarios/inline-define-off/Consumer.pas",
+      "sha256": "6598BD433E09C7BEDB6806C66B14844418CF29954748EE80F3F4D697C7834A7A"
+    },
+    {
+      "path": "scenarios/inline-define-on/Consumer.pas",
+      "sha256": "17200CDF7A4503B3D75B21B72D937C8044358B20340A4068891145FD086E34C7"
+    },
+    {
+      "path": "scenarios/inline-undef/Consumer.pas",
+      "sha256": "C521360B827ED9D7DAAC66A17E9BEBDB0BC9F7CCFC8F5A7C17531DB50B00821E"
+    },
+    {
+      "path": "scenarios/inline-variable-shadow/Consumer.pas",
+      "sha256": "6422D6A49A498D92BF27D7D7D94AAD184984156245B9AA55060E64DB45786985"
+    },
+    {
+      "path": "scenarios/interface-ancestor/Consumer.pas",
+      "sha256": "760FC399B772D2C9F74DFDD54215339A2D7B398378661C5E773E61E8C6A4F8B8"
+    },
+    {
+      "path": "scenarios/is-type-reference/Consumer.pas",
+      "sha256": "EACB4C1453AEA2F0770D8AA83A256E0BDF13E369736D0B4FF87BAD051C8918E4"
+    },
+    {
+      "path": "scenarios/keep-both-sections/Consumer.pas",
+      "sha256": "8358AF11F8FA1E05E4C697151D9A3F997C1A96EE36303862FB5B3682113685A8"
+    },
+    {
+      "path": "scenarios/keep-finalizing-unit/Consumer.pas",
+      "sha256": "1071165EC5C844763D4298C2F2B4F21B09DB3C7568C7B6976F860D9B42F45BE5"
+    },
+    {
+      "path": "scenarios/keep-implementation/Consumer.pas",
+      "sha256": "13B14777C7D9B178FFF70E85F952E4689CADF7DBA09775946DCB5CA01C8B608E"
+    },
+    {
+      "path": "scenarios/keep-initializing-unit/Consumer.pas",
+      "sha256": "96232D76B16638DDF94AFD8264BF898771693BC0D5B8CD26E4FF4A115A6855F2"
+    },
+    {
+      "path": "scenarios/keep-legacy-init-unit/Consumer.pas",
+      "sha256": "BD54F50BD6ECA501C2A560F9E56696653256076A13604D01EE15552EC7843EFE"
+    },
+    {
+      "path": "scenarios/keep-native-effects/Consumer.pas",
+      "sha256": "96232D76B16638DDF94AFD8264BF898771693BC0D5B8CD26E4FF4A115A6855F2"
+    },
+    {
+      "path": "scenarios/keep-return/Consumer.pas",
+      "sha256": "DBD523B8C706F5681A03BDF761FC6EDB61049E8FCFB86B51077E763F06B8763B"
+    },
+    {
+      "path": "scenarios/keep-signature/Consumer.pas",
+      "sha256": "91DD3FF316CC19460BC23EE4A4530912013F07393BB12DCEA1F95C86CBE20159"
+    },
+    {
+      "path": "scenarios/keep-transitive-effects/Consumer.pas",
+      "sha256": "8330FB9AF7F21813D435334A4A1867CB467E3B3C0CA655641DF273183D10CD02"
+    },
+    {
+      "path": "scenarios/legacy-begin-call/Consumer.pas",
+      "sha256": "B8A82A9C7FCF8069A067D0750D4D121716A2616546FA7E44A3025CB043BF1141"
+    },
+    {
+      "path": "scenarios/local-procedure-shadow/Consumer.pas",
+      "sha256": "586747B7ECBB2F0F9A3DB4C7873B2F8975725BFED554D2D5B49C283DFC286C42"
+    },
+    {
+      "path": "scenarios/local-type-shadow/Consumer.pas",
+      "sha256": "CEE0C363AD18A01979130F4E90445E2C29AC328D0F9E23E686889DB668950EFA"
+    },
+    {
+      "path": "scenarios/local-variable-shadow/Consumer.pas",
+      "sha256": "58D1C0302AF80C82E15D0BD3E65CC7A1EA0652C23BBE20307D40B203819D6D71"
+    },
+    {
+      "path": "scenarios/malformed-consumer/Consumer.pas",
+      "sha256": "2AEBB34B0E0627EB8D8409AFD9EF051DF09B4498EC88697EDAC8876C3FECFD85"
+    },
+    {
+      "path": "scenarios/malformed-dependency/Broken.pas",
+      "sha256": "8B279F3A8212000D4E93FA137E323F63BFF3AA7172E396D2BB2A1E73C5EE8993"
+    },
+    {
+      "path": "scenarios/malformed-dependency/Consumer.pas",
+      "sha256": "16C55F5FAC1B51C361ED2A85109B852A806F5043228F136E4BEB8073C73C7CDD"
+    },
+    {
+      "path": "scenarios/method-shadow/Consumer.pas",
+      "sha256": "0BC5549DCABD7D3792B80C50375DACFB787657797D962195F353B3E14A82EB1F"
+    },
+    {
+      "path": "scenarios/missing-include/Consumer.pas",
+      "sha256": "A866896AC85DEA8EC6C48A5F47F8150A601CA01E55830424A34CB9218573C301"
+    },
+    {
+      "path": "scenarios/mixed-remove-move/Consumer.pas",
+      "sha256": "2AA4AD4104DBF3D77CFC6FE0DF58F4BCEA3528698B6CBDDF12939FCB8AAAF6C3"
+    },
+    {
+      "path": "scenarios/move-call/Consumer.pas",
+      "sha256": "3EBF2C839F6C882D00EE0730AE988AB1EC22B37C3A8A7EA84BC40037FC2D6689"
+    },
+    {
+      "path": "scenarios/namespace-prefix-resolution/Consumer.pas",
+      "sha256": "6D1C57B7D3B63547F8B0462A7416B5B4A113060DB1642DFEF0CF23E60ECD72B0"
+    },
+    {
+      "path": "scenarios/namespace-prefix-resolution/expectation.txt",
+      "sha256": "E477734AEB19EC0D724DB49683D6982D1DFA9B99E0E832EA46637496789FD205"
+    },
+    {
+      "path": "scenarios/nested-conditionals/Consumer.pas",
+      "sha256": "3D15372E8BB3FC6F0D885A6A0380F3B8472C3AF6AFAAAC8A6E31EE882EC09FA1"
+    },
+    {
+      "path": "scenarios/nested-type-export/Consumer.pas",
+      "sha256": "7C353FEAC2A424D7A0628BAFEF2FF7A69899DF27F7DD6A585B8B13C9BAFF0F3A"
+    },
+    {
+      "path": "scenarios/operator-reference/Consumer.pas",
+      "sha256": "0788AAF2084E01245B5B94A8ED3E1D67715B1C15F20DE14FD5A669C61050687D"
+    },
+    {
+      "path": "scenarios/package-dcu-only/Consumer.pas",
+      "sha256": "B44B80CB8D5E0C15326F9EB37091C03875D3FAF95AD9EDAB12D6B384F3055A74"
+    },
+    {
+      "path": "scenarios/package-dcu-only/expectation.txt",
+      "sha256": "4F61A6BBC99377CF9E8BF63BA654B906D20820ED9F6A38CEACDF099BBD11B469"
+    },
+    {
+      "path": "scenarios/parameter-shadow/Consumer.pas",
+      "sha256": "8363D2B1E42B1D12CC0EC32C30D29E8D80E8FD3A5F87D16D6FE9B75A43A913FE"
+    },
+    {
+      "path": "scenarios/platform-win32-win64/Consumer.pas",
+      "sha256": "95B74FA36E2F4EB00C5808C30AD61395B11B89228C06CEEFF77E26CB24BDDA74"
+    },
+    {
+      "path": "scenarios/platform-win32-win64/expectation.txt",
+      "sha256": "5D09BC8E7BC7D89A7B3198EC960E28B102BACC9E9A5FC51EBF5DF0FBDD0502FC"
+    },
+    {
+      "path": "scenarios/pointer-type/Consumer.pas",
+      "sha256": "A5886CD7077F9B6904CC4657A6DD2B36B93915448873CF3654628E9C1AAA438E"
+    },
+    {
+      "path": "scenarios/private-field/Consumer.pas",
+      "sha256": "A422D94C655AF49A9A4D000BCD677753713E6D238A64A55F6D7483C9AD7DA5E6"
+    },
+    {
+      "path": "scenarios/procedural-type/Consumer.pas",
+      "sha256": "8F799960F4B5DB1F762D56066960538E91637702BBA07A85D3384EF9CEEA88B9"
+    },
+    {
+      "path": "scenarios/procedure-address/Consumer.pas",
+      "sha256": "C19EA6DDC3B04AA190E59AB8DB66612CBAC41C5B97FCA8ED4CC2BC9A4487A115"
+    },
+    {
+      "path": "scenarios/project-define-debug-release/Consumer.pas",
+      "sha256": "677B86551B769DA589FE64C60871D54156ED86FB318CB542169163B4FF30F38F"
+    },
+    {
+      "path": "scenarios/project-define-debug-release/expectation.txt",
+      "sha256": "7D3CC5F125F8111E3EC146BF67013C41A40F893B8A1A07DD4EDCC0C9DC3B6E3C"
+    },
+    {
+      "path": "scenarios/project-imported-props/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/project-imported-props/expectation.txt",
+      "sha256": "8070C3507946A37BACEEABD9CC4001C0F8D3E4F74FE8377AD80C142D0CBCACAF"
+    },
+    {
+      "path": "scenarios/project-in-path/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/project-in-path/expectation.txt",
+      "sha256": "7C9B944E5C89B0C2E9DA24B7546A40576EFA7FADB3F4FF83CD0D885F974109A3"
+    },
+    {
+      "path": "scenarios/providers/Probe.Namespace.pas",
+      "sha256": "777C7EC33B083108DD900397B32B02BCC092243D4BF2420C3D78B3428A553BCA"
+    },
+    {
+      "path": "scenarios/providers/ProbeAttributes.pas",
+      "sha256": "48BE835FB7E3B96BFD667E5DC1525E5267288BCCD240D17CA14209DD8203CDBD"
+    },
+    {
+      "path": "scenarios/providers/ProbeClassHelper.pas",
+      "sha256": "63327F502D182096090EE7EDD45D9D311955468E1BFC891B534941F6ED60E559"
+    },
+    {
+      "path": "scenarios/providers/ProbeCollision.pas",
+      "sha256": "B760BAC25B70834CCDC5D6C87E1F64791DCC5182AA5EF702473EE19056DA86DA"
+    },
+    {
+      "path": "scenarios/providers/ProbeDep.pas",
+      "sha256": "6568C97954993C1FA25350387CAB49C4CC4E375D715A7628D536945001313C5D"
+    },
+    {
+      "path": "scenarios/providers/ProbeFinalize.pas",
+      "sha256": "490D36F453CAF2CC884815B82A12C9F8F08C315CF76ED2AAE77F2870D5407403"
+    },
+    {
+      "path": "scenarios/providers/ProbeGeneric.pas",
+      "sha256": "E50A411FB155EF6A6FC077A900A7822E4D1885DEB2810043343D57E25A3944CE"
+    },
+    {
+      "path": "scenarios/providers/ProbeHelpers.pas",
+      "sha256": "7061EB27458A8F5317C87AA30C4638130103BFFE5FC54C903C4CB2C8FB736B8C"
+    },
+    {
+      "path": "scenarios/providers/ProbeInit.pas",
+      "sha256": "9EE38FD0971C5EE482944DB672DD469E7BD23F61942A2EFC086BA078C82075BC"
+    },
+    {
+      "path": "scenarios/providers/ProbeLegacyInit.pas",
+      "sha256": "DD26828F6BBEDD92A88B35739A7D0421B257FC48CDB2EEB436410BFD40C5DBE1"
+    },
+    {
+      "path": "scenarios/providers/ProbeNested.pas",
+      "sha256": "DF44581B8E178B0AC9BFA39B8EC3DA4E0EFAF210D6A0B2DCD395EB7156537EE9"
+    },
+    {
+      "path": "scenarios/providers/ProbeOps.pas",
+      "sha256": "F658F8DDC2B4D0AE83012C4F6D086607FDB88F8FDA144EAFEB1F5DD06AFE35BB"
+    },
+    {
+      "path": "scenarios/providers/ProbeOther.pas",
+      "sha256": "0640114A10EA875FF5AE3F7AFD9493EDF7AB09134C98918357A8E1E7EFFDBEBE"
+    },
+    {
+      "path": "scenarios/providers/ProbeOverloads.pas",
+      "sha256": "C2B57C23AB5DBB5762A9C41340AA01D7B057A6EB1F9C7457197361683A68B970"
+    },
+    {
+      "path": "scenarios/providers/ProbePlain.pas",
+      "sha256": "E496DE95C553055B118642856B0C811650793E3B5614EC2BF68D482A7B0B9A87"
+    },
+    {
+      "path": "scenarios/providers/ProbeScoped.pas",
+      "sha256": "1BAF437685F36DB7F832559A91CAE61B4B315A59BC855E29C1406B3CB212E7AB"
+    },
+    {
+      "path": "scenarios/providers/ProbeStringOverload.pas",
+      "sha256": "71A8535DE36A706E42AE1746FE2E5DECED1D116F69E1EDC8CAA901E111B9D471"
+    },
+    {
+      "path": "scenarios/providers/ProbeTransitive.pas",
+      "sha256": "AD23025E77C4D980A115C95916E8D303903E3C21FD95D13A6F540ADF1CCA4AFE"
+    },
+    {
+      "path": "scenarios/providers/ProbeUnscoped.pas",
+      "sha256": "C3B6BC9A370F2D672DA8D1E5F80EF47A5F10CF382565A52B91A448C8DC60AC92"
+    },
+    {
+      "path": "scenarios/public-constant/Consumer.pas",
+      "sha256": "DE2DDB5C3900CE98C43158163FF1E8D85835F8A10F882BE306095143CA6AC9D1"
+    },
+    {
+      "path": "scenarios/public-inheritance/Consumer.pas",
+      "sha256": "34424EB865E1F032A7D2B3B4EE1544510CFD83539ED507F3D6F2C4BAECD9F388"
+    },
+    {
+      "path": "scenarios/public-property/Consumer.pas",
+      "sha256": "C92FBFA1C0D8AA7F8D3716A70E57BF09C1F42F50B927A44592257F4FDCD22C14"
+    },
+    {
+      "path": "scenarios/qualified-call/Consumer.pas",
+      "sha256": "A32AF5CDFFECCA8103CA0DBA9550D74FE60A83C2874587852786AC26178E2B71"
+    },
+    {
+      "path": "scenarios/qualified-type/Consumer.pas",
+      "sha256": "4E36823AC0F4F8627C7CCD1CFA923CE4018E4D12EF8CAA3C35AD83515B5F9E35"
+    },
+    {
+      "path": "scenarios/record-field/Consumer.pas",
+      "sha256": "FEC507765604889866C98D2A5BA8F98E6716E1DA0D73EF33CAE781774CEEE75F"
+    },
+    {
+      "path": "scenarios/repeat-reference/Consumer.pas",
+      "sha256": "C56C8C162886E668EE03E06B6DA94169F9C1D41F480B246B95540541B9E15511"
+    },
+    {
+      "path": "scenarios/resolver-exact/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/resolver-missing-source/Consumer.pas",
+      "sha256": "A82F40FA7D6BD0C0BEF8005E7E2BE92FA471BF6EF41CBBDA2EC5B9770DA18958"
+    },
+    {
+      "path": "scenarios/resolver-namespaced/Consumer.pas",
+      "sha256": "1522BC84316141AFA1A5EFB9423FE562B6017676929289BC7D7F311F1823BADD"
+    },
+    {
+      "path": "scenarios/resolver-not-recursive/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/resourcestring/Consumer.pas",
+      "sha256": "5B962BB3E06D9FAA097541C93EA6B51C21AFDADC2F8612DDD4A316D4C7071EF4"
+    },
+    {
+      "path": "scenarios/rewrite-absent-unit/Consumer.pas",
+      "sha256": "A7C619B2A7B21ED84B21DCE94103E6A78972D836B3DC98CF676A69952F0582E6"
+    },
+    {
+      "path": "scenarios/rewrite-all-items/Consumer.pas",
+      "sha256": "55EB8858303245E918372C39CAA15A37517F037FAA685041E556D37FF55F5BA8"
+    },
+    {
+      "path": "scenarios/rewrite-case-insensitive/Consumer.pas",
+      "sha256": "A2C19BDFDA25D42FA9B40E6773D7C3E246892F0116290B0544C9348CF055F5DD"
+    },
+    {
+      "path": "scenarios/rewrite-comment-keyword/Consumer.pas",
+      "sha256": "24587C4E87B3D39D3BAC076BB45ACE661035AB303961CEAD467ED0738ED80753"
+    },
+    {
+      "path": "scenarios/rewrite-comments-preserved/Consumer.pas",
+      "sha256": "3FD1E50537050C0952D8F4839F8E1AD887A390DF9A1E813253574926D00B8653"
+    },
+    {
+      "path": "scenarios/rewrite-directive-preserved/Consumer.pas",
+      "sha256": "C000982D2CEA98233A5870F7976AB15AC1B706306EDE17EDDD0C355B44C7CA60"
+    },
+    {
+      "path": "scenarios/rewrite-dotted-boundary/Consumer.pas",
+      "sha256": "73110E5AFA1E7EE057F5286243E65CDA85808E40CED2DDD829DF4C3EE36A79B2"
+    },
+    {
+      "path": "scenarios/rewrite-empty-plan/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/rewrite-first-item/Consumer.pas",
+      "sha256": "55EB8858303245E918372C39CAA15A37517F037FAA685041E556D37FF55F5BA8"
+    },
+    {
+      "path": "scenarios/rewrite-last-item/Consumer.pas",
+      "sha256": "B1358B52863857D77AB9F0CBE5AB6D09F2528D2408404D53A031F36A6B8E5427"
+    },
+    {
+      "path": "scenarios/rewrite-line-comment/Consumer.pas",
+      "sha256": "A7E52792A7C3886D84B40DA404E2A655ECD9D52A602ADB3FB837FA6358B5D1B9"
+    },
+    {
+      "path": "scenarios/rewrite-middle-item/Consumer.pas",
+      "sha256": "1EA326FF5E96EA566C7F0E3AA517CE8BC9DDEA75FB4B809A5613D4973D51E87E"
+    },
+    {
+      "path": "scenarios/rewrite-move-disabled/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/rewrite-move-existing-clause/Consumer.pas",
+      "sha256": "348A296983AD5DDFC865372930602AA2BAC6A9203A659275EA646992AEDCBFD4"
+    },
+    {
+      "path": "scenarios/rewrite-move-new-clause/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/rewrite-multiple-moves/Consumer.pas",
+      "sha256": "55EB8858303245E918372C39CAA15A37517F037FAA685041E556D37FF55F5BA8"
+    },
+    {
+      "path": "scenarios/rewrite-only-item/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/rewrite-prefix-boundary/Consumer.pas",
+      "sha256": "4EC4732B35722D90D7665DEF24540FD544C44592EB262688D67452AB84BB7374"
+    },
+    {
+      "path": "scenarios/rewrite-remove-disabled/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/rewrite-remove-implementation/Consumer.pas",
+      "sha256": "369C57A948FCD9268C21FFF2AFD22D8EEE4CD1115462AE7FB887476FBE6A274D"
+    },
+    {
+      "path": "scenarios/rewrite-semicolon-comment/Consumer.pas",
+      "sha256": "6DF3FA8FD2B121F269C6B22C76121614D7B7203A0842D4065EA9A693A244F095"
+    },
+    {
+      "path": "scenarios/rewrite-string-preserved/Consumer.pas",
+      "sha256": "094B857363413759DE1CA74248D8A0B5A1D08434CB336862F6A6BD62D6C255DE"
+    },
+    {
+      "path": "scenarios/rollback-build-failure/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/rollback-build-failure/expectation.txt",
+      "sha256": "AC9A14E9C925E9FFC886A39390586B521DA5E6931414158FAED92DDF285AAD12"
+    },
+    {
+      "path": "scenarios/rtti-string-registration/Consumer.pas",
+      "sha256": "A8B49930077B10B99C9AF8A820CA827469FC08E4BF61FCFE2D23D957C1F67475"
+    },
+    {
+      "path": "scenarios/rtti-string-registration/expectation.txt",
+      "sha256": "80645F2B891A283D899BE753AC97A265BEC7FCA17428A8C1ED3B1821122A9DB7"
+    },
+    {
+      "path": "scenarios/scale-references-10/Consumer.pas",
+      "sha256": "569FF6E9B54F20A7FF1A94E620F85F3DB2F1848E7D996852B39D8033D9CA0D63"
+    },
+    {
+      "path": "scenarios/scale-references-100/Consumer.pas",
+      "sha256": "1B18F6E1515BC599A2AB8475807B7A773B35AB3E83340CC9E690D98AB02BAD27"
+    },
+    {
+      "path": "scenarios/scale-references-1000/Consumer.pas",
+      "sha256": "6F70108FF7A284031BFD18A9E69A624A3F8427B6DA5111C4243A429415608872"
+    },
+    {
+      "path": "scenarios/scale-references-5000/Consumer.pas",
+      "sha256": "5A4F6A10FBF2E468AA17DCA647C7CEAA3F080BA156D475F95000BEF449B44524"
+    },
+    {
+      "path": "scenarios/scoped-collision/Consumer.pas",
+      "sha256": "F854A5899FA761C7B51E359F53E5EAB35C7916A8B0B2F3962E24A5AC961BED9A"
+    },
+    {
+      "path": "scenarios/scoped-export/Consumer.pas",
+      "sha256": "9B679B5950FFA48166B00E00EC3748E89F0C90FF02DCA7A3E005ECC0BCF11DBA"
+    },
+    {
+      "path": "scenarios/scoped-reference/Consumer.pas",
+      "sha256": "893FCE3AF670A46FF5BDADD74FA9612CCFE32BEE342F8AEE88283DBDABDB8D3D"
+    },
+    {
+      "path": "scenarios/sizeof-type/Consumer.pas",
+      "sha256": "D9E412CEA2BE45D4F095BDCF906D832DBF25899D4353A05072FE08F0A4A1F72F"
+    },
+    {
+      "path": "scenarios/strings-not-usage/Consumer.pas",
+      "sha256": "0F8CADC61E3CE8E1FCC16D3760B3427C3A961D30656C28458B021BA3D8A54174"
+    },
+    {
+      "path": "scenarios/threadvar-type/Consumer.pas",
+      "sha256": "E6D4AE51E5327386016F19162E704E201B1D27151C7B54E9F303CCBEC10EADBC"
+    },
+    {
+      "path": "scenarios/type-alias/Consumer.pas",
+      "sha256": "2850FEF2184ECD442C246D5C5B38142A3CFCEF3FE4E8A4DDACE2A5793DCB51B8"
+    },
+    {
+      "path": "scenarios/unit-alias-resolution/Consumer.pas",
+      "sha256": "1917E79BEEEBD194D026753026F8BA1A1C2B2CB82595978FE0D0C57CD2E71EC0"
+    },
+    {
+      "path": "scenarios/unit-alias-resolution/expectation.txt",
+      "sha256": "16BED59B681B62FADC47781D1A45ADD0B270F6FFDC3262BBC3A3C56F91A8124F"
+    },
+    {
+      "path": "scenarios/unit-level-shadow/Consumer.pas",
+      "sha256": "0991C17481854FDCBC5B377686443AB2D00A8E10C60BE28266D3802C8CDD1DAF"
+    },
+    {
+      "path": "scenarios/unknown-unit/Consumer.pas",
+      "sha256": "31E1453ECEA94A58E3C6A24B75EC73B790E4AF61885A75516C3EB6C14FBC5173"
+    },
+    {
+      "path": "scenarios/unscoped-export/Consumer.pas",
+      "sha256": "058D3EB526BA4A9D18D1FCAF0DDF8755631AA0E71CE5AE89889C06784DCE4DB3"
+    },
+    {
+      "path": "scenarios/unscoped-reference/Consumer.pas",
+      "sha256": "F1D80333846DB2A24266D5AE2D7D3EEB569AC56E7F87CB2A8A480AAA3AE66874"
+    },
+    {
+      "path": "scenarios/unterminated-string/Consumer.pas",
+      "sha256": "F51A17A56240E0A12E32B7ED6B6D50B98981B79B27667F68220CAB8A51254110"
+    },
+    {
+      "path": "scenarios/unused-both-sections/Consumer.pas",
+      "sha256": "348A296983AD5DDFC865372930602AA2BAC6A9203A659275EA646992AEDCBFD4"
+    },
+    {
+      "path": "scenarios/unused-implementation/Consumer.pas",
+      "sha256": "369C57A948FCD9268C21FFF2AFD22D8EEE4CD1115462AE7FB887476FBE6A274D"
+    },
+    {
+      "path": "scenarios/unused-interface/Consumer.pas",
+      "sha256": "045B47E9319A6DBE45A340955ED410B538DFD63FBB700A1D779E9DD5DF899659"
+    },
+    {
+      "path": "scenarios/uses-word-in-string/Consumer.pas",
+      "sha256": "2EB83365D5B6A82CF7C169092EA67B06D4ABAC8DBD8B5532D97A30F2CC34D356"
+    },
+    {
+      "path": "scenarios/with-reference/Consumer.pas",
+      "sha256": "E57B42AF3D9E98562365D95E7259D83797BCFEEEBB81F1F587BE2B8A855CF310"
+    }
+  ],
+  "total": 152,
+  "passed": 96,
+  "failed": 38,
+  "errors": 0,
+  "blocked": 18,
+  "sameCatalogAsBaseline": true,
+  "comparisonBaselineSha256": "203253B26191BA31550BDB867EF2756C189AA699A932806B24A8387DDE8F7663",
+  "changes": [],
+  "results": [
+    {
+      "id": "empty-unit",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "unused-interface",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "unused-implementation",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "move-call",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "keep-signature",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "keep-return",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "keep-both-sections",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "keep-implementation",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "mixed-remove-move",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "unused-both-sections",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "case-insensitive",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "repeat-reference",
+      "category": "basic",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "public-constant",
+      "category": "references",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "implementation-constant",
+      "category": "references",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "global-variable",
+      "category": "references",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "resourcestring",
+      "category": "references",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "procedure-address",
+      "category": "references",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "public-inheritance",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "private-field",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "public-property",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "type-alias",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "pointer-type",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "array-type",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "procedural-type",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "interface-ancestor",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "implementation-type",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "class-reference",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "default-parameter",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "record-field",
+      "category": "types",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "local-variable-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual ",
+        "moved set: expected ; actual \"ProbeDep\""
+      ]
+    },
+    {
+      "id": "parameter-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "local-procedure-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual ",
+        "moved set: expected ; actual \"ProbeDep\""
+      ]
+    },
+    {
+      "id": "local-type-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual ",
+        "moved set: expected ; actual \"ProbeDep\""
+      ]
+    },
+    {
+      "id": "field-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "method-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "unit-level-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "inline-variable-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual ",
+        "moved set: expected ; actual \"ProbeDep\""
+      ]
+    },
+    {
+      "id": "for-variable-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual ",
+        "moved set: expected ; actual \"ProbeDep\""
+      ]
+    },
+    {
+      "id": "anonymous-parameter-shadow",
+      "category": "scope",
+      "status": "FAIL",
+      "failures": [
+        "status equals: expected \"ok\"; actual \"error\"",
+        "unused set: expected \"ProbeDep\"; actual null",
+        "moved set: expected ; actual null"
+      ]
+    },
+    {
+      "id": "qualified-call",
+      "category": "qualification",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeCollision\"; actual ",
+        "moved set: expected \"ProbeDep\"; actual [\"ProbeDep\",\"ProbeCollision\"]"
+      ]
+    },
+    {
+      "id": "qualified-type",
+      "category": "qualification",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "dotted-unit-call",
+      "category": "qualification",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "dotted-unit-type",
+      "category": "qualification",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "ambiguous-interface",
+      "category": "ambiguity",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "ambiguous-implementation",
+      "category": "ambiguity",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "ambiguity-across-sections",
+      "category": "ambiguity",
+      "status": "FAIL",
+      "failures": [
+        "moved set: expected ; actual \"ProbeDep\"",
+        "ambiguities count: expected 1; actual "
+      ]
+    },
+    {
+      "id": "generic-vs-plain",
+      "category": "generics",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbePlain\"; actual "
+      ]
+    },
+    {
+      "id": "generic-arity",
+      "category": "generics",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbePlain\"; actual "
+      ]
+    },
+    {
+      "id": "generic-argument",
+      "category": "generics",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "generic-constraint",
+      "category": "generics",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "generic-nested",
+      "category": "generics",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "generic-implementation",
+      "category": "generics",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "generic-parameter-shadow",
+      "category": "generics",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "scoped-export",
+      "category": "enums",
+      "status": "FAIL",
+      "failures": [
+        "exports set: expected \"TColor\"; actual [\"TColor\",\"Red\",\"Blue\"]"
+      ]
+    },
+    {
+      "id": "unscoped-export",
+      "category": "enums",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "scoped-collision",
+      "category": "enums",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeScoped\"; actual ",
+        "moved set: expected ; actual \"ProbeScoped\""
+      ]
+    },
+    {
+      "id": "unscoped-reference",
+      "category": "enums",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "scoped-reference",
+      "category": "enums",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "nested-type-export",
+      "category": "enums",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "helper-string-use",
+      "category": "helpers",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeHelpers\"",
+        "moved set: expected \"ProbeHelpers\"; actual "
+      ]
+    },
+    {
+      "id": "helper-unused",
+      "category": "helpers",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "helper-class-use",
+      "category": "helpers",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeClassHelper\"",
+        "moved set: expected [\"ProbeDep\",\"ProbeClassHelper\"]; actual \"ProbeDep\""
+      ]
+    },
+    {
+      "id": "helper-unrelated-receiver",
+      "category": "helpers",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "helper-export",
+      "category": "helpers",
+      "status": "FAIL",
+      "failures": [
+        "exports contains: expected \"!HELPER:Twist:string\"; actual \"TStringTool\""
+      ]
+    },
+    {
+      "id": "helper-public-export",
+      "category": "helpers",
+      "status": "FAIL",
+      "failures": [
+        "exports contains: expected \"!HELPER:Polish:TObject\"; actual \"TObjectTool\""
+      ]
+    },
+    {
+      "id": "initialization-call",
+      "category": "lifecycle",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeDep\"",
+        "moved set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "finalization-call",
+      "category": "lifecycle",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeDep\"",
+        "moved set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "both-lifecycle-calls",
+      "category": "lifecycle",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeDep\"",
+        "moved set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "legacy-begin-call",
+      "category": "lifecycle",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeDep\"",
+        "moved set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "keep-initializing-unit",
+      "category": "lifecycle",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "keep-finalizing-unit",
+      "category": "lifecycle",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "keep-legacy-init-unit",
+      "category": "lifecycle",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeLegacyInit\""
+      ]
+    },
+    {
+      "id": "keep-transitive-effects",
+      "category": "lifecycle",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeTransitive\""
+      ]
+    },
+    {
+      "id": "keep-native-effects",
+      "category": "lifecycle",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeInit\""
+      ]
+    },
+    {
+      "id": "comments-not-usage",
+      "category": "trivia",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "strings-not-usage",
+      "category": "trivia",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "escaped-string",
+      "category": "trivia",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "uses-word-in-string",
+      "category": "trivia",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "inline-define-on",
+      "category": "directives",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "inline-define-off",
+      "category": "directives",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "inline-undef",
+      "category": "directives",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "if-defined",
+      "category": "directives",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "nested-conditionals",
+      "category": "directives",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "inactive-reference",
+      "category": "directives",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "include-uses",
+      "category": "includes",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual ",
+        "interfaceUses set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "include-declaration",
+      "category": "includes",
+      "status": "FAIL",
+      "failures": [
+        "exports contains: expected \"TIncluded\"; actual "
+      ]
+    },
+    {
+      "id": "include-reference",
+      "category": "includes",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeDep\"",
+        "moved set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "include-nested",
+      "category": "includes",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected \"ProbeDep\"; actual ",
+        "interfaceUses set: expected \"ProbeDep\"; actual "
+      ]
+    },
+    {
+      "id": "unknown-unit",
+      "category": "resolution",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "resolver-exact",
+      "category": "resolution",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "resolver-namespaced",
+      "category": "resolution",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "resolver-not-recursive",
+      "category": "resolution",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "resolver-missing-source",
+      "category": "resolution",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "operator-reference",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "attribute-reference",
+      "category": "advanced",
+      "status": "FAIL",
+      "failures": [
+        "unused set: expected ; actual \"ProbeAttributes\""
+      ]
+    },
+    {
+      "id": "with-reference",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "inherited-reference",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "is-type-reference",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "as-type-reference",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "sizeof-type",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "explicit-cast",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "threadvar-type",
+      "category": "advanced",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-only-item",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-first-item",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-last-item",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-middle-item",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-all-items",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-move-new-clause",
+      "category": "rewrite",
+      "status": "FAIL",
+      "failures": [
+        "idempotent equals: expected true; actual false"
+      ]
+    },
+    {
+      "id": "rewrite-move-existing-clause",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-remove-implementation",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-case-insensitive",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-prefix-boundary",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-dotted-boundary",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-comments-preserved",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-line-comment",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-string-preserved",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-comment-keyword",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-semicolon-comment",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-remove-disabled",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-move-disabled",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-empty-plan",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-absent-unit",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "rewrite-multiple-moves",
+      "category": "rewrite",
+      "status": "FAIL",
+      "failures": [
+        "idempotent equals: expected true; actual false"
+      ]
+    },
+    {
+      "id": "rewrite-directive-preserved",
+      "category": "rewrite",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "malformed-consumer",
+      "category": "errors",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "unterminated-string",
+      "category": "errors",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "malformed-dependency",
+      "category": "errors",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "missing-include",
+      "category": "includes",
+      "status": "FAIL",
+      "failures": [
+        "status equals: expected \"error\"; actual \"ok\""
+      ]
+    },
+    {
+      "id": "ifopt-rangecheck",
+      "category": "directives",
+      "status": "FAIL",
+      "failures": [
+        "interfaceUses set: expected \"ProbeDep\"; actual \"ProbeOther\""
+      ]
+    },
+    {
+      "id": "if-nested-expression",
+      "category": "directives",
+      "status": "FAIL",
+      "failures": [
+        "interfaceUses set: expected \"ProbeDep\"; actual \"ProbeOther\""
+      ]
+    },
+    {
+      "id": "scale-references-10",
+      "category": "scale",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "scale-references-100",
+      "category": "scale",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "scale-references-1000",
+      "category": "scale",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "scale-references-5000",
+      "category": "scale",
+      "status": "PASS",
+      "failures": []
+    },
+    {
+      "id": "project-define-debug-release",
+      "category": "project",
+      "status": "BLOCKED",
+      "failures": [
+        "IASTParser recebe apenas caminho; o Probe nao deve injetar defines silenciosamente."
+      ]
+    },
+    {
+      "id": "platform-win32-win64",
+      "category": "project",
+      "status": "BLOCKED",
+      "failures": [
+        "Falta contrato de contexto alvo no adaptador."
+      ]
+    },
+    {
+      "id": "namespace-prefix-resolution",
+      "category": "resolution",
+      "status": "BLOCKED",
+      "failures": [
+        "O resolver nao recebe lista de namespaces."
+      ]
+    },
+    {
+      "id": "unit-alias-resolution",
+      "category": "resolution",
+      "status": "BLOCKED",
+      "failures": [
+        "O resolver nao recebe DCC_UnitAlias."
+      ]
+    },
+    {
+      "id": "project-in-path",
+      "category": "project",
+      "status": "BLOCKED",
+      "failures": [
+        "O Probe atual recebe consumidor .pas e nao avalia DPR/DPROJ."
+      ]
+    },
+    {
+      "id": "package-dcu-only",
+      "category": "project",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer artefato Delphi compilado e metadados externos."
+      ]
+    },
+    {
+      "id": "dfm-streaming-registration",
+      "category": "runtime",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer projeto VCL e teste de streaming real."
+      ]
+    },
+    {
+      "id": "rtti-string-registration",
+      "category": "runtime",
+      "status": "BLOCKED",
+      "failures": [
+        "Necessita politica de efeitos e teste funcional, nao inferivel so por nomes."
+      ]
+    },
+    {
+      "id": "initialization-order",
+      "category": "runtime",
+      "status": "BLOCKED",
+      "failures": [
+        "Necessita executavel antes/depois registrando a sequencia de inicializacao."
+      ]
+    },
+    {
+      "id": "compiler-overload-binding",
+      "category": "runtime",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer compilacao e execucao comparativa; compilar com sucesso nao prova binding."
+      ]
+    },
+    {
+      "id": "compiler-helper-precedence",
+      "category": "runtime",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer projetos que executem chamadas e comparem comportamento."
+      ]
+    },
+    {
+      "id": "cache-include-invalidation",
+      "category": "cache",
+      "status": "BLOCKED",
+      "failures": [
+        "O adaptador ainda nao oferece cache/contexto instrumentavel."
+      ]
+    },
+    {
+      "id": "cache-source-invalidation",
+      "category": "cache",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer cache compartilhado de fatos a ser implementado."
+      ]
+    },
+    {
+      "id": "cache-context-isolation",
+      "category": "cache",
+      "status": "BLOCKED",
+      "failures": [
+        "Nao ha chave de cache por contexto nem API de contexto."
+      ]
+    },
+    {
+      "id": "encoding-preservation",
+      "category": "filesystem",
+      "status": "BLOCKED",
+      "failures": [
+        "O modificador do Probe recebe string em memoria; encoding exige adapter real."
+      ]
+    },
+    {
+      "id": "rollback-build-failure",
+      "category": "filesystem",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer AppService, build e transacao em projeto temporario."
+      ]
+    },
+    {
+      "id": "cancellation-transaction",
+      "category": "filesystem",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer AppService e transacao real, fora do engine de AST."
+      ]
+    },
+    {
+      "id": "project-imported-props",
+      "category": "project",
+      "status": "BLOCKED",
+      "failures": [
+        "Requer avaliacao de projeto/MSBuild ausente neste instrumento."
+      ]
+    }
+  ]
+}

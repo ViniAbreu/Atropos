@@ -1,0 +1,1 @@
+Analisar ambas as configuracoes e preservar dependencias necessarias em cada uma.

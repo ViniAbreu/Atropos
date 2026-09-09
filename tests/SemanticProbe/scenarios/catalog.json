@@ -1,0 +1,4384 @@
+{
+  "schemaVersion": 1,
+  "policy": "Expectativas manuais conservadoras; casos ambiguos preservam a colocacao original; nao equiparar compilacao a equivalencia semantica.",
+  "scenarios": [
+    {
+      "id": "empty-unit",
+      "category": "basic",
+      "title": "Unit sem uses",
+      "kind": "runnable",
+      "consumer": "scenarios/empty-unit/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "unused-interface",
+      "category": "basic",
+      "title": "Remover unica use da interface",
+      "kind": "runnable",
+      "consumer": "scenarios/unused-interface/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "unused-implementation",
+      "category": "basic",
+      "title": "Remover unica use da implementation",
+      "kind": "runnable",
+      "consumer": "scenarios/unused-implementation/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "move-call",
+      "category": "basic",
+      "title": "Mover unit chamada somente no corpo",
+      "kind": "runnable",
+      "consumer": "scenarios/move-call/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keep-signature",
+      "category": "basic",
+      "title": "Tipo externo em parametro publico",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-signature/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "keep-return",
+      "category": "basic",
+      "title": "Tipo externo no retorno publico",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-return/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "keep-both-sections",
+      "category": "basic",
+      "title": "Referencia na interface e implementation",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-both-sections/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "keep-implementation",
+      "category": "basic",
+      "title": "Use da implementation efetivamente usada",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-implementation/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "mixed-remove-move",
+      "category": "basic",
+      "title": "Remover e mover dependencias distintas",
+      "kind": "runnable",
+      "consumer": "scenarios/mixed-remove-move/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeOther.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeOther"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unused-both-sections",
+      "category": "basic",
+      "title": "Remover nas duas secoes",
+      "kind": "runnable",
+      "consumer": "scenarios/unused-both-sections/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeOther.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep",
+            "ProbeOther"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "case-insensitive",
+      "category": "basic",
+      "title": "Resolucao Delphi insensivel a caixa",
+      "kind": "runnable",
+      "consumer": "scenarios/case-insensitive/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repeat-reference",
+      "category": "basic",
+      "title": "Repetir referencia nao muda decisao",
+      "kind": "runnable",
+      "consumer": "scenarios/repeat-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-constant",
+      "category": "references",
+      "title": "Constante externa em declaracao publica",
+      "kind": "runnable",
+      "consumer": "scenarios/public-constant/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "implementation-constant",
+      "category": "references",
+      "title": "Constante externa somente na implementation",
+      "kind": "runnable",
+      "consumer": "scenarios/implementation-constant/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "global-variable",
+      "category": "references",
+      "title": "Variavel global externa",
+      "kind": "runnable",
+      "consumer": "scenarios/global-variable/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "resourcestring",
+      "category": "references",
+      "title": "Uso de resourcestring externa",
+      "kind": "runnable",
+      "consumer": "scenarios/resourcestring/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "procedure-address",
+      "category": "references",
+      "title": "Endereco de rotina externa",
+      "kind": "runnable",
+      "consumer": "scenarios/procedure-address/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-inheritance",
+      "category": "types",
+      "title": "Ancestral de classe publica",
+      "kind": "runnable",
+      "consumer": "scenarios/public-inheritance/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "private-field",
+      "category": "types",
+      "title": "Campo privado ainda pertence a declaracao da interface",
+      "kind": "runnable",
+      "consumer": "scenarios/private-field/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "public-property",
+      "category": "types",
+      "title": "Tipo de propriedade publica",
+      "kind": "runnable",
+      "consumer": "scenarios/public-property/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "type-alias",
+      "category": "types",
+      "title": "Alias publico de tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/type-alias/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "pointer-type",
+      "category": "types",
+      "title": "Ponteiro para record externo",
+      "kind": "runnable",
+      "consumer": "scenarios/pointer-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "array-type",
+      "category": "types",
+      "title": "Array publico de tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/array-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "procedural-type",
+      "category": "types",
+      "title": "Assinatura de tipo procedural",
+      "kind": "runnable",
+      "consumer": "scenarios/procedural-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "interface-ancestor",
+      "category": "types",
+      "title": "Interface publica herda interface externa",
+      "kind": "runnable",
+      "consumer": "scenarios/interface-ancestor/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "implementation-type",
+      "category": "types",
+      "title": "Alias definido somente na implementation",
+      "kind": "runnable",
+      "consumer": "scenarios/implementation-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "class-reference",
+      "category": "types",
+      "title": "Class of tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/class-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "default-parameter",
+      "category": "types",
+      "title": "Constante em valor padrao de parametro",
+      "kind": "runnable",
+      "consumer": "scenarios/default-parameter/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "record-field",
+      "category": "types",
+      "title": "Campo de record publico",
+      "kind": "runnable",
+      "consumer": "scenarios/record-field/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "local-variable-shadow",
+      "category": "scope",
+      "title": "Nome de variavel local nao e dependencia",
+      "kind": "runnable",
+      "consumer": "scenarios/local-variable-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "parameter-shadow",
+      "category": "scope",
+      "title": "Parametro local sombreia exportacao",
+      "kind": "runnable",
+      "consumer": "scenarios/parameter-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "local-procedure-shadow",
+      "category": "scope",
+      "title": "Rotina local sombreia nome importado",
+      "kind": "runnable",
+      "consumer": "scenarios/local-procedure-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "local-type-shadow",
+      "category": "scope",
+      "title": "Tipo local sombreia nome importado",
+      "kind": "runnable",
+      "consumer": "scenarios/local-type-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "field-shadow",
+      "category": "scope",
+      "title": "Campo de classe local com nome de exportacao",
+      "kind": "runnable",
+      "consumer": "scenarios/field-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "method-shadow",
+      "category": "scope",
+      "title": "Metodo proprio nao referencia rotina global homonima",
+      "kind": "runnable",
+      "consumer": "scenarios/method-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "unit-level-shadow",
+      "category": "scope",
+      "title": "Declaracao da propria unit tem precedencia",
+      "kind": "runnable",
+      "consumer": "scenarios/unit-level-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "inline-variable-shadow",
+      "category": "scope",
+      "title": "Variavel inline sombreia exportacao",
+      "kind": "runnable",
+      "consumer": "scenarios/inline-variable-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "for-variable-shadow",
+      "category": "scope",
+      "title": "Variavel de for local",
+      "kind": "runnable",
+      "consumer": "scenarios/for-variable-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "anonymous-parameter-shadow",
+      "category": "scope",
+      "title": "Parametro de metodo anonimo",
+      "kind": "runnable",
+      "consumer": "scenarios/anonymous-parameter-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "qualified-call",
+      "category": "qualification",
+      "title": "Chamada qualificada elimina candidato homonimo",
+      "kind": "runnable",
+      "consumer": "scenarios/qualified-call/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeCollision.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeCollision"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qualified-type",
+      "category": "qualification",
+      "title": "Tipo qualificado preserva somente dono",
+      "kind": "runnable",
+      "consumer": "scenarios/qualified-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeCollision.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeCollision"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "dotted-unit-call",
+      "category": "qualification",
+      "title": "Nome de unit com namespace em chamada",
+      "kind": "runnable",
+      "consumer": "scenarios/dotted-unit-call/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/Probe.Namespace.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "Probe.Namespace"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dotted-unit-type",
+      "category": "qualification",
+      "title": "Nome de unit com namespace em tipo",
+      "kind": "runnable",
+      "consumer": "scenarios/dotted-unit-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/Probe.Namespace.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "ambiguous-interface",
+      "category": "ambiguity",
+      "title": "Colisao na interface preserva candidatos",
+      "kind": "runnable",
+      "consumer": "scenarios/ambiguous-interface/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeCollision.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "ambiguities",
+          "op": "count",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "ambiguous-implementation",
+      "category": "ambiguity",
+      "title": "Colisao em uses da implementation e observavel",
+      "kind": "runnable",
+      "consumer": "scenarios/ambiguous-implementation/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeCollision.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "ambiguities",
+          "op": "count",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "ambiguity-across-sections",
+      "category": "ambiguity",
+      "title": "Implementation ve tambem imports da interface",
+      "kind": "runnable",
+      "consumer": "scenarios/ambiguity-across-sections/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeCollision.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "ambiguities",
+          "op": "count",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "generic-vs-plain",
+      "category": "generics",
+      "title": "Tipo generico nao e tipo nao generico",
+      "kind": "runnable",
+      "consumer": "scenarios/generic-vs-plain/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeGeneric.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbePlain.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbePlain"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "generic-arity",
+      "category": "generics",
+      "title": "Distinguir um e dois parametros genericos",
+      "kind": "runnable",
+      "consumer": "scenarios/generic-arity/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeGeneric.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbePlain.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbePlain"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "generic-argument",
+      "category": "generics",
+      "title": "Argumento generico introduz dependencia",
+      "kind": "runnable",
+      "consumer": "scenarios/generic-argument/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeGeneric.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "generic-constraint",
+      "category": "generics",
+      "title": "Constraint generica referencia tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/generic-constraint/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "generic-nested",
+      "category": "generics",
+      "title": "Genericos aninhados",
+      "kind": "runnable",
+      "consumer": "scenarios/generic-nested/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeGeneric.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "generic-implementation",
+      "category": "generics",
+      "title": "Mover generic usado somente em variavel local",
+      "kind": "runnable",
+      "consumer": "scenarios/generic-implementation/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeGeneric.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeGeneric"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "generic-parameter-shadow",
+      "category": "generics",
+      "title": "Parametro generico nao referencia tipo externo homonimo",
+      "kind": "runnable",
+      "consumer": "scenarios/generic-parameter-shadow/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "scoped-export",
+      "category": "enums",
+      "title": "Elementos scoped nao sao globais",
+      "kind": "runnable",
+      "consumer": "scenarios/scoped-export/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "exports",
+          "op": "set",
+          "value": [
+            "TColor"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unscoped-export",
+      "category": "enums",
+      "title": "Elementos nao scoped sao globais",
+      "kind": "runnable",
+      "consumer": "scenarios/unscoped-export/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "exports",
+          "op": "set",
+          "value": [
+            "TColor",
+            "Red",
+            "Blue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scoped-collision",
+      "category": "enums",
+      "title": "Elemento scoped nao colide com variavel local",
+      "kind": "runnable",
+      "consumer": "scenarios/scoped-collision/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeScoped.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeScoped"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "unscoped-reference",
+      "category": "enums",
+      "title": "Valor de enum global usado",
+      "kind": "runnable",
+      "consumer": "scenarios/unscoped-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeUnscoped.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeUnscoped"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scoped-reference",
+      "category": "enums",
+      "title": "Valor de enum qualificado por tipo",
+      "kind": "runnable",
+      "consumer": "scenarios/scoped-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeScoped.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeScoped"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nested-type-export",
+      "category": "enums",
+      "title": "Tipo e enum aninhados nao sao globais",
+      "kind": "runnable",
+      "consumer": "scenarios/nested-type-export/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "exports",
+          "op": "set",
+          "value": [
+            "TOuter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "helper-string-use",
+      "category": "helpers",
+      "title": "Metodo de helper para string",
+      "kind": "runnable",
+      "consumer": "scenarios/helper-string-use/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeHelpers.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeHelpers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "helper-unused",
+      "category": "helpers",
+      "title": "Helper sem uso pode ser removido",
+      "kind": "runnable",
+      "consumer": "scenarios/helper-unused/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeHelpers.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeHelpers"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "helper-class-use",
+      "category": "helpers",
+      "title": "Helper de classe via receptor tipado",
+      "kind": "runnable",
+      "consumer": "scenarios/helper-class-use/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeClassHelper.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep",
+            "ProbeClassHelper"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "helper-unrelated-receiver",
+      "category": "helpers",
+      "title": "Metodo proprio homonimo nao usa helper",
+      "kind": "runnable",
+      "consumer": "scenarios/helper-unrelated-receiver/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeHelpers.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeHelpers"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "helper-export",
+      "category": "helpers",
+      "title": "Extrair metodo e alvo do helper",
+      "kind": "runnable",
+      "consumer": "scenarios/helper-export/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "exports",
+          "op": "contains",
+          "value": "!HELPER:Twist:string"
+        }
+      ]
+    },
+    {
+      "id": "helper-public-export",
+      "category": "helpers",
+      "title": "Extrair metodo dentro de public",
+      "kind": "runnable",
+      "consumer": "scenarios/helper-public-export/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "exports",
+          "op": "contains",
+          "value": "!HELPER:Polish:TObject"
+        }
+      ]
+    },
+    {
+      "id": "initialization-call",
+      "category": "lifecycle",
+      "title": "Referencia apenas na inicializacao",
+      "kind": "runnable",
+      "consumer": "scenarios/initialization-call/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "finalization-call",
+      "category": "lifecycle",
+      "title": "Referencia apenas na finalizacao",
+      "kind": "runnable",
+      "consumer": "scenarios/finalization-call/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "both-lifecycle-calls",
+      "category": "lifecycle",
+      "title": "Duas fases do ciclo de vida",
+      "kind": "runnable",
+      "consumer": "scenarios/both-lifecycle-calls/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "legacy-begin-call",
+      "category": "lifecycle",
+      "title": "Inicializacao na forma begin end",
+      "kind": "runnable",
+      "consumer": "scenarios/legacy-begin-call/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keep-initializing-unit",
+      "category": "lifecycle",
+      "title": "Importacao para efeito de inicializacao",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-initializing-unit/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeInit.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "keep-finalizing-unit",
+      "category": "lifecycle",
+      "title": "Importacao para efeito de finalizacao",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-finalizing-unit/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeFinalize.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "keep-legacy-init-unit",
+      "category": "lifecycle",
+      "title": "Efeito da forma antiga de inicializacao",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-legacy-init-unit/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeLegacyInit.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "keep-transitive-effects",
+      "category": "lifecycle",
+      "title": "Importacao que ativa inicializacao transitiva",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-transitive-effects/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeTransitive.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeInit.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "keep-native-effects",
+      "category": "lifecycle",
+      "title": "Origem nativa nao prova ausencia de efeitos",
+      "kind": "runnable",
+      "consumer": "scenarios/keep-native-effects/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeInit.pas",
+          "native": true
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ],
+      "policy": "Conservador: preservar efeitos mesmo em fontes nativas."
+    },
+    {
+      "id": "comments-not-usage",
+      "category": "trivia",
+      "title": "Comentarios nao criam referencias",
+      "kind": "runnable",
+      "consumer": "scenarios/comments-not-usage/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "strings-not-usage",
+      "category": "trivia",
+      "title": "Strings nao criam referencias",
+      "kind": "runnable",
+      "consumer": "scenarios/strings-not-usage/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "escaped-string",
+      "category": "trivia",
+      "title": "Aspas escapadas nao confundem nomes",
+      "kind": "runnable",
+      "consumer": "scenarios/escaped-string/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "uses-word-in-string",
+      "category": "trivia",
+      "title": "Palavra uses em string",
+      "kind": "runnable",
+      "consumer": "scenarios/uses-word-in-string/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "inline-define-on",
+      "category": "directives",
+      "title": "Define local ativa ramo",
+      "kind": "runnable",
+      "consumer": "scenarios/inline-define-on/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeOther.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "interfaceUses",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inline-define-off",
+      "category": "directives",
+      "title": "Ramo inativo nao aparece",
+      "kind": "runnable",
+      "consumer": "scenarios/inline-define-off/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeOther.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeOther"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "interfaceUses",
+          "op": "set",
+          "value": [
+            "ProbeOther"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inline-undef",
+      "category": "directives",
+      "title": "Undef substitui define anterior",
+      "kind": "runnable",
+      "consumer": "scenarios/inline-undef/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeOther.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeOther"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "if-defined",
+      "category": "directives",
+      "title": "Expressao simples DEFINED",
+      "kind": "runnable",
+      "consumer": "scenarios/if-defined/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeOther.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nested-conditionals",
+      "category": "directives",
+      "title": "Condicionais aninhadas",
+      "kind": "runnable",
+      "consumer": "scenarios/nested-conditionals/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        },
+        {
+          "path": "scenarios/providers/ProbeOther.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inactive-reference",
+      "category": "directives",
+      "title": "Referencia em ramo inativo nao conserva unit",
+      "kind": "runnable",
+      "consumer": "scenarios/inactive-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "include-uses",
+      "category": "includes",
+      "title": "Uses em include precisa ser carregada",
+      "kind": "runnable",
+      "consumer": "scenarios/include-uses/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "interfaceUses",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "include-declaration",
+      "category": "includes",
+      "title": "Tipo exportado em include",
+      "kind": "runnable",
+      "consumer": "scenarios/include-declaration/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "exports",
+          "op": "contains",
+          "value": "TIncluded"
+        }
+      ]
+    },
+    {
+      "id": "include-reference",
+      "category": "includes",
+      "title": "Referencia de implementation em include",
+      "kind": "runnable",
+      "consumer": "scenarios/include-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "include-nested",
+      "category": "includes",
+      "title": "Includes relativos encadeados",
+      "kind": "runnable",
+      "consumer": "scenarios/include-nested/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "interfaceUses",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown-unit",
+      "category": "resolution",
+      "title": "Unit sem fontes e preservada",
+      "kind": "runnable",
+      "consumer": "scenarios/unknown-unit/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "resolver-exact",
+      "category": "resolution",
+      "title": "Resolver real encontra fonte pelo nome",
+      "kind": "runnable",
+      "consumer": "scenarios/resolver-exact/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ],
+      "resolver": true,
+      "searchPaths": [
+        "scenarios/providers"
+      ]
+    },
+    {
+      "id": "resolver-namespaced",
+      "category": "resolution",
+      "title": "Resolver encontra unit com nome pontuado",
+      "kind": "runnable",
+      "consumer": "scenarios/resolver-namespaced/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": [
+            "Probe.Namespace"
+          ]
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ],
+      "resolver": true,
+      "searchPaths": [
+        "scenarios/providers"
+      ]
+    },
+    {
+      "id": "resolver-not-recursive",
+      "category": "resolution",
+      "title": "Search path nao inclui subpastas implicitamente",
+      "kind": "runnable",
+      "consumer": "scenarios/resolver-not-recursive/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ],
+      "resolver": true,
+      "searchPaths": [
+        "scenarios"
+      ]
+    },
+    {
+      "id": "resolver-missing-source",
+      "category": "resolution",
+      "title": "Falha de resolucao preserva dependencia",
+      "kind": "runnable",
+      "consumer": "scenarios/resolver-missing-source/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ],
+      "resolver": true,
+      "searchPaths": [
+        "scenarios/providers"
+      ]
+    },
+    {
+      "id": "operator-reference",
+      "category": "advanced",
+      "title": "Operador em record externo",
+      "kind": "runnable",
+      "consumer": "scenarios/operator-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeOps.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeOps"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "attribute-reference",
+      "category": "advanced",
+      "title": "Atributo em tipo publico",
+      "kind": "runnable",
+      "consumer": "scenarios/attribute-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeAttributes.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "with-reference",
+      "category": "advanced",
+      "title": "With em objeto de tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/with-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inherited-reference",
+      "category": "advanced",
+      "title": "Ancestral e chamada inherited",
+      "kind": "runnable",
+      "consumer": "scenarios/inherited-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "is-type-reference",
+      "category": "advanced",
+      "title": "Operador is referencia tipo",
+      "kind": "runnable",
+      "consumer": "scenarios/is-type-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "as-type-reference",
+      "category": "advanced",
+      "title": "Operador as referencia tipo",
+      "kind": "runnable",
+      "consumer": "scenarios/as-type-reference/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sizeof-type",
+      "category": "advanced",
+      "title": "SizeOf de tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/sizeof-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "explicit-cast",
+      "category": "advanced",
+      "title": "Cast explicito para tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/explicit-cast/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "threadvar-type",
+      "category": "advanced",
+      "title": "Threadvar de tipo externo",
+      "kind": "runnable",
+      "consumer": "scenarios/threadvar-type/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "rewrite-only-item",
+      "category": "rewrite",
+      "title": "Remover a unica use",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-only-item/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "notMatch",
+          "value": "(?i)\\buses\\b"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-first-item",
+      "category": "rewrite",
+      "title": "Remover primeiro item",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-first-item/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)uses\\s+ProbeOther\\s*;"
+        },
+        {
+          "field": "modified",
+          "op": "notMatch",
+          "value": "ProbeDep"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-last-item",
+      "category": "rewrite",
+      "title": "Remover ultimo item",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-last-item/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)uses\\s+ProbeOther\\s*;"
+        },
+        {
+          "field": "modified",
+          "op": "notMatch",
+          "value": "ProbeDep"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-middle-item",
+      "category": "rewrite",
+      "title": "Remover item intermediario",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-middle-item/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)uses\\s+ProbeOther\\s*,\\s*ProbeCollision\\s*;"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-all-items",
+      "category": "rewrite",
+      "title": "Remover todos os itens",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-all-items/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "notMatch",
+          "value": "(?i)\\buses\\b"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep",
+          "ProbeOther"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-move-new-clause",
+      "category": "rewrite",
+      "title": "Mover criando uses da implementation",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-move-new-clause/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)interface\\s+implementation\\s+uses\\s+ProbeDep\\s*;"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [],
+        "moved": [
+          "ProbeDep"
+        ]
+      }
+    },
+    {
+      "id": "rewrite-move-existing-clause",
+      "category": "rewrite",
+      "title": "Mover para uses existente",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-move-existing-clause/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)implementation\\s+uses\\s+ProbeDep\\s*,\\s*ProbeOther\\s*;"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [],
+        "moved": [
+          "ProbeDep"
+        ]
+      }
+    },
+    {
+      "id": "rewrite-remove-implementation",
+      "category": "rewrite",
+      "title": "Remover da implementation",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-remove-implementation/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "notMatch",
+          "value": "(?i)\\buses\\b"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-case-insensitive",
+      "category": "rewrite",
+      "title": "Edicao insensivel a caixa",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-case-insensitive/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "notMatch",
+          "value": "(?i)\\buses\\b"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-prefix-boundary",
+      "category": "rewrite",
+      "title": "Nao remover nome que apenas compartilha prefixo",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-prefix-boundary/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)uses\\s+ProbeDepExtra\\s*;"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-dotted-boundary",
+      "category": "rewrite",
+      "title": "Nao remover parte de um namespace",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-dotted-boundary/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)uses\\s+Namespace\\.ProbeDep\\s*;"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-comments-preserved",
+      "category": "rewrite",
+      "title": "Preservar comentario de item remanescente",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-comments-preserved/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "KEEP_THIS_COMMENT"
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "ProbeOther"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-line-comment",
+      "category": "rewrite",
+      "title": "Comentario de linha entre itens",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-line-comment/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "KEEP_LINE"
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "ProbeOther"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-string-preserved",
+      "category": "rewrite",
+      "title": "Nao editar nomes dentro de strings",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-string-preserved/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "const Text='uses ProbeDep;'"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-comment-keyword",
+      "category": "rewrite",
+      "title": "Uses em comentario nao e clausula",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-comment-keyword/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "\\{ uses Phantom; \\}"
+        },
+        {
+          "field": "modified",
+          "op": "notMatch",
+          "value": "(?m)^uses ProbeDep"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-semicolon-comment",
+      "category": "rewrite",
+      "title": "Ponto e virgula em comentario nao termina uses",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-semicolon-comment/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "ProbeOther\\s*;"
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "KEEP_SEMICOLON"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-remove-disabled",
+      "category": "rewrite",
+      "title": "Flag RemoveUnused desativada",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-remove-disabled/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "unchanged",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      },
+      "removeEnabled": false
+    },
+    {
+      "id": "rewrite-move-disabled",
+      "category": "rewrite",
+      "title": "Flag MoveToImplementation desativada",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-move-disabled/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "unchanged",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [],
+        "moved": [
+          "ProbeDep"
+        ]
+      },
+      "moveEnabled": false
+    },
+    {
+      "id": "rewrite-empty-plan",
+      "category": "rewrite",
+      "title": "Plano vazio e inofensivo",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-empty-plan/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "unchanged",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-absent-unit",
+      "category": "rewrite",
+      "title": "Remover unit ausente nao muda fonte",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-absent-unit/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "unchanged",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "rewrite-multiple-moves",
+      "category": "rewrite",
+      "title": "Mover duas dependencias",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-multiple-moves/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "(?is)implementation\\s+uses\\b"
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "ProbeDep"
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "ProbeOther"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [],
+        "moved": [
+          "ProbeDep",
+          "ProbeOther"
+        ]
+      }
+    },
+    {
+      "id": "rewrite-directive-preserved",
+      "category": "rewrite",
+      "title": "Preservar condicional de item remanescente",
+      "kind": "runnable",
+      "consumer": "scenarios/rewrite-directive-preserved/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "idempotent",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "\\{\\$IFDEF PROBE_ON\\}"
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "\\{\\$ENDIF\\}"
+        },
+        {
+          "field": "modified",
+          "op": "match",
+          "value": "ProbeOther"
+        }
+      ],
+      "rewrite": true,
+      "changes": {
+        "unused": [
+          "ProbeDep"
+        ],
+        "moved": []
+      }
+    },
+    {
+      "id": "malformed-consumer",
+      "category": "errors",
+      "title": "Erro sintatico do consumidor",
+      "kind": "runnable",
+      "consumer": "scenarios/malformed-consumer/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "error"
+        },
+        {
+          "field": "errorStage",
+          "op": "equals",
+          "value": "parse"
+        }
+      ]
+    },
+    {
+      "id": "unterminated-string",
+      "category": "errors",
+      "title": "String nao terminada",
+      "kind": "runnable",
+      "consumer": "scenarios/unterminated-string/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "error"
+        },
+        {
+          "field": "errorStage",
+          "op": "equals",
+          "value": "parse"
+        }
+      ]
+    },
+    {
+      "id": "malformed-dependency",
+      "category": "errors",
+      "title": "Erro de dependencia nao e exportacao vazia",
+      "kind": "runnable",
+      "consumer": "scenarios/malformed-dependency/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/malformed-dependency/Broken.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "error"
+        },
+        {
+          "field": "errorStage",
+          "op": "equals",
+          "value": "dependency"
+        }
+      ]
+    },
+    {
+      "id": "missing-include",
+      "category": "includes",
+      "title": "Include ausente deve impedir analise completa",
+      "kind": "runnable",
+      "consumer": "scenarios/missing-include/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "error"
+        }
+      ]
+    },
+    {
+      "id": "ifopt-rangecheck",
+      "category": "directives",
+      "title": "IFOPT deve respeitar opcao local",
+      "kind": "runnable",
+      "consumer": "scenarios/ifopt-rangecheck/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "interfaceUses",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "if-nested-expression",
+      "category": "directives",
+      "title": "Expressao condicional com parenteses",
+      "kind": "runnable",
+      "consumer": "scenarios/if-nested-expression/Consumer.pas",
+      "dependencies": [],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "interfaceUses",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scale-references-10",
+      "category": "scale",
+      "title": "Carga de 10 chamadas iguais",
+      "kind": "runnable",
+      "consumer": "scenarios/scale-references-10/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ],
+      "size": 10
+    },
+    {
+      "id": "scale-references-100",
+      "category": "scale",
+      "title": "Carga de 100 chamadas iguais",
+      "kind": "runnable",
+      "consumer": "scenarios/scale-references-100/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ],
+      "size": 100
+    },
+    {
+      "id": "scale-references-1000",
+      "category": "scale",
+      "title": "Carga de 1000 chamadas iguais",
+      "kind": "runnable",
+      "consumer": "scenarios/scale-references-1000/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ],
+      "size": 1000
+    },
+    {
+      "id": "scale-references-5000",
+      "category": "scale",
+      "title": "Carga de 5000 chamadas iguais",
+      "kind": "runnable",
+      "consumer": "scenarios/scale-references-5000/Consumer.pas",
+      "dependencies": [
+        {
+          "path": "scenarios/providers/ProbeDep.pas"
+        }
+      ],
+      "checks": [
+        {
+          "field": "status",
+          "op": "equals",
+          "value": "ok"
+        },
+        {
+          "field": "unused",
+          "op": "set",
+          "value": []
+        },
+        {
+          "field": "moved",
+          "op": "set",
+          "value": [
+            "ProbeDep"
+          ]
+        }
+      ],
+      "size": 5000
+    },
+    {
+      "id": "project-define-debug-release",
+      "category": "project",
+      "title": "Define de projeto Debug/Release",
+      "kind": "blocked",
+      "consumer": "scenarios/project-define-debug-release/Consumer.pas",
+      "reason": "IASTParser recebe apenas caminho; o Probe nao deve injetar defines silenciosamente.",
+      "expected": "Analisar ambas as configuracoes e preservar dependencias necessarias em cada uma.",
+      "checks": []
+    },
+    {
+      "id": "platform-win32-win64",
+      "category": "project",
+      "title": "Duas plataformas e variantes condicionais",
+      "kind": "blocked",
+      "consumer": "scenarios/platform-win32-win64/Consumer.pas",
+      "reason": "Falta contrato de contexto alvo no adaptador.",
+      "expected": "As decisoes devem valer para as duas plataformas selecionadas.",
+      "checks": []
+    },
+    {
+      "id": "namespace-prefix-resolution",
+      "category": "resolution",
+      "title": "DCC_Namespace resolve nome curto",
+      "kind": "blocked",
+      "consumer": "scenarios/namespace-prefix-resolution/Consumer.pas",
+      "reason": "O resolver nao recebe lista de namespaces.",
+      "expected": "Resolver Probe.Namespace pelo namespace Probe sem escolher outro arquivo.",
+      "checks": []
+    },
+    {
+      "id": "unit-alias-resolution",
+      "category": "resolution",
+      "title": "Alias de unit do compilador",
+      "kind": "blocked",
+      "consumer": "scenarios/unit-alias-resolution/Consumer.pas",
+      "reason": "O resolver nao recebe DCC_UnitAlias.",
+      "expected": "Mapear OldDep para ProbeDep conforme configuracao.",
+      "checks": []
+    },
+    {
+      "id": "project-in-path",
+      "category": "project",
+      "title": "Caminho explicito em DPR",
+      "kind": "blocked",
+      "consumer": "scenarios/project-in-path/Consumer.pas",
+      "reason": "O Probe atual recebe consumidor .pas e nao avalia DPR/DPROJ.",
+      "expected": "Respeitar o arquivo explicitado por in no projeto.",
+      "checks": []
+    },
+    {
+      "id": "package-dcu-only",
+      "category": "project",
+      "title": "Dependencia disponivel somente em DCU/BPL",
+      "kind": "blocked",
+      "consumer": "scenarios/package-dcu-only/Consumer.pas",
+      "reason": "Requer artefato Delphi compilado e metadados externos.",
+      "expected": "Preservar com diagnostico de ausencia de fonte.",
+      "checks": []
+    },
+    {
+      "id": "dfm-streaming-registration",
+      "category": "runtime",
+      "title": "Classe referenciada somente pelo DFM",
+      "kind": "blocked",
+      "consumer": "scenarios/dfm-streaming-registration/Consumer.pas",
+      "reason": "Requer projeto VCL e teste de streaming real.",
+      "expected": "Preservar registro e carregamento de componentes sem referencias textuais.",
+      "checks": []
+    },
+    {
+      "id": "rtti-string-registration",
+      "category": "runtime",
+      "title": "Resolucao dinamica por string",
+      "kind": "blocked",
+      "consumer": "scenarios/rtti-string-registration/Consumer.pas",
+      "reason": "Necessita politica de efeitos e teste funcional, nao inferivel so por nomes.",
+      "expected": "Declarar a dependencia dinamica ou preservar com justificativa.",
+      "checks": []
+    },
+    {
+      "id": "initialization-order",
+      "category": "runtime",
+      "title": "Ordem de efeitos apos mover uses",
+      "kind": "blocked",
+      "consumer": "scenarios/initialization-order/Consumer.pas",
+      "reason": "Necessita executavel antes/depois registrando a sequencia de inicializacao.",
+      "expected": "Sequencia de efeitos observaveis identica antes e depois.",
+      "checks": []
+    },
+    {
+      "id": "compiler-overload-binding",
+      "category": "runtime",
+      "title": "Sobrecarga escolhida antes/depois",
+      "kind": "blocked",
+      "consumer": "scenarios/compiler-overload-binding/Consumer.pas",
+      "reason": "Requer compilacao e execucao comparativa; compilar com sucesso nao prova binding.",
+      "expected": "Retorno observavel e sobrecarga escolhida permanecem iguais.",
+      "checks": []
+    },
+    {
+      "id": "compiler-helper-precedence",
+      "category": "runtime",
+      "title": "Precedencia de dois helpers",
+      "kind": "blocked",
+      "consumer": "scenarios/compiler-helper-precedence/Consumer.pas",
+      "reason": "Requer projetos que executem chamadas e comparem comportamento.",
+      "expected": "Metodo efetivamente selecionado nao muda apos limpeza.",
+      "checks": []
+    },
+    {
+      "id": "cache-include-invalidation",
+      "category": "cache",
+      "title": "Alteracao de include invalida consumidores",
+      "kind": "blocked",
+      "consumer": "scenarios/cache-include-invalidation/Consumer.pas",
+      "reason": "O adaptador ainda nao oferece cache/contexto instrumentavel.",
+      "expected": "Alteracao no include invalida todos os fatos dependentes.",
+      "checks": []
+    },
+    {
+      "id": "cache-source-invalidation",
+      "category": "cache",
+      "title": "Alteracao de exportacao invalida cache",
+      "kind": "blocked",
+      "consumer": "scenarios/cache-source-invalidation/Consumer.pas",
+      "reason": "Requer cache compartilhado de fatos a ser implementado.",
+      "expected": "Nova exportacao aparece e exportacao removida deixa de resolver.",
+      "checks": []
+    },
+    {
+      "id": "cache-context-isolation",
+      "category": "cache",
+      "title": "Mesmo arquivo em contextos distintos",
+      "kind": "blocked",
+      "consumer": "scenarios/cache-context-isolation/Consumer.pas",
+      "reason": "Nao ha chave de cache por contexto nem API de contexto.",
+      "expected": "Debug e Release nao compartilham fatos de variantes diferentes.",
+      "checks": []
+    },
+    {
+      "id": "encoding-preservation",
+      "category": "filesystem",
+      "title": "Preservar BOM, ANSI e finais de linha",
+      "kind": "blocked",
+      "consumer": "scenarios/encoding-preservation/Consumer.pas",
+      "reason": "O modificador do Probe recebe string em memoria; encoding exige adapter real.",
+      "expected": "Bytes fora do trecho editado e encoding original preservados.",
+      "checks": []
+    },
+    {
+      "id": "rollback-build-failure",
+      "category": "filesystem",
+      "title": "Rollback apos build final falhar",
+      "kind": "blocked",
+      "consumer": "scenarios/rollback-build-failure/Consumer.pas",
+      "reason": "Requer AppService, build e transacao em projeto temporario.",
+      "expected": "Restaurar exatamente os bytes originais apos falha.",
+      "checks": []
+    },
+    {
+      "id": "cancellation-transaction",
+      "category": "filesystem",
+      "title": "Cancelamento durante analise ou escrita",
+      "kind": "blocked",
+      "consumer": "scenarios/cancellation-transaction/Consumer.pas",
+      "reason": "Requer AppService e transacao real, fora do engine de AST.",
+      "expected": "Cancelar sem deixar alteracoes parciais.",
+      "checks": []
+    },
+    {
+      "id": "project-imported-props",
+      "category": "project",
+      "title": "Propriedades em arquivos MSBuild importados",
+      "kind": "blocked",
+      "consumer": "scenarios/project-imported-props/Consumer.pas",
+      "reason": "Requer avaliacao de projeto/MSBuild ausente neste instrumento.",
+      "expected": "Contexto efetivo inclui propriedades de imports.",
+      "checks": []
+    }
+  ]
+}
