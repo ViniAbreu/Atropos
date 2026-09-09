@@ -24,6 +24,8 @@ The gate also runs the projects under `tests\Fixtures` on both architectures. Th
 
 Coverage instruments all testable Core, Application, CLI, and Adapter units. The VCL form and program entry points are intentionally excluded from line coverage because they require a Windows message loop or process startup. Their logic is kept in the instrumented execution-presentation model, while executable wiring, PE architecture, CLI startup, and real VCL project handling are validated by the Win32/Win64 build and smoke gates. Generated code and the vendored DelphiAST implementation are also excluded; the Atropos DelphiAST adapter remains instrumented.
 
+Parser regression coverage includes Delphi source files encoded with a UTF-8 byte-order mark, including exact-size stream buffers. Atropos normalizes the source text before invoking the vendored parser so that encoding detection cannot read beyond the input buffer.
+
 Coverage only:
 
 ```powershell
