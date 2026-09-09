@@ -19,6 +19,7 @@ uses
   Atropos.Application.ExecutionConfig in 'src\Application\Atropos.Application.ExecutionConfig.pas',
   Atropos.Application.ExecutionLifecycle in 'src\Application\Atropos.Application.ExecutionLifecycle.pas',
   Atropos.Application.ExecutionPresentation in 'src\Application\Atropos.Application.ExecutionPresentation.pas',
+  Atropos.Adapters.ExecutionThread in 'src\Adapters\Execution\Atropos.Adapters.ExecutionThread.pas',
   Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
   Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
   Atropos.Adapters.BuildCapability in 'src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas';

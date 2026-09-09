@@ -47,6 +47,7 @@ uses
   Atropos.Tests.ExecutionConfig in 'src\Atropos.Tests.ExecutionConfig.pas',
   Atropos.Application.ExecutionLifecycle in '..\src\Application\Atropos.Application.ExecutionLifecycle.pas',
   Atropos.Application.ExecutionPresentation in '..\src\Application\Atropos.Application.ExecutionPresentation.pas',
+  Atropos.Adapters.ExecutionThread in '..\src\Adapters\Execution\Atropos.Adapters.ExecutionThread.pas',
   Atropos.Tests.ExecutionLifecycle in 'src\Atropos.Tests.ExecutionLifecycle.pas',
   Atropos.Application.CommandLine in '..\src\Application\Atropos.Application.CommandLine.pas',
   Atropos.Tests.CommandLine in 'src\Atropos.Tests.CommandLine.pas';

@@ -18,6 +18,7 @@ uses
   Atropos.Application.ExecutionConfig,
   Atropos.Application.ExecutionPresentation,
   Atropos.Application.Factory,
+  Atropos.Adapters.ExecutionThread,
   Atropos.Adapters.Logger,
   Atropos.Core.Ports,
   Atropos.Core.Config;
@@ -42,6 +43,7 @@ type
   private
     FExecutionPresentation: TExecutionPresentation;
     procedure ApplyExecutionState;
+    procedure CompleteExecution;
     procedure LogMessage(const AMsg: string);
     procedure UpdateProgress(AMax, APosition: Integer);
     procedure ExecuteProcess(const ADprojPath: string; const AConfig: TToolConfig);
@@ -88,6 +90,12 @@ begin
   ExecutionProgressBar.Position := FExecutionPresentation.State.ProgressPosition;
 end;
 
+procedure TMainForm.CompleteExecution;
+begin
+  FExecutionPresentation.Complete;
+  ApplyExecutionState;
+end;
+
 procedure TMainForm.BrowseButtonClick(Sender: TObject);
 begin
   if ProjectOpenDialog.Execute then
@@ -116,7 +124,7 @@ end;
 
 procedure TMainForm.ExecuteProcess(const ADprojPath: string; const AConfig: TToolConfig);
 begin
-  TThread.CreateAnonymousThread(
+  TSynchronizedExecutionThread.Create(
     procedure
     var
       LAppService: TProjectCleanerAppService;
@@ -152,13 +160,7 @@ begin
         on E: Exception do
           LogMessage('Critical Error: ' + E.Message);
       end;
-      TThread.Queue(TThread.CurrentThread,
-        procedure
-        begin
-          FExecutionPresentation.Complete;
-          ApplyExecutionState;
-        end);
-    end).Start;
+    end, CompleteExecution).Start;
 end;
 
 procedure TMainForm.CancelButtonClick(Sender: TObject);

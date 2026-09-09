@@ -34,6 +34,7 @@ $units = @(
     'Atropos.Application.Factory', 'Atropos.App.CLI',
     'Atropos.Adapters.Logger',
     'Atropos.Adapters.BuildService', 'Atropos.Adapters.BuildCapability',
+    'Atropos.Adapters.ExecutionThread',
     'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.FileTransaction',
@@ -43,7 +44,8 @@ $units = @(
 $sourcePaths = @(
     'src\Core\Domain', 'src\Core\Services', 'src\Application', 'src\CLI',
     'src\Adapters\Logger',
-    'src\Adapters\BuildService', 'src\Adapters\DelphiEnvironment',
+    'src\Adapters\BuildService', 'src\Adapters\Execution',
+    'src\Adapters\DelphiEnvironment',
     'src\Adapters\ExternalUnitResolver', 'src\Adapters\FileSystem',
     'src\Adapters\ProjectParser', 'src\Adapters\ReportGenerator',
     'src\Adapters\DelphiAST'

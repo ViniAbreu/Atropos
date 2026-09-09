@@ -122,6 +122,7 @@
         <DCCReference Include="src\Application\Atropos.Application.ExecutionConfig.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.ExecutionLifecycle.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.ExecutionPresentation.pas"/>
+        <DCCReference Include="src\Adapters\Execution\Atropos.Adapters.ExecutionThread.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.Factory.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas"/>
