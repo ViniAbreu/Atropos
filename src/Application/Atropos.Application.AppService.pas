@@ -168,6 +168,8 @@ var
   LDelphiPath: string;
 begin
   LDelphiPath := FDelphiEnvironment.ResolveDelphiPath(AFullPath);
+  if not LDelphiPath.IsEmpty then
+    Log('Resolved Delphi installation: ' + LDelphiPath);
   if LDelphiPath.IsEmpty then
     Log('WARNING: Delphi environment not found. Standard RTL/VCL units will not be resolved and will be ignored.');
 
@@ -184,7 +186,7 @@ begin
   LogBuildDiagnostics(Result);
   if not Result.Success then
   begin
-    Log('WARNING: Baseline build failed! Metrics will be collected, but rollback comparison might be inaccurate.');
+    Log('WARNING: Baseline build failed. Analysis is stopped; no source files will be changed.');
     Log('Error: ' + Result.ErrorMessage);
     Exit;
   end;

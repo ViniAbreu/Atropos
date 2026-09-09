@@ -1,264 +1,332 @@
-﻿unit Atropos.Tests.DelphiEnvironment;
+unit Atropos.Tests.DelphiEnvironment;
 
 interface
-uses
-  DUnitX.TestFramework, Atropos.Core.Ports,
-  Atropos.Adapters.DelphiEnvironment, System.SysUtils, System.IOUtils,
-  System.Classes, Winapi.Windows;
+uses DUnitX.TestFramework, Atropos.Adapters.DelphiEnvironment,
+  System.SysUtils, System.IOUtils, System.Classes, System.Win.Registry, Winapi.Windows;
 
 type
   TDelphiEnvironmentProbe = class(TDelphiEnvironmentAdapter)
-  private
-    FConfiguredPath: string;
-    FHighestRegistryPath: string;
-    FRegistryPath: string;
-    FRequestedVersion: string;
-    FRegistryCallCount: Integer;
   protected
-    function GetRootDirFromRegistry(const AVersion: string;
-      AExact: Boolean = True): string; override;
+    function GetRegisteredInstallations: TArray<TDelphiInstallation>; override;
     function GetConfiguredBDSPath: string; override;
   public
-    property ConfiguredPath: string read FConfiguredPath write FConfiguredPath;
-    property HighestRegistryPath: string read FHighestRegistryPath
-      write FHighestRegistryPath;
-    property RegistryPath: string read FRegistryPath write FRegistryPath;
-    property RequestedVersion: string read FRequestedVersion;
-    property RegistryCallCount: Integer read FRegistryCallCount;
+    Installations: TArray<TDelphiInstallation>;
+    ConfiguredPath: string;
+    procedure Add(const AVersion, ARoot: string);
   end;
 
-  TDelphiRegistryHierarchyProbe = class(TDelphiEnvironmentAdapter)
-  private
-    FMachinePath: string;
-    FUserPath: string;
+  TLocalDelphiProbe = class(TDelphiEnvironmentAdapter)
   protected
-    function GetRootDirFromRegistryHive(ARootKey: HKEY;
-      const AVersion: string; AExact: Boolean = True): string; override;
+    function GetConfiguredBDSPath: string; override;
   public
-    function Locate(const AVersion: string; AExact: Boolean = True): string;
-    property MachinePath: string read FMachinePath write FMachinePath;
-    property UserPath: string read FUserPath write FUserPath;
+    function Registered: TArray<TDelphiInstallation>;
+  end;
+
+  TRegistryEnvironmentProbe = class(TLocalDelphiProbe)
+  protected
+    function GetRegistryBaseKey: string; override;
+  public
+    BaseKey: string;
   end;
 
   [TestFixture]
   TDelphiEnvironmentTests = class
   private
-    FEnvironmentService: IDelphiEnvironmentService;
-    FTestDprojPath: string;
+    FRoot, FProject, FRegistryKey: string;
+    FEnvironment: TDelphiEnvironmentProbe;
+    procedure Registration(const AVersion, AValue, AData: string; AView: Cardinal = KEY_WOW64_64KEY);
+    function Installation(const AName: string; const AExecutable: string = 'bin\bds.exe'): string;
+    procedure ProjectVersion(const AVersion: string);
   public
-    [Setup]
-    procedure Setup;
-    [TearDown]
-    procedure TearDown;
-
-    [Test]
-    procedure Test_ResolveDelphiPath_Fallback_To_Highest_Or_BDS;
-    
-    [Test]
-    procedure Test_ResolveDelphiPath_With_Mock_Dproj;
-    [Test]
-    procedure ProjectVersion201MapsToBDS230;
-    [Test]
-    procedure ProjectVersion203MapsToBDS230;
-    [Test]
-    procedure UnknownProjectVersionDoesNotGuessBDSVersion;
-    [Test]
-    procedure UnknownDeclaredVersionUsesCompatibilityFallback;
-    [Test]
-    procedure KnownVersionPrefersConfiguredPathBeforeCompatibilityFallback;
-    [Test]
-    procedure KnownVersionUsesCompatibilityFallbackWhenExactVersionIsMissing;
-    [Test]
-    procedure UserRegistryInstallationIsPreferred;
+    [Setup] procedure Setup;
+    [TearDown] procedure TearDown;
+    [TestCase('Athens','20.1,23.0')]
+    [TestCase('AthensUpdate','20.2,23.0')]
+    [TestCase('SharedFormatMinimum','20.3,23.0')]
+    [TestCase('Florence','20.4,37.0')]
+    [TestCase('Alexandria','19.5,22.0')]
+    [TestCase('Sydney','19.2,21.0')]
+    [TestCase('Rio','18.8,20.0')]
+    [TestCase('Seattle','18.0,17.0')]
+    procedure KnownFormatHints(const AFormat, AVersion: string);
+    [Test] procedure UnknownFormatDoesNotGuess;
+    [Test] procedure ExplicitBDSOverridesProjectHint;
+    [Test] procedure StaleBDSDoesNotHideValidRegistryInstallation;
+    [Test] procedure ExactAvailableVersionIsPreferred;
+    [Test] procedure Shared203FormatSelectsNewestValidInstallation;
+    [Test] procedure Delphi13FormatDoesNotDowngradeToDelphi12;
+    [Test] procedure StaleExactRegistrationFallsBackToDelphi13;
+    [Test] procedure StaleHighestRegistrationDoesNotHideOtherInstallations;
+    [Test] procedure HighestVersionAcrossHivesWins;
+    [Test] procedure EqualVersionPreservesUserPreference;
+    [Test] procedure ProfilesAreNotInstallationVersions;
+    [Test] procedure MissingProjectUsesNewestValidInstallation;
+    [Test] procedure MalformedProjectUsesNewestValidInstallation;
+    [Test] procedure NoInstallationReturnsEmpty;
+    [Test] procedure IDE64OnlyInstallationIsAccepted;
+    [Test] procedure CompleteHeadlessToolsAreAccepted;
+    [Test] procedure EmptyOrPartialInstallationIsRejected;
+    [Test] procedure RealRegistryCandidatesHaveExistingTools;
+    [TestCase('InstalledSeattle','18.0,17.0')]
+    [TestCase('InstalledAlexandria','19.5,22.0')]
+    [TestCase('InstalledAthens','20.1,23.0')]
+    [TestCase('InstalledFlorence','20.4,37.0')]
+    procedure InstalledVersionMatrix(const AFormat, AVersion: string);
+    [Test] procedure RegistryAppRecoversStaleRootDir;
+    [Test] procedure RegistryApp64WorksWithoutRootDir;
+    [Test] procedure Registry32BitViewIsRead;
+    [Test] procedure RegistryMissingValuesAndProfilesAreSkipped;
   end;
 
 implementation
 
+function TDelphiEnvironmentProbe.GetRegisteredInstallations: TArray<TDelphiInstallation>;
+begin Result := Installations; end;
 function TDelphiEnvironmentProbe.GetConfiguredBDSPath: string;
+begin Result := ConfiguredPath; end;
+procedure TDelphiEnvironmentProbe.Add(const AVersion, ARoot: string);
+var I: Integer;
 begin
-  Result := FConfiguredPath;
+  I := Length(Installations); SetLength(Installations,I+1);
+  Installations[I].Version := AVersion; Installations[I].RootDir := ARoot;
 end;
+function TLocalDelphiProbe.GetConfiguredBDSPath: string;
+begin Result := ''; end;
+function TLocalDelphiProbe.Registered: TArray<TDelphiInstallation>;
+begin Result := GetRegisteredInstallations; end;
 
-function TDelphiEnvironmentProbe.GetRootDirFromRegistry(
-  const AVersion: string; AExact: Boolean): string;
-begin
-  Inc(FRegistryCallCount);
-  FRequestedVersion := AVersion;
-  if AVersion.IsEmpty or not AExact then
-    Exit(FHighestRegistryPath);
-  Result := FRegistryPath;
-end;
+function TRegistryEnvironmentProbe.GetRegistryBaseKey: string;
+begin Result := BaseKey; end;
 
-function TDelphiRegistryHierarchyProbe.GetRootDirFromRegistryHive(
-  ARootKey: HKEY; const AVersion: string; AExact: Boolean): string;
+procedure TDelphiEnvironmentTests.Registration(const AVersion, AValue, AData: string; AView: Cardinal);
+var R: TRegistry;
 begin
-  if ARootKey = HKEY_CURRENT_USER then
-    Exit(FUserPath);
-  Result := FMachinePath;
-end;
-
-function TDelphiRegistryHierarchyProbe.Locate(
-  const AVersion: string; AExact: Boolean): string;
-begin
-  Result := GetRootDirFromRegistry(AVersion, AExact);
-end;
-
-procedure TDelphiEnvironmentTests.ProjectVersion201MapsToBDS230;
-begin
-  Assert.AreEqual('23.0', TDelphiVersionMap.FromProjectVersion('20.1'));
-end;
-
-procedure TDelphiEnvironmentTests.ProjectVersion203MapsToBDS230;
-begin
-  Assert.AreEqual('23.0', TDelphiVersionMap.FromProjectVersion('20.3'));
-end;
-
-procedure TDelphiEnvironmentTests.UnknownProjectVersionDoesNotGuessBDSVersion;
-begin
-  Assert.AreEqual('', TDelphiVersionMap.FromProjectVersion('99.9'));
-end;
-
-procedure TDelphiEnvironmentTests.UnknownDeclaredVersionUsesCompatibilityFallback;
-var
-  LEnvironment: TDelphiEnvironmentProbe;
-  LXMLContent: TStringList;
-begin
-  LXMLContent := TStringList.Create;
+  R := TRegistry.Create(KEY_ALL_ACCESS or AView);
   try
-    LXMLContent.Text := '<Project><ProjectVersion>99.9</ProjectVersion></Project>';
-    LXMLContent.SaveToFile(FTestDprojPath, TEncoding.UTF8);
-  finally
-    LXMLContent.Free;
-  end;
-  LEnvironment := TDelphiEnvironmentProbe.Create;
-  try
-    LEnvironment.HighestRegistryPath := 'C:\NewestButWrong';
-    LEnvironment.ConfiguredPath := 'C:\ExplicitBDS';
-    Assert.AreEqual('C:\NewestButWrong',
-      LEnvironment.ResolveDelphiPath(FTestDprojPath));
-    Assert.AreEqual(1, LEnvironment.RegistryCallCount);
-    Assert.AreEqual('', LEnvironment.RequestedVersion);
-  finally
-    LEnvironment.Free;
-  end;
-end;
-
-procedure TDelphiEnvironmentTests.KnownVersionPrefersConfiguredPathBeforeCompatibilityFallback;
-var
-  LEnvironment: TDelphiEnvironmentProbe;
-  LXMLContent: TStringList;
-begin
-  LXMLContent := TStringList.Create;
-  try
-    LXMLContent.Text := '<Project><ProjectVersion>20.3</ProjectVersion></Project>';
-    LXMLContent.SaveToFile(FTestDprojPath, TEncoding.UTF8);
-  finally
-    LXMLContent.Free;
-  end;
-  LEnvironment := TDelphiEnvironmentProbe.Create;
-  try
-    LEnvironment.RegistryPath := '';
-    LEnvironment.ConfiguredPath := 'C:\ExplicitBDS';
-    Assert.AreEqual('C:\ExplicitBDS',
-      LEnvironment.ResolveDelphiPath(FTestDprojPath));
-    Assert.AreEqual(1, LEnvironment.RegistryCallCount);
-    Assert.AreEqual('23.0', LEnvironment.RequestedVersion);
-  finally
-    LEnvironment.Free;
-  end;
-end;
-
-procedure TDelphiEnvironmentTests.KnownVersionUsesCompatibilityFallbackWhenExactVersionIsMissing;
-var
-  LEnvironment: TDelphiEnvironmentProbe;
-  LXMLContent: TStringList;
-begin
-  LXMLContent := TStringList.Create;
-  try
-    LXMLContent.Text := '<Project><ProjectVersion>20.3</ProjectVersion></Project>';
-    LXMLContent.SaveToFile(FTestDprojPath, TEncoding.UTF8);
-  finally
-    LXMLContent.Free;
-  end;
-  LEnvironment := TDelphiEnvironmentProbe.Create;
-  try
-    LEnvironment.RegistryPath := EmptyStr;
-    LEnvironment.ConfiguredPath := EmptyStr;
-    LEnvironment.HighestRegistryPath := 'C:\NewerCompatibleBDS';
-    Assert.AreEqual('C:\NewerCompatibleBDS',
-      LEnvironment.ResolveDelphiPath(FTestDprojPath));
-    Assert.AreEqual(2, LEnvironment.RegistryCallCount);
-    Assert.AreEqual('23.0', LEnvironment.RequestedVersion);
-  finally
-    LEnvironment.Free;
-  end;
-end;
-
-procedure TDelphiEnvironmentTests.UserRegistryInstallationIsPreferred;
-var
-  LEnvironment: TDelphiRegistryHierarchyProbe;
-begin
-  LEnvironment := TDelphiRegistryHierarchyProbe.Create;
-  try
-    LEnvironment.UserPath := 'C:\UserDelphi';
-    LEnvironment.MachinePath := 'C:\MachineDelphi';
-    Assert.AreEqual('C:\UserDelphi', LEnvironment.Locate('23.0'));
-  finally
-    LEnvironment.Free;
-  end;
+    R.RootKey := HKEY_CURRENT_USER;
+    Assert.IsTrue(R.OpenKey(FRegistryKey+'\'+AVersion,True));
+    R.WriteString(AValue,AData);
+  finally R.Free; end;
 end;
 
 procedure TDelphiEnvironmentTests.Setup;
 begin
-  FEnvironmentService := TDelphiEnvironmentAdapter.Create;
-  FTestDprojPath := TPath.Combine(TPath.GetTempPath, 'TestProject.dproj');
+  FRegistryKey := 'Software\Atropos.Tests\Environment\'+TGuid.NewGuid.ToString;
+  FRoot := TPath.Combine(TPath.GetTempPath,'Atropos-environment-'+TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(FRoot);
+  FProject := TPath.Combine(FRoot,'sample.dproj');
+  FEnvironment := TDelphiEnvironmentProbe.Create;
 end;
-
 procedure TDelphiEnvironmentTests.TearDown;
+var R: TRegistry; V: Cardinal;
 begin
-  if TFile.Exists(FTestDprojPath) then
-    TFile.Delete(FTestDprojPath);
-end;
-
-procedure TDelphiEnvironmentTests.Test_ResolveDelphiPath_Fallback_To_Highest_Or_BDS;
-var
-  LResolvedPath: string;
-begin
-  // Passamos um dproj inexistente ou vazio para forÃ§ar o fallback (maior versÃ£o no reg ou var BDS)
-  LResolvedPath := FEnvironmentService.ResolveDelphiPath('C:\InvalidPath\project.dproj');
-  
-  // O teste deve retornar ao menos alguma coisa se o desenvolvedor tiver Delphi instalado ou a var BDS setada
-  // Em ambientes de CI limpos sem Delphi, isso pode retornar vazio, por isso nÃ£o exigimos Assert.IsNotEmpty,
-  // apenas garantimos que a chamada ocorre sem quebrar (Access Violation)
-  Assert.Pass('ResolveDelphiPath fallback executado com sucesso sem exceptions. Path: ' + LResolvedPath);
-end;
-
-procedure TDelphiEnvironmentTests.Test_ResolveDelphiPath_With_Mock_Dproj;
-var
-  LResolvedPath: string;
-  LXmlContent: TStringList;
-begin
-  LXmlContent := TStringList.Create;
-  try
-    LXmlContent.Add('<?xml version="1.0" encoding="utf-8"?>');
-    LXmlContent.Add('<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">');
-    LXmlContent.Add('  <PropertyGroup>');
-    LXmlContent.Add('    <ProjectVersion>19.1</ProjectVersion>'); // Delphi 10.4
-    LXmlContent.Add('  </PropertyGroup>');
-    LXmlContent.Add('</Project>');
-    LXmlContent.SaveToFile(FTestDprojPath, TEncoding.UTF8);
-  finally
-    LXmlContent.Free;
+  Assert.IsTrue(FRegistryKey.StartsWith('Software\Atropos.Tests\Environment\'));
+  for V in [KEY_WOW64_64KEY,KEY_WOW64_32KEY] do
+  begin
+    R := TRegistry.Create(KEY_ALL_ACCESS or V);
+    try R.RootKey := HKEY_CURRENT_USER; R.DeleteKey(FRegistryKey); finally R.Free; end;
   end;
+  FEnvironment.Free;
+  if TDirectory.Exists(FRoot) then TDirectory.Delete(FRoot,True);
+end;
+function TDelphiEnvironmentTests.Installation(const AName, AExecutable: string): string;
+var LFile: string;
+begin
+  Result := TPath.Combine(FRoot,AName);
+  LFile := TPath.Combine(Result,AExecutable);
+  TDirectory.CreateDirectory(ExtractFileDir(LFile));
+  TFile.WriteAllText(LFile,'');
+end;
+procedure TDelphiEnvironmentTests.ProjectVersion(const AVersion: string);
+begin
+  TFile.WriteAllText(FProject,'<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">'+
+    '<PropertyGroup><ProjectVersion>'+AVersion+'</ProjectVersion></PropertyGroup></Project>');
+end;
+procedure TDelphiEnvironmentTests.KnownFormatHints(const AFormat, AVersion: string);
+begin Assert.AreEqual(AVersion,TDelphiVersionMap.FromProjectVersion(AFormat)); end;
+procedure TDelphiEnvironmentTests.UnknownFormatDoesNotGuess;
+begin
+  Assert.AreEqual('',TDelphiVersionMap.FromProjectVersion('99.9'));
+  Assert.AreEqual('',TDelphiVersionMap.FromProjectVersion('20.99'));
+  Assert.IsTrue(TDelphiVersionMap.IsAmbiguous('20.3'));
+end;
+procedure TDelphiEnvironmentTests.ExplicitBDSOverridesProjectHint;
+var LExplicit: string;
+begin
+  ProjectVersion('20.1');
+  FEnvironment.Add('23.0',Installation('Athens'));
+  LExplicit := Installation('Custom Florence');
+  FEnvironment.ConfiguredPath := '"'+LExplicit+'\"';
+  Assert.AreEqual(LExplicit,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.StaleBDSDoesNotHideValidRegistryInstallation;
+var LRoot: string;
+begin
+  LRoot := Installation('Athens'); ProjectVersion('20.1');
+  FEnvironment.Add('23.0',LRoot); FEnvironment.ConfiguredPath := TPath.Combine(FRoot,'Removed');
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.ExactAvailableVersionIsPreferred;
+var LRoot: string;
+begin
+  ProjectVersion('20.1'); LRoot := Installation('Athens');
+  FEnvironment.Add('23.0',LRoot); FEnvironment.Add('37.0',Installation('Florence'));
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.Shared203FormatSelectsNewestValidInstallation;
+var LRoot: string;
+begin
+  ProjectVersion('20.3'); LRoot := Installation('Florence');
+  FEnvironment.Add('23.0',Installation('Athens')); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.Delphi13FormatDoesNotDowngradeToDelphi12;
+begin
+  ProjectVersion('20.4'); FEnvironment.Add('23.0',Installation('Athens'));
+  Assert.AreEqual('',FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.StaleExactRegistrationFallsBackToDelphi13;
+var LRoot: string;
+begin
+  ProjectVersion('20.1'); LRoot := Installation('Florence');
+  FEnvironment.Add('23.0',TPath.Combine(FRoot,'Removed Athens')); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.StaleHighestRegistrationDoesNotHideOtherInstallations;
+var LRoot: string;
+begin
+  ProjectVersion('20.1'); LRoot := Installation('Florence');
+  FEnvironment.Add('99.0',TPath.Combine(FRoot,'Removed')); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.HighestVersionAcrossHivesWins;
+var LRoot: string;
+begin
+  LRoot := Installation('Machine Florence');
+  FEnvironment.Add('22.0',Installation('User Alexandria')); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.EqualVersionPreservesUserPreference;
+var LRoot: string;
+begin
+  LRoot := Installation('User Florence');
+  FEnvironment.Add('37.0',LRoot); FEnvironment.Add('37.0',Installation('Machine Florence'));
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.ProfilesAreNotInstallationVersions;
+var LRoot: string;
+begin
+  LRoot := Installation('Florence');
+  FEnvironment.Add('99.0_x64',Installation('Profile')); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.MissingProjectUsesNewestValidInstallation;
+var LRoot: string;
+begin
+  LRoot := Installation('Florence'); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.MalformedProjectUsesNewestValidInstallation;
+var LRoot: string;
+begin
+  TFile.WriteAllText(FProject,'<invalid'); LRoot := Installation('Florence'); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.NoInstallationReturnsEmpty;
+begin Assert.AreEqual('',FEnvironment.ResolveDelphiPath(FProject)); end;
+procedure TDelphiEnvironmentTests.IDE64OnlyInstallationIsAccepted;
+var LRoot: string;
+begin
+  LRoot := Installation('Florence64','bin64\bds.exe'); FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.CompleteHeadlessToolsAreAccepted;
+var LRoot: string;
+begin
+  LRoot := Installation('BuildTools','bin\dcc32.exe');
+  Installation('BuildTools','bin\rsvars.bat'); Installation('BuildTools','bin\CodeGear.Delphi.Targets');
+  FEnvironment.Add('37.0',LRoot);
+  Assert.AreEqual(LRoot,FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.EmptyOrPartialInstallationIsRejected;
+begin
+  FEnvironment.Add('37.0',Installation('Partial','bin\rsvars.bat'));
+  Assert.AreEqual('',FEnvironment.ResolveDelphiPath(FProject));
+end;
+procedure TDelphiEnvironmentTests.RealRegistryCandidatesHaveExistingTools;
+var LProbe: TLocalDelphiProbe; I: TDelphiInstallation; LSelected: string; LHighest,V: Double;
+begin
+  LProbe := TLocalDelphiProbe.Create;
+  try
+    LHighest := 0; LSelected := '';
+    for I in LProbe.Registered do
+    begin
+      Assert.IsNotEmpty(TDelphiEnvironmentAdapter.UsableRoot(I.RootDir));
+      Assert.IsTrue(TryStrToFloat(I.Version,V,TFormatSettings.Invariant));
+      if V>LHighest then begin LHighest := V; LSelected := I.RootDir; end;
+    end;
+    Assert.AreEqual(LSelected,LProbe.ResolveDelphiPath(FProject));
+  finally LProbe.Free; end;
+end;
 
-  LResolvedPath := FEnvironmentService.ResolveDelphiPath(FTestDprojPath);
-  
-  // Garantir que rodou sem quebrar e fez o parsing do ProjectVersion e a tentativa no Registry
-  Assert.Pass('ResolveDelphiPath com mock DProj executado com sucesso. Path: ' + LResolvedPath);
+procedure TDelphiEnvironmentTests.RegistryAppRecoversStaleRootDir;
+var P: TRegistryEnvironmentProbe; LRoot: string;
+begin
+  LRoot := Installation('Custom Folder');
+  Registration('23.0','RootDir',TPath.Combine(FRoot,'Removed'));
+  Registration('23.0','App',TPath.Combine(LRoot,'bin\bds.exe'));
+  P := TRegistryEnvironmentProbe.Create;
+  try P.BaseKey := FRegistryKey; Assert.AreEqual(LRoot,P.ResolveDelphiPath(FProject));
+  finally P.Free; end;
+end;
+procedure TDelphiEnvironmentTests.RegistryApp64WorksWithoutRootDir;
+var P: TRegistryEnvironmentProbe; LRoot: string;
+begin
+  LRoot := Installation('Florence64','bin64\bds.exe');
+  Registration('37.0','App x64',TPath.Combine(LRoot,'bin64\bds.exe'));
+  P := TRegistryEnvironmentProbe.Create;
+  try P.BaseKey := FRegistryKey; Assert.AreEqual(LRoot,P.ResolveDelphiPath(FProject));
+  finally P.Free; end;
+end;
+procedure TDelphiEnvironmentTests.Registry32BitViewIsRead;
+var P: TRegistryEnvironmentProbe; LRoot: string;
+begin
+  LRoot := Installation('Athens');
+  Registration('23.0','RootDir',LRoot,KEY_WOW64_32KEY);
+  P := TRegistryEnvironmentProbe.Create;
+  try P.BaseKey := FRegistryKey; Assert.AreEqual(LRoot,P.ResolveDelphiPath(FProject));
+  finally P.Free; end;
+end;
+procedure TDelphiEnvironmentTests.RegistryMissingValuesAndProfilesAreSkipped;
+var P: TRegistryEnvironmentProbe; LRoot: string;
+begin
+  LRoot := Installation('Florence');
+  Registration('99.0','UnrelatedValue','unused');
+  Registration('99.0_x64','RootDir',Installation('Profile'));
+  Registration('37.0','RootDir',LRoot);
+  P := TRegistryEnvironmentProbe.Create;
+  try P.BaseKey := FRegistryKey; Assert.AreEqual(LRoot,P.ResolveDelphiPath(FProject));
+  finally P.Free; end;
+end;
+
+procedure TDelphiEnvironmentTests.InstalledVersionMatrix(const AFormat, AVersion: string);
+var P: TLocalDelphiProbe; I: TDelphiInstallation; Expected: string;
+begin
+  ProjectVersion(AFormat); Expected := '';
+  P := TLocalDelphiProbe.Create;
+  try
+    for I in P.Registered do
+      if I.Version=AVersion then begin Expected := I.RootDir; Break; end;
+    if Expected.IsEmpty then
+    begin
+      Assert.Pass('Optional local Delphi installation unavailable: '+AVersion);
+      Exit;
+    end;
+    Writeln('Installed BDS '+AVersion+': '+Expected);
+    Assert.AreEqual(Expected,P.ResolveDelphiPath(FProject));
+  finally P.Free; end;
 end;
 
 initialization
   TDUnitX.RegisterTestFixture(TDelphiEnvironmentTests);
-
 end.
-

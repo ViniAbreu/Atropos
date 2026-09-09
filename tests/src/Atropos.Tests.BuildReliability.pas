@@ -193,6 +193,8 @@ type
     [Test]
     procedure ProcessStartFailureReturnsBuildFailure;
     [Test]
+    procedure BuildUses64BitIDEWhen32BitIDEIsMissing;
+    [Test]
     procedure MissingBdsExecutableDoesNotStartProcess;
     [Test]
     procedure Win32ProcessRunnerCapturesOutputAndExitCode;
@@ -920,6 +922,29 @@ begin
   finally
     TDirectory.Delete(LRoot, True);
   end;
+end;
+
+procedure TBuildReliabilityTests.BuildUses64BitIDEWhen32BitIDEIsMissing;
+var
+  LRoot, LBin: string;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+  LMetrics: TBuildMetrics;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath,TGuid.NewGuid.ToString);
+  LBin := TPath.Combine(LRoot,'bin64');
+  TDirectory.CreateDirectory(LBin);
+  TFile.WriteAllText(TPath.Combine(LBin,'bds.exe'),'');
+  try
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := True;
+    LService := TBuildServiceAdapter.Create(LEnvironment,nil,LRunner);
+    LMetrics := LService.BuildProject('Sample.dproj');
+    Assert.IsTrue(LRunner.Command.Contains(TPath.Combine(LBin,'bds.exe')));
+  finally TDirectory.Delete(LRoot,True); end;
 end;
 
 procedure TBuildReliabilityTests.ProcessStartFailureReturnsBuildFailure;

@@ -364,8 +364,10 @@ var
   LVersionNum: string;
 begin
   LVersionNum := ExtractFileName(ExcludeTrailingPathDelimiter(ADelphiPath));
+  if LVersionNum = '37.0' then
+    Exit('13');
   if LVersionNum = '23.0' then
-    Exit('12.1');
+    Exit('12');
   if LVersionNum = '22.0' then
     Exit('11.0');
   if LVersionNum = '21.0' then
@@ -393,6 +395,8 @@ begin
     raise Exception.Create('Delphi Environment Service is not assigned.');
 
   LDelphiPath := FEnvService.ResolveDelphiPath(AProjectPath);
+  if Assigned(FLogger) then
+    FLogger.Log('Resolved Delphi installation: ' + LDelphiPath);
   if LDelphiPath.IsEmpty then
   begin
     Result.Success := False;
@@ -413,9 +417,11 @@ begin
 
   LBdsExe := TPath.Combine(LDelphiPath, 'bin\bds.exe');
   if not TFile.Exists(LBdsExe) then
+    LBdsExe := TPath.Combine(LDelphiPath, 'bin64\bds.exe');
+  if not TFile.Exists(LBdsExe) then
   begin
     Result.Success := False;
-    Result.ErrorMessage := 'bds.exe not found at ' + LBdsExe;
+    Result.ErrorMessage := 'bds.exe not found in bin or bin64 under ' + LDelphiPath;
     Exit;
   end;
 
@@ -537,6 +543,8 @@ begin
     Exit;
   end;
   LDelphiPath := FEnvService.ResolveDelphiPath(AProjectPath);
+  if Assigned(FLogger) then
+    FLogger.Log('Resolved Delphi installation: ' + LDelphiPath);
   if LDelphiPath.IsEmpty then
   begin
     Result.ErrorMessage := 'Delphi path not found for project.';
