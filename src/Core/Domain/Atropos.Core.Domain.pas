@@ -49,7 +49,8 @@ type
   TAnalyzeUnitUses = class
   private
     FLogger: ILogger;
-    function IsUnitUsed(AContext: TProjectContext; const AUnitName: string; const AIdents: TArray<string>): Boolean;
+    function IsUnitUsed(AContext: TProjectContext; const AUnitName: string;
+      const AUsedIdentifiers, AVisibleIdentifiers: TArray<string>): Boolean;
   public
     constructor Create(ALogger: ILogger = nil);
     function Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
@@ -295,14 +296,17 @@ begin
   FLogger := ALogger;
 end;
 
-function TAnalyzeUnitUses.IsUnitUsed(AContext: TProjectContext; const AUnitName: string; const AIdents: TArray<string>): Boolean;
+function TAnalyzeUnitUses.IsUnitUsed(AContext: TProjectContext;
+  const AUnitName: string; const AUsedIdentifiers,
+  AVisibleIdentifiers: TArray<string>): Boolean;
 var
   LIdent: string;
 begin
   Result := False;
-  for LIdent in AIdents do
+  for LIdent in AUsedIdentifiers do
   begin
-    if AContext.UnitExportsIdentifier(AUnitName, LIdent, AIdents) then
+    if AContext.UnitExportsIdentifier(AUnitName, LIdent,
+      AVisibleIdentifiers) then
     begin
       if Assigned(FLogger) then
         FLogger.Log(Format('DEBUG-MATCH: [%s] matched with exported identifier [%s]', [AUnitName, LIdent]));
@@ -345,11 +349,13 @@ begin
       if AContext.UnitHasInitialization(LUnitName) then
         Continue;
 
-      LUsedInIntf := IsUnitUsed(AContext, LUnitName, LIntfIdents);
+      LUsedInIntf := IsUnitUsed(AContext, LUnitName, LIntfIdents,
+        LIntfIdents);
       if LUsedInIntf then
         Continue;
 
-      LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents);
+      LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents,
+        LIntfIdents + LImplIdents);
       
       if LUsedInImpl then
       begin
@@ -368,7 +374,8 @@ begin
       if AContext.UnitHasInitialization(LUnitName) then
         Continue;
 
-      LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents);
+      LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents,
+        LIntfIdents + LImplIdents);
       
       if not LUsedInImpl then
         LUnused.Add(LUnitName);
