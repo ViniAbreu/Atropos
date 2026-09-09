@@ -4,7 +4,8 @@ interface
 uses
   Atropos.Core.Ports,
   Xml.XMLIntf,
-  System.Win.Registry;
+  System.Win.Registry,
+  Winapi.Windows;
 
 type
   TDelphiVersionMap = class
@@ -16,19 +17,22 @@ type
   private
     function FindNodeRec(ANode: IXMLNode; const ANodeName: string; out AFoundNode: IXMLNode): Boolean;
     function TryReadRootDir(AReg: TRegistry; const AKeyPath: string; out ARootDir: string): Boolean;
-    function GetHighestVersionFromNode(AReg: TRegistry; const ANodePath: string; out ARootDir: string): Boolean;
+    function GetHighestVersionFromNode(AReg: TRegistry; const ANodePath,
+      AMinimumVersion: string; out ARootDir: string): Boolean;
     function InternalGetProjectVersion(const ADprojPath: string): string;
     function GetProjectVersionFromDproj(const ADprojPath: string): string;
   protected
-    function GetRootDirFromRegistry(const AVersion: string): string; virtual;
+    function GetRootDirFromRegistryHive(ARootKey: HKEY;
+      const AVersion: string; AExact: Boolean = True): string; virtual;
+    function GetRootDirFromRegistry(const AVersion: string;
+      AExact: Boolean = True): string; virtual;
     function GetConfiguredBDSPath: string; virtual;
   public
     function ResolveDelphiPath(const ADprojPath: string): string;
   end;
 
 implementation
-uses System.Classes, System.SysUtils, Xml.XMLDoc, Winapi.ActiveX,
-  Winapi.Windows;
+uses System.Classes, System.SysUtils, Xml.XMLDoc, Winapi.ActiveX;
 
 class function TDelphiVersionMap.FromProjectVersion(const AProjectVersion: string): string;
 begin
@@ -119,13 +123,15 @@ begin
   end;
 end;
 
-function TDelphiEnvironmentAdapter.GetHighestVersionFromNode(AReg: TRegistry; const ANodePath: string; out ARootDir: string): Boolean;
+function TDelphiEnvironmentAdapter.GetHighestVersionFromNode(AReg: TRegistry;
+  const ANodePath, AMinimumVersion: string; out ARootDir: string): Boolean;
 var
   LKeys: TStringList;
   i: Integer;
   LHighestVersion: Double;
   LCurrentVersion: Double;
   LBestKey: string;
+  LMinimumVersion: Double;
 begin
   Result := False;
   if not AReg.OpenKeyReadOnly(ANodePath) then
@@ -135,11 +141,14 @@ begin
   try
     AReg.GetKeyNames(LKeys);
     LHighestVersion := 0;
+    LMinimumVersion := 0;
+    TryStrToFloat(AMinimumVersion, LMinimumVersion, TFormatSettings.Invariant);
     LBestKey := EmptyStr;
     
     for i := 0 to LKeys.Count - 1 do
     begin
-      if TryStrToFloat(LKeys[i], LCurrentVersion, TFormatSettings.Invariant) then
+      if TryStrToFloat(LKeys[i], LCurrentVersion,
+        TFormatSettings.Invariant) and (LCurrentVersion >= LMinimumVersion) then
       begin
         if LCurrentVersion > LHighestVersion then
         begin
@@ -159,17 +168,18 @@ begin
   end;
 end;
 
-function TDelphiEnvironmentAdapter.GetRootDirFromRegistry(const AVersion: string): string;
+function TDelphiEnvironmentAdapter.GetRootDirFromRegistryHive(ARootKey: HKEY;
+  const AVersion: string; AExact: Boolean): string;
 var
   LReg: TRegistry;
 begin
   Result := EmptyStr;
   LReg := TRegistry.Create;
   try
-    LReg.RootKey := HKEY_LOCAL_MACHINE;
+    LReg.RootKey := ARootKey;
     LReg.Access := KEY_READ or KEY_WOW64_64KEY; 
     
-    if not AVersion.IsEmpty then
+    if not AVersion.IsEmpty and AExact then
     begin
       if TryReadRootDir(LReg, 'Software\Embarcadero\BDS\' + AVersion,
         Result) then
@@ -179,14 +189,25 @@ begin
       Exit;
     end;
 
-    if GetHighestVersionFromNode(LReg, 'Software\Embarcadero\BDS', Result) then
+    if GetHighestVersionFromNode(LReg, 'Software\Embarcadero\BDS',
+      AVersion, Result) then
       Exit;
 
-    if GetHighestVersionFromNode(LReg, 'Software\WOW6432Node\Embarcadero\BDS', Result) then
+    if GetHighestVersionFromNode(LReg,
+      'Software\WOW6432Node\Embarcadero\BDS', AVersion, Result) then
       Exit;
   finally
     LReg.Free;
   end;
+end;
+
+function TDelphiEnvironmentAdapter.GetRootDirFromRegistry(
+  const AVersion: string; AExact: Boolean): string;
+begin
+  Result := GetRootDirFromRegistryHive(HKEY_CURRENT_USER, AVersion, AExact);
+  if not Result.IsEmpty then
+    Exit;
+  Result := GetRootDirFromRegistryHive(HKEY_LOCAL_MACHINE, AVersion, AExact);
 end;
 
 function TDelphiEnvironmentAdapter.GetConfiguredBDSPath: string;
@@ -202,9 +223,14 @@ begin
   LProjectVersion := GetProjectVersionFromDproj(ADprojPath);
   LBDSVersion := TDelphiVersionMap.FromProjectVersion(LProjectVersion);
   Result := GetRootDirFromRegistry(LBDSVersion);
-  
-  if Result.IsEmpty then
-    Result := GetConfiguredBDSPath;
+  if not Result.IsEmpty then
+    Exit;
+  Result := GetConfiguredBDSPath;
+  if not Result.IsEmpty then
+    Exit;
+  if LBDSVersion.IsEmpty then
+    Exit;
+  Result := GetRootDirFromRegistry(LBDSVersion, False);
 end;
 
 end.
