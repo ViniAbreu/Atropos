@@ -4,6 +4,7 @@ uses
   Vcl.Forms,
   Atropos.VCL.Main in 'src\GUI\Atropos.VCL.Main.pas' {MainForm},
   Atropos.Core.Ports in 'src\Core\Ports\Atropos.Core.Ports.pas',
+  Atropos.Core.Analysis in 'src\Core\Domain\Atropos.Core.Analysis.pas',
   Atropos.Core.Domain in 'src\Core\Domain\Atropos.Core.Domain.pas',
   Atropos.Core.Config in 'src\Core\Domain\Atropos.Core.Config.pas',
   Atropos.Adapters.Logger in 'src\Adapters\Logger\Atropos.Adapters.Logger.pas',

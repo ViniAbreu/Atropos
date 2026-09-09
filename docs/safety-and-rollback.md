@@ -22,6 +22,14 @@ counts for diagnosis.
 
 Existing user-created `.bak` files are preserved. Rollback is not a replacement for Git or functional tests.
 
+The analyzer records decisions per import section. Unknown providers and ambiguous
+candidates are retained with reasons in the report. A parser exception preserves
+the consumer and is reported as unknown analysis. Adapters can explicitly signal
+incomplete analysis through a separate diagnostics port, which vetoes changes for
+that consumer. Known initialization effects retain an import even when its source
+belongs to the Delphi installation. These safeguards do not yet provide complete
+symbol binding, project-context evaluation or transitive effect analysis.
+
 Every transaction uses `.atropos-transaction.json` in the project directory. The manifest associates the original and backup paths with one transaction identifier and the SHA-256 hash of the original content. Recovery validates this relationship and the hash before restoring a file. A committed manifest only completes backup cleanup; it never rolls the accepted source changes back.
 
 Manifest or hash validation failures stop recovery and preserve all available evidence. Backups created by older Atropos versions without a manifest are also preserved and require manual review; they are never restored automatically. After confirming the intended original file, restore or remove those legacy `.atropos-*.bak` files before starting a new analysis.

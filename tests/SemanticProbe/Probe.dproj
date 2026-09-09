@@ -52,6 +52,7 @@
         <DCCReference Include="..\..\third_party\DelphiAST\Source\DelphiAST.Classes.pas"/>
         <DCCReference Include="..\..\third_party\DelphiAST\Source\DelphiAST.Writer.pas"/>
         <DCCReference Include="..\..\src\Core\Ports\Atropos.Core.Ports.pas"/>
+        <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Analysis.pas"/>
         <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Config.pas"/>
         <DCCReference Include="..\..\src\Core\Services\Atropos.Core.Modifier.pas"/>

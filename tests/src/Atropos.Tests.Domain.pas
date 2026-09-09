@@ -40,7 +40,7 @@ type
     [Test]
     procedure HelpersAndQualifiedIdentifiersAreResolved;
     [Test]
-    procedure InitializationUnitsArePreservedUnlessNative;
+    procedure InitializationUnitsArePreservedIncludingNative;
     [Test]
     procedure CollidingUnqualifiedIdentifierPreservesEveryCandidate;
     [Test]
@@ -157,13 +157,13 @@ begin
   Assert.IsFalse(FContext.UnitExportsIdentifier('Helper.Unit', 'UnknownIdentifier', []));
 end;
 
-procedure TDomainTests.InitializationUnitsArePreservedUnlessNative;
+procedure TDomainTests.InitializationUnitsArePreservedIncludingNative;
 begin
   FContext.RegisterUnitExports('SideEffect.Unit', [], True, False);
   FContext.RegisterUnitExports('Native.Unit', [], True, True);
 
   Assert.IsTrue(FContext.UnitHasInitialization('SideEffect.Unit'));
-  Assert.IsFalse(FContext.UnitHasInitialization('Native.Unit'));
+  Assert.IsTrue(FContext.UnitHasInitialization('Native.Unit'));
   Assert.IsFalse(FContext.UnitHasInitialization('Missing.Unit'));
 end;
 

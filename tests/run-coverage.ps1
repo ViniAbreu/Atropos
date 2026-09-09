@@ -26,7 +26,7 @@ $buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config
 if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE" }
 
 $units = @(
-    'Atropos.Core.Domain', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
+    'Atropos.Core.Domain', 'Atropos.Core.Analysis', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
     'Atropos.Application.ExecutionLifecycle',
     'Atropos.Application.ExecutionPresentation',

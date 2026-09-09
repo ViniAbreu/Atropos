@@ -59,6 +59,11 @@ type
     function HasInitializationSection: Boolean;
   end;
   
+  IUnitAnalysisDiagnostics = interface
+    ['{11338C0A-0C3F-4EE2-B086-C66ABBC320AB}']
+    function GetIncompleteAnalysisReasons: TArray<string>;
+  end;
+
   IProjectParser = interface
     ['{EAC338C4-E143-41BE-8176-B8EA01A18FBA}']
     function TakeWarnings: TArray<string>;
