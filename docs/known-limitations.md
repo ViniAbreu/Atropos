@@ -11,7 +11,7 @@
 - Initialization sections and conditional references may prevent changes.
 - Dynamic RTTI, name-based loading, side effects, and generated code may escape static analysis.
 - Library Paths and globally installed components may differ between machines.
-- Current validation focuses on Windows and BDS 23.0.
+- Current validation focuses on Windows. Discovery is checked against the locally installed BDS 17.0, 22.0, 23.0, and 37.0; full application builds use modern Delphi toolchains. Project-format detection cannot prove source/component compatibility.
 - Visual UI behavior and every supported RAD Studio version are not fully covered.
 
 For production use, work on a branch, review every change, and run the analyzed project's functional test suite.

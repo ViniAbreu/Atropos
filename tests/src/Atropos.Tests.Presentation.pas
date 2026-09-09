@@ -11,6 +11,7 @@ type
   public
     [Test] procedure CLIHelpReturnsSuccessAndPrintsUsage;
     [Test] procedure CLIInvalidArgumentsReturnUsageError;
+    [Test] procedure CLIProcessEntryRejectsNonProjectInvocation;
     [Test] procedure CLIMissingProjectDoesNotExecute;
     [Test] procedure CLIPropagatesSuccessfulExecutionAndLogs;
     [Test] procedure CLIPropagatesExecutionFailure;
@@ -35,6 +36,15 @@ uses
   Atropos.Application.ExecutionPresentation,
   Atropos.Core.Config,
   Atropos.Core.Ports;
+
+procedure TPresentationTests.CLIProcessEntryRejectsNonProjectInvocation;
+var LApp: TCLIApp;
+begin
+  // Exercise ParamStr -> parser -> real console output, without a project.
+  // The test runner arguments (or an empty command line) are not a CLI request.
+  LApp := TCLIApp.Create;
+  try Assert.AreEqual(2,LApp.Run); finally LApp.Free; end;
+end;
 
 procedure TPresentationTests.CLIHelpReturnsSuccessAndPrintsUsage;
 var

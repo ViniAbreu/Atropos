@@ -52,6 +52,17 @@ try {
         throw "$Platform smoke test failed with exit code $($process.ExitCode). $processOutput"
     }
 
+    $processOutput = Get-Content -Raw -LiteralPath $standardOutputPath
+    if ($processOutput -notmatch 'Resolved Delphi installation: \S') {
+        throw "$Platform smoke test did not report the selected Delphi installation."
+    }
+    if ($env:BDS -and (Test-Path -LiteralPath $env:BDS)) {
+        $expectedRoot = [regex]::Escape($env:BDS.TrimEnd('\'))
+        if ($processOutput -notmatch ('Resolved Delphi installation: ' + $expectedRoot)) {
+            throw "$Platform smoke test did not honor the explicitly selected BDS installation."
+        }
+    }
+
     $unitAContent = Get-Content -Raw -LiteralPath $unitAPath
     if ($unitAContent -match '\bUnitB\b') { throw "$Platform smoke test did not remove the unused UnitB reference." }
     if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) { throw "$Platform smoke test did not generate the TXT report." }
