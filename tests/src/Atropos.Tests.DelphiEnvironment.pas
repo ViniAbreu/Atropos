@@ -2,23 +2,42 @@
 
 interface
 uses
-  DUnitX.TestFramework, Atropos.Core.Ports, Atropos.Adapters.DelphiEnvironment, System.SysUtils, System.IOUtils, System.Classes;
+  DUnitX.TestFramework, Atropos.Core.Ports,
+  Atropos.Adapters.DelphiEnvironment, System.SysUtils, System.IOUtils,
+  System.Classes, Winapi.Windows;
 
 type
   TDelphiEnvironmentProbe = class(TDelphiEnvironmentAdapter)
   private
     FConfiguredPath: string;
+    FHighestRegistryPath: string;
     FRegistryPath: string;
     FRequestedVersion: string;
     FRegistryCallCount: Integer;
   protected
-    function GetRootDirFromRegistry(const AVersion: string): string; override;
+    function GetRootDirFromRegistry(const AVersion: string;
+      AExact: Boolean = True): string; override;
     function GetConfiguredBDSPath: string; override;
   public
     property ConfiguredPath: string read FConfiguredPath write FConfiguredPath;
+    property HighestRegistryPath: string read FHighestRegistryPath
+      write FHighestRegistryPath;
     property RegistryPath: string read FRegistryPath write FRegistryPath;
     property RequestedVersion: string read FRequestedVersion;
     property RegistryCallCount: Integer read FRegistryCallCount;
+  end;
+
+  TDelphiRegistryHierarchyProbe = class(TDelphiEnvironmentAdapter)
+  private
+    FMachinePath: string;
+    FUserPath: string;
+  protected
+    function GetRootDirFromRegistryHive(ARootKey: HKEY;
+      const AVersion: string; AExact: Boolean = True): string; override;
+  public
+    function Locate(const AVersion: string; AExact: Boolean = True): string;
+    property MachinePath: string read FMachinePath write FMachinePath;
+    property UserPath: string read FUserPath write FUserPath;
   end;
 
   [TestFixture]
@@ -46,7 +65,11 @@ type
     [Test]
     procedure UnknownDeclaredVersionUsesCompatibilityFallback;
     [Test]
-    procedure KnownVersionDoesNotFallBackToDifferentInstalledVersion;
+    procedure KnownVersionPrefersConfiguredPathBeforeCompatibilityFallback;
+    [Test]
+    procedure KnownVersionUsesCompatibilityFallbackWhenExactVersionIsMissing;
+    [Test]
+    procedure UserRegistryInstallationIsPreferred;
   end;
 
 implementation
@@ -57,11 +80,27 @@ begin
 end;
 
 function TDelphiEnvironmentProbe.GetRootDirFromRegistry(
-  const AVersion: string): string;
+  const AVersion: string; AExact: Boolean): string;
 begin
   Inc(FRegistryCallCount);
   FRequestedVersion := AVersion;
+  if AVersion.IsEmpty or not AExact then
+    Exit(FHighestRegistryPath);
   Result := FRegistryPath;
+end;
+
+function TDelphiRegistryHierarchyProbe.GetRootDirFromRegistryHive(
+  ARootKey: HKEY; const AVersion: string; AExact: Boolean): string;
+begin
+  if ARootKey = HKEY_CURRENT_USER then
+    Exit(FUserPath);
+  Result := FMachinePath;
+end;
+
+function TDelphiRegistryHierarchyProbe.Locate(
+  const AVersion: string; AExact: Boolean): string;
+begin
+  Result := GetRootDirFromRegistry(AVersion, AExact);
 end;
 
 procedure TDelphiEnvironmentTests.ProjectVersion201MapsToBDS230;
@@ -93,7 +132,7 @@ begin
   end;
   LEnvironment := TDelphiEnvironmentProbe.Create;
   try
-    LEnvironment.RegistryPath := 'C:\NewestButWrong';
+    LEnvironment.HighestRegistryPath := 'C:\NewestButWrong';
     LEnvironment.ConfiguredPath := 'C:\ExplicitBDS';
     Assert.AreEqual('C:\NewestButWrong',
       LEnvironment.ResolveDelphiPath(FTestDprojPath));
@@ -104,7 +143,7 @@ begin
   end;
 end;
 
-procedure TDelphiEnvironmentTests.KnownVersionDoesNotFallBackToDifferentInstalledVersion;
+procedure TDelphiEnvironmentTests.KnownVersionPrefersConfiguredPathBeforeCompatibilityFallback;
 var
   LEnvironment: TDelphiEnvironmentProbe;
   LXMLContent: TStringList;
@@ -124,6 +163,46 @@ begin
       LEnvironment.ResolveDelphiPath(FTestDprojPath));
     Assert.AreEqual(1, LEnvironment.RegistryCallCount);
     Assert.AreEqual('23.0', LEnvironment.RequestedVersion);
+  finally
+    LEnvironment.Free;
+  end;
+end;
+
+procedure TDelphiEnvironmentTests.KnownVersionUsesCompatibilityFallbackWhenExactVersionIsMissing;
+var
+  LEnvironment: TDelphiEnvironmentProbe;
+  LXMLContent: TStringList;
+begin
+  LXMLContent := TStringList.Create;
+  try
+    LXMLContent.Text := '<Project><ProjectVersion>20.3</ProjectVersion></Project>';
+    LXMLContent.SaveToFile(FTestDprojPath, TEncoding.UTF8);
+  finally
+    LXMLContent.Free;
+  end;
+  LEnvironment := TDelphiEnvironmentProbe.Create;
+  try
+    LEnvironment.RegistryPath := EmptyStr;
+    LEnvironment.ConfiguredPath := EmptyStr;
+    LEnvironment.HighestRegistryPath := 'C:\NewerCompatibleBDS';
+    Assert.AreEqual('C:\NewerCompatibleBDS',
+      LEnvironment.ResolveDelphiPath(FTestDprojPath));
+    Assert.AreEqual(2, LEnvironment.RegistryCallCount);
+    Assert.AreEqual('23.0', LEnvironment.RequestedVersion);
+  finally
+    LEnvironment.Free;
+  end;
+end;
+
+procedure TDelphiEnvironmentTests.UserRegistryInstallationIsPreferred;
+var
+  LEnvironment: TDelphiRegistryHierarchyProbe;
+begin
+  LEnvironment := TDelphiRegistryHierarchyProbe.Create;
+  try
+    LEnvironment.UserPath := 'C:\UserDelphi';
+    LEnvironment.MachinePath := 'C:\MachineDelphi';
+    Assert.AreEqual('C:\UserDelphi', LEnvironment.Locate('23.0'));
   finally
     LEnvironment.Free;
   end;

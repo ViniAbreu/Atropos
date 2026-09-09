@@ -34,6 +34,6 @@ Outputs are written to `<platform>\<configuration>`. DelphiAST is located in `th
 ## Troubleshooting
 
 - Missing DelphiAST unit: initialize the submodule.
-- RAD Studio not found: check the installation, BDS registry entries, and the `BDS` environment variable.
+- RAD Studio not found: check the per-user and machine-wide BDS registry entries and the `BDS` environment variable. Atropos prefers the project version but can use the newest registered installation when that exact version is unavailable.
 - Baseline build failed: build the same `.dproj` manually and repair the baseline.
 - Very large global Library Path: use the quality gates, which isolate dependencies for the Atropos build.
