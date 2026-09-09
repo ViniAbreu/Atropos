@@ -40,6 +40,7 @@ uses
   Atropos.Tests.DelphiEnvironment in 'src\Atropos.Tests.DelphiEnvironment.pas',
   Atropos.Application.AppService in '..\src\Application\Atropos.Application.AppService.pas',
   Atropos.Adapters.BuildService in '..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
+  Atropos.Adapters.BuildCapability in '..\src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas',
   Atropos.Tests.BuildReliability in 'src\Atropos.Tests.BuildReliability.pas',
   Atropos.Tests.ProjectResolution in 'src\Atropos.Tests.ProjectResolution.pas',
   Atropos.Application.ExecutionConfig in '..\src\Application\Atropos.Application.ExecutionConfig.pas',

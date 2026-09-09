@@ -12,6 +12,11 @@ type
       out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
   end;
 
+  IBuildCapabilityDetector = interface
+    ['{82FD4B29-1B0D-44B7-BEE7-72B118BEE024}']
+    function SupportsHeadlessMSBuild(const ADelphiPath: string): Boolean;
+  end;
+
   TWin32BuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
   private
     procedure DrainAvailableOutput(AReadPipe: THandle; AOutputStream: TStream);
@@ -38,25 +43,31 @@ type
     FProcessRunner: IBuildProcessRunner;
     FTimeoutMs: Cardinal;
     FShouldCancel: TCancellationCheck;
+    FCapabilityDetector: IBuildCapabilityDetector;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
     function ExecuteBuildCommand(const ACommand, AErrorFile, AProjectPath,
       ADelphiPath, AToolName: string; ARequiresOutputFile: Boolean): TBuildMetrics;
+    function BuildProjectWithMSBuild(const AProjectPath,
+      ADelphiPath: string): TBuildMetrics;
+    function ShouldUseBdsFallback(const AMetrics: TBuildMetrics): Boolean;
   public
     constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
       AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000;
-      const AShouldCancel: TCancellationCheck = nil);
+      const AShouldCancel: TCancellationCheck = nil;
+      const ACapabilityDetector: IBuildCapabilityDetector = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
     function BuildProjectForTarget(const AProjectPath: string;
       const ATarget: TBuildTarget): TBuildMetrics;
   end;
 
 implementation
-uses System.Generics.Collections, System.IOUtils, System.Math, System.RegularExpressions,
-  System.SysUtils;
+uses System.Generics.Collections, System.IOUtils, System.Math,
+  System.RegularExpressions, System.StrUtils, System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
   AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal;
-  const AShouldCancel: TCancellationCheck);
+  const AShouldCancel: TCancellationCheck;
+  const ACapabilityDetector: IBuildCapabilityDetector);
 begin
   FEnvService := AEnvService;
   FLogger := ALogger;
@@ -65,6 +76,7 @@ begin
     FProcessRunner := TWin32BuildProcessRunner.Create;
   FTimeoutMs := ATimeoutMs;
   FShouldCancel := AShouldCancel;
+  FCapabilityDetector := ACapabilityDetector;
 end;
 
 function TWin32BuildProcessRunner.Execute(const ACommand: string; ATimeoutMs: Cardinal;
@@ -349,6 +361,17 @@ begin
     Exit;
   end;
 
+  if Assigned(FCapabilityDetector) and
+    FCapabilityDetector.SupportsHeadlessMSBuild(LDelphiPath) then
+  begin
+    Result := BuildProjectWithMSBuild(AProjectPath, LDelphiPath);
+    if not ShouldUseBdsFallback(Result) then
+      Exit;
+    if Assigned(FLogger) then
+      FLogger.Log('Headless MSBuild is unavailable for this installation; ' +
+        'falling back to bds.exe.');
+  end;
+
   LBdsExe := TPath.Combine(LDelphiPath, 'bin\bds.exe');
   if not TFile.Exists(LBdsExe) then
   begin
@@ -364,6 +387,44 @@ begin
 
   Result := ExecuteBuildCommand(LBdsCmd, LErrFile, AProjectPath, LDelphiPath,
     'bds.exe', True);
+end;
+
+function TBuildServiceAdapter.ShouldUseBdsFallback(
+  const AMetrics: TBuildMetrics): Boolean;
+var
+  LFailureDetails: string;
+begin
+  LFailureDetails := AMetrics.DiagnosticOutput + sLineBreak +
+    AMetrics.ErrorMessage;
+  Result := not AMetrics.Success and
+    (ContainsText(LFailureDetails, 'licen') or
+     ContainsText(LFailureDetails, 'Community Edition') or
+     ContainsText(LFailureDetails, 'command-line compiler') or
+     ContainsText(LFailureDetails, 'Failed to execute MSBuild.exe'));
+end;
+
+function TBuildServiceAdapter.BuildProjectWithMSBuild(const AProjectPath,
+  ADelphiPath: string): TBuildMetrics;
+var
+  LCommand: string;
+  LCommandProcessorPath: string;
+  LEnvironmentScriptPath: string;
+  LErrorFile: string;
+  LMSBuildPath: string;
+begin
+  LMSBuildPath := TPath.Combine(GetEnvironmentVariable('WINDIR'),
+    'Microsoft.NET\Framework\v4.0.30319\MSBuild.exe');
+  LEnvironmentScriptPath := TPath.Combine(ADelphiPath, 'bin\rsvars.bat');
+  LCommandProcessorPath := GetEnvironmentVariable('ComSpec');
+  LErrorFile := TPath.Combine(TPath.GetTempPath,
+    TGuid.NewGuid.ToString + '.msbuild.log');
+  LCommand := Format('"%s" /d /c ""%s" && "%s" "%s" ' +
+    '/t:Build /nologo /v:minimal"', [LCommandProcessorPath,
+    LEnvironmentScriptPath, LMSBuildPath, AProjectPath]);
+  if Assigned(FLogger) then
+    FLogger.Log('Executing default project build via headless MSBuild.');
+  Result := ExecuteBuildCommand(LCommand, LErrorFile, AProjectPath,
+    ADelphiPath, 'MSBuild.exe', False);
 end;
 
 function TBuildServiceAdapter.ExecuteBuildCommand(const ACommand, AErrorFile,

@@ -23,7 +23,7 @@ Manifest or hash validation failures stop recovery and preserve all available ev
 - review the diff and run the project's tests;
 - create an external backup when version control is unavailable.
 
-AutoBuild uses `bds.exe`. Child processes are assigned to a Windows Job Object so they can be terminated together; the default timeout is 10 minutes.
+AutoBuild prefers headless MSBuild after an isolated preflight successfully compiles a minimal program with `dcc32.exe`. The preflight runs in a temporary directory and verifies the command-line environment, compiler executable, installed edition, and license without touching the analyzed project. If the compiler is absent or command-line compilation is rejected, Atropos falls back to `bds.exe`. A license-related rejection reported later by MSBuild also triggers the fallback. Project compilation errors do not, so the original MSBuild diagnostic remains visible without opening the IDE. Child processes are assigned to a Windows Job Object so they can be terminated together; the default timeout is 10 minutes.
 
 ## Legacy script
 

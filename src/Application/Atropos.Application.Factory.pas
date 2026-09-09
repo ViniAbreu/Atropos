@@ -14,16 +14,21 @@ type
   end;
 
 implementation
-uses Atropos.Adapters.BuildService, Atropos.Adapters.DelphiEnvironment, Atropos.Adapters.ExternalUnitResolver, Atropos.Adapters.ReportGenerator, Atropos.Adapters.FileSystem, Atropos.Adapters.DelphiAST, Atropos.Adapters.ProjectParser;
+uses Atropos.Adapters.BuildCapability, Atropos.Adapters.BuildService,
+  Atropos.Adapters.DelphiEnvironment, Atropos.Adapters.ExternalUnitResolver,
+  Atropos.Adapters.ReportGenerator, Atropos.Adapters.FileSystem,
+  Atropos.Adapters.DelphiAST, Atropos.Adapters.ProjectParser;
 
 class function TAppServiceFactory.CreateDefault(const AConfig: TToolConfig;
   const AShouldCancel: TCancellationCheck): TProjectCleanerAppService;
 var
   LASTParser: IASTParser;
   LEnvService: IDelphiEnvironmentService;
+  LBuildProcessRunner: IBuildProcessRunner;
 begin
   LASTParser := TDelphiASTAdapter.Create;
   LEnvService := TDelphiEnvironmentAdapter.Create;
+  LBuildProcessRunner := TWin32BuildProcessRunner.Create;
   
   Result := TProjectCleanerAppService.Create(
     TDprojParserAdapter.Create,
@@ -32,7 +37,9 @@ begin
     TReportGeneratorAdapter.Create,
     LEnvService,
     TExternalUnitResolverAdapter.Create(LASTParser),
-    TBuildServiceAdapter.Create(LEnvService, nil, nil, 600000, AShouldCancel),
+    TBuildServiceAdapter.Create(LEnvService, nil, LBuildProcessRunner, 600000,
+      AShouldCancel,
+      TDelphiBuildCapabilityDetector.Create(LBuildProcessRunner)),
     AConfig,
     AShouldCancel
   );
