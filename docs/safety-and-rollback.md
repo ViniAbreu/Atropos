@@ -10,6 +10,13 @@ Each execution is handled as a transaction:
 6. commit and remove internal backups on success;
 7. restore the files after a failure, cancellation, or exception.
 
+When several interface dependencies move together, their original relative
+order is preserved in the implementation clause. This matters when different
+units export the same identifier and Delphi resolves it by uses-clause order.
+If the verification build fails, the report marks every listed transformation
+as rolled back and retains the actual project, duration, unit, and search-path
+counts for diagnosis.
+
 Existing user-created `.bak` files are preserved. Rollback is not a replacement for Git or functional tests.
 
 Every transaction uses `.atropos-transaction.json` in the project directory. The manifest associates the original and backup paths with one transaction identifier and the SHA-256 hash of the original content. Recovery validates this relationship and the hash before restoring a file. A committed manifest only completes backup cleanup; it never rolls the accepted source changes back.
