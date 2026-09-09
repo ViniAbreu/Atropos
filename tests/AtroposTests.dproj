@@ -129,6 +129,7 @@
         <DCCReference Include="src\Atropos.Tests.Integration.pas"/>
         <DCCReference Include="..\src\Application\Atropos.Application.AppService.pas"/>
         <DCCReference Include="..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
+        <DCCReference Include="..\src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas"/>
         <DCCReference Include="src\Atropos.Tests.BuildReliability.pas"/>
         <DCCReference Include="src\Atropos.Tests.ProjectResolution.pas"/>
         <DCCReference Include="..\src\Application\Atropos.Application.ExecutionConfig.pas"/>

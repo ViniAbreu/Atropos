@@ -22,7 +22,8 @@ uses
   Atropos.Adapters.DelphiEnvironment in 'src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas',
   Atropos.Application.AppService in 'src\Application\Atropos.Application.AppService.pas',
   Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
-  Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas';
+  Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
+  Atropos.Adapters.BuildCapability in 'src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas';
 
 var
   LApp: TCLIApp;

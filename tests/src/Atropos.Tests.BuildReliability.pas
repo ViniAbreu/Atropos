@@ -4,6 +4,7 @@ interface
 
 uses
   Atropos.Application.AppService,
+  Atropos.Adapters.BuildCapability,
   Atropos.Adapters.BuildService,
   Atropos.Core.Config,
   Atropos.Core.Ports,
@@ -86,10 +87,22 @@ type
     Cancelled: Boolean;
     TimeoutMs: Cardinal;
     ErrorFileContent: string;
+    Output: string;
+    ExecuteCallCount: Integer;
+    UseFirstResult: Boolean;
+    FirstExitCode: Cardinal;
+    FirstOutput: string;
     Command: string;
     function Execute(const ACommand: string; ATimeoutMs: Cardinal;
       const AShouldCancel: TCancellationCheck; out AOutput: string;
       out AExitCode: Cardinal; out ATimedOut, ACancelled: Boolean): Boolean;
+  end;
+
+  TBuildCapabilityDetectorStub = class(TInterfacedObject,
+    IBuildCapabilityDetector)
+  public
+    Supported: Boolean;
+    function SupportsHeadlessMSBuild(const ADelphiPath: string): Boolean;
   end;
 
   TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
@@ -195,6 +208,22 @@ type
     procedure ReportsUseConfiguredDirectoryRelativeToProject;
     [Test]
     procedure BuildDoesNotUseAlternateRegistryProfile;
+    [Test]
+    procedure DefaultBuildUsesHeadlessMSBuildWhenSupported;
+    [Test]
+    procedure DefaultBuildKeepsBdsFallbackWhenHeadlessBuildIsUnsupported;
+    [Test]
+    procedure CapabilityDetectorRejectsMissingEnvironmentScript;
+    [Test]
+    procedure CapabilityDetectorRejectsMissingCommandLineCompiler;
+    [Test]
+    procedure CapabilityDetectorRejectsCompilerProbeFailure;
+    [Test]
+    procedure CapabilityDetectorAcceptsCompleteToolchain;
+    [Test]
+    procedure CommunityLicenseRejectionFallsBackToBds;
+    [Test]
+    procedure ProjectCompilationErrorDoesNotFallBackToBds;
     [Test]
     procedure DryRunReportsCandidatesWithoutWritingFiles;
     [Test]
@@ -333,13 +362,19 @@ function TBuildProcessRunnerStub.Execute(const ACommand: string; ATimeoutMs: Car
 var
   LMatch: TMatch;
 begin
+  Inc(ExecuteCallCount);
   Command := ACommand;
   TimeoutMs := ATimeoutMs;
-  AOutput := EmptyStr;
+  AOutput := Output;
   AExitCode := ExitCode;
   ATimedOut := TimedOut;
   ACancelled := Cancelled;
   Result := ExecuteResult;
+  if UseFirstResult and (ExecuteCallCount = 1) then
+  begin
+    AOutput := FirstOutput;
+    AExitCode := FirstExitCode;
+  end;
   if not Result then
     Exit;
   LMatch := TRegEx.Match(ACommand, '-o"([^"]+)"');
@@ -351,6 +386,12 @@ end;
 
 procedure TExternalResolverStub.Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string);
 begin
+end;
+
+function TBuildCapabilityDetectorStub.SupportsHeadlessMSBuild(
+  const ADelphiPath: string): Boolean;
+begin
+  Result := Supported;
 end;
 
 function TExternalResolverStub.GetWarnings: TArray<string>;
@@ -1237,6 +1278,203 @@ begin
   finally
     TDirectory.Delete(LRoot, True);
   end;
+end;
+
+procedure TBuildReliabilityTests.DefaultBuildUsesHeadlessMSBuildWhenSupported;
+var
+  LCapability: TBuildCapabilityDetectorStub;
+  LEnvironment: TDelphiEnvironmentStub;
+  LMetrics: TBuildMetrics;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+begin
+  LCapability := TBuildCapabilityDetectorStub.Create;
+  LCapability.Supported := True;
+  LEnvironment := TDelphiEnvironmentStub.Create;
+  LEnvironment.DelphiPath := 'C:\RADStudio';
+  LRunner := TBuildProcessRunnerStub.Create;
+  LRunner.ExecuteResult := True;
+  LRunner.ExitCode := 0;
+  LRunner.Output := 'Build succeeded.';
+  LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner, 600000,
+    nil, LCapability);
+  LMetrics := LService.BuildProject('Sample.dproj');
+  Assert.IsTrue(LMetrics.Success);
+  Assert.Contains(LRunner.Command, 'MSBuild.exe');
+  Assert.IsFalse(LRunner.Command.Contains(' -b '));
+end;
+
+procedure TBuildReliabilityTests.DefaultBuildKeepsBdsFallbackWhenHeadlessBuildIsUnsupported;
+var
+  LCapability: TBuildCapabilityDetectorStub;
+  LEnvironment: TDelphiEnvironmentStub;
+  LRoot: string;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(TPath.Combine(LRoot, 'bin'));
+  TFile.WriteAllText(TPath.Combine(LRoot, 'bin\bds.exe'), EmptyStr);
+  try
+    LCapability := TBuildCapabilityDetectorStub.Create;
+    LCapability.Supported := False;
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := True;
+    LRunner.ExitCode := 0;
+    LRunner.ErrorFileContent := 'Build succeeded.';
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner,
+      600000, nil, LCapability);
+    Assert.IsTrue(LService.BuildProject('Sample.dproj').Success);
+    Assert.Contains(LRunner.Command, ' -b ');
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.CapabilityDetectorRejectsMissingEnvironmentScript;
+var
+  LDetector: IBuildCapabilityDetector;
+  LRoot: string;
+  LRunner: TBuildProcessRunnerStub;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(TPath.Combine(LRoot, 'bin'));
+  try
+    LRunner := TBuildProcessRunnerStub.Create;
+    LDetector := TDelphiBuildCapabilityDetector.Create(LRunner);
+    Assert.IsFalse(LDetector.SupportsHeadlessMSBuild(LRoot));
+    Assert.AreEqual(0, LRunner.ExecuteCallCount);
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.CapabilityDetectorRejectsMissingCommandLineCompiler;
+var
+  LDetector: IBuildCapabilityDetector;
+  LRoot: string;
+  LRunner: TBuildProcessRunnerStub;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(TPath.Combine(LRoot, 'bin'));
+  TFile.WriteAllText(TPath.Combine(LRoot, 'bin\rsvars.bat'), EmptyStr);
+  try
+    LRunner := TBuildProcessRunnerStub.Create;
+    LDetector := TDelphiBuildCapabilityDetector.Create(LRunner);
+    Assert.IsFalse(LDetector.SupportsHeadlessMSBuild(LRoot));
+    Assert.AreEqual(0, LRunner.ExecuteCallCount);
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.CapabilityDetectorRejectsCompilerProbeFailure;
+var
+  LDetector: IBuildCapabilityDetector;
+  LRoot: string;
+  LRunner: TBuildProcessRunnerStub;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(TPath.Combine(LRoot, 'bin'));
+  TFile.WriteAllText(TPath.Combine(LRoot, 'bin\rsvars.bat'), EmptyStr);
+  TFile.WriteAllText(TPath.Combine(LRoot, 'bin\dcc32.exe'), EmptyStr);
+  try
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := True;
+    LRunner.ExitCode := 1;
+    LRunner.Output := 'Command-line compiler is unavailable for this edition.';
+    LDetector := TDelphiBuildCapabilityDetector.Create(LRunner);
+    Assert.IsFalse(LDetector.SupportsHeadlessMSBuild(LRoot));
+    Assert.AreEqual(1, LRunner.ExecuteCallCount);
+    Assert.Contains(LRunner.Command, 'AtroposCompilerProbe.dpr');
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.CapabilityDetectorAcceptsCompleteToolchain;
+var
+  LDetector: IBuildCapabilityDetector;
+  LRoot: string;
+  LRunner: TBuildProcessRunnerStub;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(TPath.Combine(LRoot, 'bin'));
+  TFile.WriteAllText(TPath.Combine(LRoot, 'bin\rsvars.bat'), EmptyStr);
+  TFile.WriteAllText(TPath.Combine(LRoot, 'bin\dcc32.exe'), EmptyStr);
+  try
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := True;
+    LRunner.ExitCode := 0;
+    LDetector := TDelphiBuildCapabilityDetector.Create(LRunner);
+    Assert.IsTrue(LDetector.SupportsHeadlessMSBuild(LRoot));
+    Assert.IsTrue(LDetector.SupportsHeadlessMSBuild(LRoot));
+    Assert.AreEqual(1, LRunner.ExecuteCallCount);
+    Assert.Contains(LRunner.Command, 'dcc32.exe');
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.CommunityLicenseRejectionFallsBackToBds;
+var
+  LCapability: TBuildCapabilityDetectorStub;
+  LEnvironment: TDelphiEnvironmentStub;
+  LMetrics: TBuildMetrics;
+  LRoot: string;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+begin
+  LRoot := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  TDirectory.CreateDirectory(TPath.Combine(LRoot, 'bin'));
+  TFile.WriteAllText(TPath.Combine(LRoot, 'bin\bds.exe'), EmptyStr);
+  try
+    LCapability := TBuildCapabilityDetectorStub.Create;
+    LCapability.Supported := True;
+    LEnvironment := TDelphiEnvironmentStub.Create;
+    LEnvironment.DelphiPath := LRoot;
+    LRunner := TBuildProcessRunnerStub.Create;
+    LRunner.ExecuteResult := True;
+    LRunner.UseFirstResult := True;
+    LRunner.FirstExitCode := 1;
+    LRunner.FirstOutput := 'Community Edition license does not permit the command-line compiler.';
+    LRunner.ExitCode := 0;
+    LRunner.ErrorFileContent := 'Build succeeded.';
+    LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner,
+      600000, nil, LCapability);
+    LMetrics := LService.BuildProject('Sample.dproj');
+    Assert.IsTrue(LMetrics.Success);
+    Assert.AreEqual(2, LRunner.ExecuteCallCount);
+    Assert.Contains(LRunner.Command, ' -b ');
+  finally
+    TDirectory.Delete(LRoot, True);
+  end;
+end;
+
+procedure TBuildReliabilityTests.ProjectCompilationErrorDoesNotFallBackToBds;
+var
+  LCapability: TBuildCapabilityDetectorStub;
+  LEnvironment: TDelphiEnvironmentStub;
+  LMetrics: TBuildMetrics;
+  LRunner: TBuildProcessRunnerStub;
+  LService: IBuildService;
+begin
+  LCapability := TBuildCapabilityDetectorStub.Create;
+  LCapability.Supported := True;
+  LEnvironment := TDelphiEnvironmentStub.Create;
+  LEnvironment.DelphiPath := 'C:\RADStudio';
+  LRunner := TBuildProcessRunnerStub.Create;
+  LRunner.ExecuteResult := True;
+  LRunner.ExitCode := 1;
+  LRunner.Output := 'Unit1.pas(10): error E2003 Undeclared identifier';
+  LService := TBuildServiceAdapter.Create(LEnvironment, nil, LRunner,
+    600000, nil, LCapability);
+  LMetrics := LService.BuildProject('Sample.dproj');
+  Assert.IsFalse(LMetrics.Success);
+  Assert.AreEqual(1, LRunner.ExecuteCallCount);
+  Assert.Contains(LRunner.Command, 'MSBuild.exe');
 end;
 
 procedure TBuildReliabilityTests.DryRunReportsCandidatesWithoutWritingFiles;

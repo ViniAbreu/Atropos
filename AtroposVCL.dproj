@@ -124,6 +124,7 @@
         <DCCReference Include="src\Application\Atropos.Application.ExecutionPresentation.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.Factory.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
+        <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
