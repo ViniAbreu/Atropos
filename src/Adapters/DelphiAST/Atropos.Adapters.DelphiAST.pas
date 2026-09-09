@@ -3,8 +3,6 @@ unit Atropos.Adapters.DelphiAST;
 interface
 uses
   System.SysUtils,
-  System.IOUtils,
-  System.RegularExpressions,
   System.Generics.Collections,
   Atropos.Core.Ports,
   DelphiAST.Classes,
@@ -14,11 +12,14 @@ uses
 type
   EASTParserException = class(Exception);
 
-  TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree)
+  TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
+    IUnitSourceDependencies, IUnitAnalysisDiagnostics)
   private
     FFileName: string;
     FUnitName: string;
     FRoot: TSyntaxNode;
+    FDependencies: TArray<TSourceDependency>;
+    function HasIncludedUses(ANode: TSyntaxNode; AInsideUses: Boolean): Boolean;
     
     function GetUsesList(ANodeType: TSyntaxNodeType): TArray<string>;
     function GetIdentifiersList(ANodeType: TSyntaxNodeType): TArray<string>;
@@ -32,7 +33,8 @@ type
     
     procedure FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; ATypeDeclDepth: Integer = 0; AInsideHelper: Boolean = False);
   public
-    constructor Create(const AFileName: string; ARoot: TSyntaxNode);
+    constructor Create(const AFileName: string; ARoot: TSyntaxNode;
+      const ADependencies: TArray<TSourceDependency>);
     destructor Destroy; override;
     
     function GetUnitName: string;
@@ -42,62 +44,42 @@ type
     function GetIdentifiersUsedInImplementation: TArray<string>;
     function GetExportedIdentifiers: TArray<string>;
     function HasInitializationSection: Boolean;
+    function GetSourceDependencies: TArray<TSourceDependency>;
+    function GetIncompleteAnalysisReasons: TArray<string>;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser)
   private
+    FIncludePaths: TArray<string>;
     function CreateSourceStream(const AFilePath: string): TStringStream;
   public
+    constructor Create; overload;
+    constructor Create(const AIncludePaths: TArray<string>); overload;
     function ParseFile(const AFilePath: string): IUnitSyntaxTree;
   end;
 
 implementation
 
-type
-  TDelphiSourceNormalizer = class
-  private
-    class function CreateStringPlaceholder(const AMatch: TMatch): string; static;
-  public
-    class function Normalize(const ASource: string): string; static;
-  end;
+uses Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
+  SimpleParser.Lexer.Types;
 
-class function TDelphiSourceNormalizer.CreateStringPlaceholder(
-  const AMatch: TMatch): string;
-var
-  LLineBreaks: string;
+constructor TDelphiASTAdapter.Create;
 begin
-  LLineBreaks := TRegEx.Replace(AMatch.Value, '[^\r\n]', EmptyStr);
-  Result := '''''' + LLineBreaks;
+  inherited Create;
 end;
 
-class function TDelphiSourceNormalizer.Normalize(const ASource: string): string;
-const
-  CMultilineStringPattern = '^[\t ]*''''''[\t ]*\r?\n.*?^[\t ]*''''''';
-var
-  LIndex: Integer;
-  LMatch: TMatch;
-  LMatches: TMatchCollection;
-  LPlaceholder: string;
+constructor TDelphiASTAdapter.Create(const AIncludePaths: TArray<string>);
 begin
-  Result := ASource;
-  LMatches := TRegEx.Matches(ASource, CMultilineStringPattern,
-    [roMultiLine, roSingleLine]);
-  for LIndex := LMatches.Count - 1 downto 0 do
-  begin
-    LMatch := LMatches.Item[LIndex];
-    LPlaceholder := CreateStringPlaceholder(LMatch);
-    Delete(Result, LMatch.Index + 1, LMatch.Length);
-    Insert(LPlaceholder, Result, LMatch.Index + 1);
-  end;
+  inherited Create;
+  FIncludePaths := Copy(AIncludePaths);
 end;
 
 function TDelphiASTAdapter.CreateSourceStream(const AFilePath: string): TStringStream;
 var
-  LSource: string;
+  LSource: TDelphiSourceContent;
 begin
-  LSource := TFile.ReadAllText(AFilePath);
-  LSource := TDelphiSourceNormalizer.Normalize(LSource);
-  Result := TStringStream.Create(LSource, TEncoding.UTF8);
+  LSource := TDelphiSourceReader.Read(AFilePath);
+  Result := TStringStream.Create(LSource.Text, TEncoding.UTF8);
 end;
 
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
@@ -105,6 +87,8 @@ var
   LBuilder: TPasSyntaxTreeBuilder;
   LRoot: TSyntaxNode;
   LSourceStream: TStringStream;
+  LIncludes: TSourceIncludeResolver;
+  LIncludeHandler: IIncludeHandler;
 begin
   if not FileExists(AFilePath) then
     raise EASTParserException.CreateFmt('File not found: %s', [AFilePath]);
@@ -114,12 +98,16 @@ begin
     try
       LBuilder := TPasSyntaxTreeBuilder.Create;
       try
+        LIncludes := TSourceIncludeResolver.Create(AFilePath, FIncludePaths);
+        LIncludeHandler := LIncludes;
+        LBuilder.IncludeHandler := LIncludeHandler;
         LBuilder.InitDefinesDefinedByCompiler;
         LRoot := LBuilder.Run(LSourceStream);
         if LRoot = nil then
           raise EASTParserException.Create('Parser returned nil tree.');
 
-        Result := TDelphiASTSyntaxTree.Create(AFilePath, LRoot);
+        Result := TDelphiASTSyntaxTree.Create(AFilePath, LRoot,
+          LIncludes.GetDependencies);
       finally
         LBuilder.Free;
       end;
@@ -132,10 +120,12 @@ begin
   end;
 end;
 
-constructor TDelphiASTSyntaxTree.Create(const AFileName: string; ARoot: TSyntaxNode);
+constructor TDelphiASTSyntaxTree.Create(const AFileName: string; ARoot: TSyntaxNode;
+  const ADependencies: TArray<TSourceDependency>);
 begin
   FFileName := AFileName;
   FRoot := ARoot;
+  FDependencies := Copy(ADependencies);
   FUnitName := ExtractFileName(AFileName);
   if Assigned(FRoot) and (FRoot.Typ = ntUnit) then
   begin
@@ -148,6 +138,36 @@ destructor TDelphiASTSyntaxTree.Destroy;
 begin
   FRoot.Free;
   inherited;
+end;
+
+function TDelphiASTSyntaxTree.GetSourceDependencies: TArray<TSourceDependency>;
+begin
+  Result := Copy(FDependencies);
+end;
+
+function TDelphiASTSyntaxTree.HasIncludedUses(ANode: TSyntaxNode;
+  AInsideUses: Boolean): Boolean;
+var
+  LChild: TSyntaxNode;
+begin
+  Result := False;
+  if not Assigned(ANode) then
+    Exit;
+  AInsideUses := AInsideUses or (ANode.Typ = ntUses);
+  if AInsideUses and not ANode.FileName.IsEmpty then
+    Exit(True);
+  for LChild in ANode.ChildNodes do
+  begin
+    if HasIncludedUses(LChild, AInsideUses) then
+      Exit(True);
+  end;
+end;
+
+function TDelphiASTSyntaxTree.GetIncompleteAnalysisReasons: TArray<string>;
+begin
+  Result := [];
+  if HasIncludedUses(FRoot, False) then
+    Result := ['Uses entries originate in an include; editing their source provenance is not supported yet.'];
 end;
 
 function TDelphiASTSyntaxTree.GetUnitName: string;

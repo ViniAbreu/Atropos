@@ -59,6 +59,17 @@ type
     function HasInitializationSection: Boolean;
   end;
   
+  TSourceDependency = record
+    ParentPath: string;
+    FilePath: string;
+    ContentHash: string;
+  end;
+
+  IUnitSourceDependencies = interface
+    ['{7EBA76D2-050F-48CD-82F7-955CBAB1DCC5}']
+    function GetSourceDependencies: TArray<TSourceDependency>;
+  end;
+
   IUnitAnalysisDiagnostics = interface
     ['{11338C0A-0C3F-4EE2-B086-C66ABBC320AB}']
     function GetIncompleteAnalysisReasons: TArray<string>;

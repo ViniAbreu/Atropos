@@ -30,6 +30,12 @@ that consumer. Known initialization effects retain an import even when its sourc
 belongs to the Delphi installation. These safeguards do not yet provide complete
 symbol binding, project-context evaluation or transitive effect analysis.
 
+Active includes are loaded with source provenance and SHA-256 hashes. A missing
+include or an include cycle raises a parser error, preserving the consumer through
+the same unknown-analysis path. Uses entries originating in includes veto consumer
+edits because the current editor cannot safely address their original file. These
+hashes are provenance metadata, not yet a snapshot validation before writing.
+
 Every transaction uses `.atropos-transaction.json` in the project directory. The manifest associates the original and backup paths with one transaction identifier and the SHA-256 hash of the original content. Recovery validates this relationship and the hash before restoring a file. A committed manifest only completes backup cleanup; it never rolls the accepted source changes back.
 
 Manifest or hash validation failures stop recovery and preserve all available evidence. Backups created by older Atropos versions without a manifest are also preserved and require manual review; they are never restored automatically. After confirming the intended original file, restore or remove those legacy `.atropos-*.bak` files before starting a new analysis.

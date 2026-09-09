@@ -1,0 +1,1049 @@
+{
+  "schemaVersion": 1,
+  "phase": "source-includes",
+  "createdUtc": "2026-09-09T23:35:59.6711272Z",
+  "build": {
+    "schemaVersion": 1,
+    "createdUtc": "2026-09-09T23:35:49.622943Z",
+    "repositoryCommit": "d49ecc21733a0db644ae8dfe71200175390ec867",
+    "delphiAstCommit": "38402535ad6018b981f08920836aac99b554cb86",
+    "workingTreeStatus": [
+      " M AtroposCLI.dpr",
+      " M AtroposCLI.dproj",
+      " M AtroposVCL.dpr",
+      " M AtroposVCL.dproj",
+      " M src/Adapters/DelphiAST/Atropos.Adapters.DelphiAST.pas",
+      " M src/Core/Ports/Atropos.Core.Ports.pas",
+      " M tests/AtroposTests.dpr",
+      " M tests/AtroposTests.dproj",
+      " M tests/SemanticProbe/Probe.dpr",
+      " M tests/SemanticProbe/Probe.dproj",
+      " M tests/SemanticProbe/src/Probe.Engine.pas",
+      " M tests/run-coverage.ps1",
+      "?? src/Adapters/DelphiAST/Atropos.Adapters.DelphiSource.pas",
+      "?? src/Adapters/DelphiAST/Atropos.Adapters.SourceIncludes.pas",
+      "?? tests/src/Atropos.Tests.SourceIncludes.pas"
+    ],
+    "configuration": "Base",
+    "toolchain": {
+      "compilerVersion": 36.0,
+      "pointerSize": 4,
+      "platform": "Win32"
+    },
+    "bdsPath": "C:\\Program Files (x86)\\Embarcadero\\Studio\\23.0",
+    "executableSha256": "709353C5C8990739C5C2195C2A9C94B76D24127A01DD717AD445E687386B54BA",
+    "sourceHashes": [
+      {
+        "path": "src/Adapters/BuildService/Atropos.Adapters.BuildCapability.pas",
+        "sha256": "D1254EEDEC825AA28982AEEE4B5AAE2EFB1C1D492F992B6B983AFDA282C2B0CB"
+      },
+      {
+        "path": "src/Adapters/BuildService/Atropos.Adapters.BuildService.pas",
+        "sha256": "B004F8B7E62ADB8DA48DF1FAD3F583178CBE9C6EDE966948F11962C289D13B3B"
+      },
+      {
+        "path": "src/Adapters/DelphiAST/Atropos.Adapters.DelphiAST.pas",
+        "sha256": "5231FE5F16332F182F5E3C2377A990F25C70687E5DEEC5D101CBD90D0A9AB96B"
+      },
+      {
+        "path": "src/Adapters/DelphiAST/Atropos.Adapters.DelphiSource.pas",
+        "sha256": "D56DAD5E95389A80E0959AC9418AAA5F8FBF649B88EF35928D8A7650ED0800FC"
+      },
+      {
+        "path": "src/Adapters/DelphiAST/Atropos.Adapters.SourceIncludes.pas",
+        "sha256": "03061C89FC023BB776C1F04A915C01DA1B99B0CF34CF3388A9D2370E2B98C7F7"
+      },
+      {
+        "path": "src/Adapters/DelphiEnvironment/Atropos.Adapters.DelphiEnvironment.pas",
+        "sha256": "A6BFB7005BC18D0ABFEB0D20DA64BC17A91F514C6354B477E41EE024D75D2C75"
+      },
+      {
+        "path": "src/Adapters/Execution/Atropos.Adapters.ExecutionThread.pas",
+        "sha256": "214DA2BC9F5229BBC36FBA990FE73579238D5B21ADF6421524E3E2DDF75B70CE"
+      },
+      {
+        "path": "src/Adapters/ExternalUnitResolver/Atropos.Adapters.ExternalUnitResolver.pas",
+        "sha256": "1C26897EF53F102B37C418F6EBDDD2815B93EA85A9FF54998F6B69E726C35120"
+      },
+      {
+        "path": "src/Adapters/FileSystem/Atropos.Adapters.FileSystem.pas",
+        "sha256": "80DF3D9AED2A0E783FEDD5D9495C3A430E27A8283BA80EB53C854C699674414D"
+      },
+      {
+        "path": "src/Adapters/FileSystem/Atropos.Adapters.FileTransaction.pas",
+        "sha256": "E3B2260FE5BF700586884E410F15E1E7A0F4C8A4EAF4503E0A0C130511E3E3F3"
+      },
+      {
+        "path": "src/Adapters/Logger/Atropos.Adapters.Logger.pas",
+        "sha256": "A45554D817F9B56BE34E3DB6B719394FBC995585F3DA4977CDDF243A13A3BB2A"
+      },
+      {
+        "path": "src/Adapters/ProjectParser/Atropos.Adapters.ProjectParser.pas",
+        "sha256": "137F6AF1E530E64DB89F86225044A1D7D44A2C71A80E9B7AD2ADE935198C2FE2"
+      },
+      {
+        "path": "src/Adapters/ReportGenerator/Atropos.Adapters.ReportGenerator.pas",
+        "sha256": "B47E603888DCCF6BFA2FD6B26FFAC8A37BEC8F591D51BEB8F245A2B3EDC2C1A3"
+      },
+      {
+        "path": "src/Application/Atropos.Application.AppService.pas",
+        "sha256": "417CC468A7919C5C834C0ABBB652425ECE7E81E062BCD510B6E7FE6E83AB4A84"
+      },
+      {
+        "path": "src/Application/Atropos.Application.CommandLine.pas",
+        "sha256": "443F9008AC81F65BD9E17461A354CEA73F8FE4B697BD25B9551406B1CB8EF0A7"
+      },
+      {
+        "path": "src/Application/Atropos.Application.ExecutionConfig.pas",
+        "sha256": "A4AE4CC3FE737956BA5967A3351356CAAF486C883FD5978DA6A22E70A25DB77F"
+      },
+      {
+        "path": "src/Application/Atropos.Application.ExecutionLifecycle.pas",
+        "sha256": "B1FF9A165B6EB989AAB6BC3BCAEE3FE6050042EC44B4761BCB51C9CCCF2CFA57"
+      },
+      {
+        "path": "src/Application/Atropos.Application.ExecutionPresentation.pas",
+        "sha256": "549373F1821C979D3CA838CA608B8FB0C97541EDC5EB0530F619FFB87A2231FA"
+      },
+      {
+        "path": "src/Application/Atropos.Application.Factory.pas",
+        "sha256": "836AB63C21DB59C5B38E42C12F2A13DBB3F6FDE812E3ED11A18257C1929E8BB3"
+      },
+      {
+        "path": "src/CLI/Atropos.App.CLI.pas",
+        "sha256": "101018940B92ED819437EC29D4A5336E769E5F90DCB8DBEEB5D270B19B33A2A9"
+      },
+      {
+        "path": "src/Core/Domain/Atropos.Core.Analysis.pas",
+        "sha256": "C17FF6ACF7054ACA8BE2AE89D2292462085A0BF2AC1B5EE2508E369D738FB801"
+      },
+      {
+        "path": "src/Core/Domain/Atropos.Core.Config.pas",
+        "sha256": "BC81AB63802B831FE3E7A554A482DD26D0D707CC6A43F093D7FE581090FFE19F"
+      },
+      {
+        "path": "src/Core/Domain/Atropos.Core.Domain.pas",
+        "sha256": "8E539DFDF854726B1077BA7EB4F5439671C30569588860825BFCD5B53312B35F"
+      },
+      {
+        "path": "src/Core/Ports/Atropos.Core.Ports.pas",
+        "sha256": "CF1682125582507EB14F5EA40E02399405BCEF40F9B5DA44B69B8EF617E895C0"
+      },
+      {
+        "path": "src/Core/Services/Atropos.Core.Modifier.pas",
+        "sha256": "4F7D3E846FF42F084DE6D3E84FEB7C2F8F91C1A1D1D27106BBD1FD4AA17F1DDF"
+      },
+      {
+        "path": "src/GUI/Atropos.VCL.Main.pas",
+        "sha256": "F0E506D476E21C37BA7D72A0BB8408A0836F3FFB8105E406380AECF60905FB11"
+      },
+      {
+        "path": "tests/SemanticProbe/Probe.dpr",
+        "sha256": "0CB33467B0DA4121D259A7A3D8419F6A9E8280AD0844E6BCB7E57E0837A20F76"
+      },
+      {
+        "path": "tests/SemanticProbe/Probe.dproj",
+        "sha256": "F7796B0489CEDBE278D709D8897DC44880B9ADEB05DA82134A344DD954328AF7"
+      },
+      {
+        "path": "tests/SemanticProbe/src/Probe.Engine.pas",
+        "sha256": "626DBC50623DCF5FD2DE70B71E92788A20DAFE6D4D667DF7FC8D2CCEBEDC2141"
+      },
+      {
+        "path": "tests/SemanticProbe/src/Probe.Json.pas",
+        "sha256": "711146916CEB58CF61D4E4F65BC8F1DE9C8A78065C141D49E4264634A9F43AFD"
+      },
+      {
+        "path": "tests/SemanticProbe/src/Probe.MemoryFile.pas",
+        "sha256": "A9974533B028BD438CDE0E87FF1FAB3465A3D496FB6D274A38289A55022A0F32"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Classes.pas",
+        "sha256": "E33BFFD15EF3530E7E780865C83CA8E4E6DCBBF8609BC108571817D91377DBD2"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Consts.pas",
+        "sha256": "623F7DF1FB190378E19279D80EA72994810C53A4C69CF89DE0228AC4A25F2D96"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.pas",
+        "sha256": "77D7FC95AF7EDF9C298B9ED1FE0400ED40AE81C20A49527280EAD8524032C735"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.ProjectIndexer.pas",
+        "sha256": "570E55882EA8811C32A6DA52E5CB677AC2F3AB785B3BC68381FA84B6E4B72476"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Serialize.Binary.pas",
+        "sha256": "EEF0B13437AE57D01B84AB016E9ED04A487BDF97439805AEBE7052D4B0A52AA1"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.SimpleParserEx.pas",
+        "sha256": "9F6D463227527B23D2FDDC39FD9A457591A358C2A60438E4D9F89E3685EE48A5"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/DelphiAST.Writer.pas",
+        "sha256": "5429780C6081788EFD485A044EC5CF9FA3D0FB030634998099DC615FD443A1CA"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Diagnostics.pas",
+        "sha256": "ABB5AC92671A84020CA87EAAF3EF76D22DD409E65398F5FB6FFEB68DDC37E698"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/FPC_StringBuilder/FPC_StringBuilder.pas",
+        "sha256": "E7DB5E23EB0216DD9A9C2D7E685D75435FA9022571A172428BED8E64BC37F628"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/FPC_StringBuilder/Src/StringBuilderUnit.pas",
+        "sha256": "4A63362BC7CA3976FCF313B53A41F5578AB1BEA61F22F649DAF82FB8C35D062F"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.collections.pas",
+        "sha256": "C1EF69A4DF6481705891EAD6D42E7F8697CECFAF8060E13E2969DB2657156CA7"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.defaults.pas",
+        "sha256": "B0F874E4F04B49FDE70A66E8247CA142513D04B7B555681BB3EB0D030AEBAFF5"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.hashes.pas",
+        "sha256": "6E50C5123456F55040D762B39BDFB6E4B716F8ED7CBBDCB7926333D083310614"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.helpers.pas",
+        "sha256": "46FEF8281E63E2ED52DF606C871E7B98B30AFDFA2D21036D9C9AD34BE0F69EA8"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.memoryexpanders.pas",
+        "sha256": "B113195BF7DFCC29DAB3FF4D6DC01E37648C42F979E2585A374C14F2CF6A5C4C"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/generics.strings.pas",
+        "sha256": "C2097DF68318A9F8CEE4D656513F1D3DD212B6703D001BC4636F5A5299E1EA1A"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/inc/generics.dictionaries.inc",
+        "sha256": "5C69DE9461D1FE3951D103F35AD92874399A365D3C3166249A2E8A427B58EDCD"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/Generics.Collection/src/inc/generics.dictionariesh.inc",
+        "sha256": "C192A19BF6179CC86B75FB0D8930826F77A2F03AD1EE6EE19ACEF3E04BDB87C1"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/FreePascalSupport/IOUtils.pas",
+        "sha256": "73438DBCB09FD8586F1E4C962AB79A6C5CECFA3E49AAC5AEAE5536933C9EA680"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.inc",
+        "sha256": "68D03CBFE48FB7B823F4614C178F262376B2852711B27706181C34A88CCD8F38"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.Lexer.pas",
+        "sha256": "2939C56F3FBCB1FAFE9B1D8F80A6B363389BF77A4781126DE5C7851C347502A4"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.Lexer.Types.pas",
+        "sha256": "FB3B09AC5E5AC5C51039FEF9730A181E3A0C5A2EB7913A11A4FFAAB34ECC41BA"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.pas",
+        "sha256": "FB70239BDFD880D7704CADCD372FA361B2E7B9292A53A5268756B8FA18CAC87E"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/SimpleParser/SimpleParser.Types.pas",
+        "sha256": "3B83B1FB78DA118335A56180800B6BA2D812447749ABC7727939F7B35BF34B6D"
+      },
+      {
+        "path": "third_party/DelphiAST/Source/StringPool.pas",
+        "sha256": "06926208B2BA0CC7D3BBE40876A5994C8D2F118589BCA1EE85D05D5105D70DD5"
+      }
+    ]
+  },
+  "catalogSha256": "65E7C43439DB73EB04688868820090631BBDB6E991DB3BBEE0A8D90F25D4550A",
+  "runnerSha256": "24D132F5C8A85CA7461FAD231A6ECB211876DD59CB812302EEA33F9C549179B8",
+  "sourceSummarySha256": "ef64a95ad3b5e1659085f34a46b241f0e37049d3fb61c8e3c4e62b872dda0559",
+  "total": 152,
+  "passed": 101,
+  "failed": 33,
+  "errors": 0,
+  "blocked": 18,
+  "changes": [
+    {
+      "id": "include-declaration",
+      "before": "FAIL",
+      "after": "PASS"
+    },
+    {
+      "id": "include-reference",
+      "before": "FAIL",
+      "after": "PASS"
+    },
+    {
+      "id": "missing-include",
+      "before": "FAIL",
+      "after": "PASS"
+    }
+  ],
+  "results": [
+    {
+      "id": "empty-unit",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "unused-interface",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "unused-implementation",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "move-call",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-signature",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-return",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-both-sections",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-implementation",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "mixed-remove-move",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "unused-both-sections",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "case-insensitive",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "repeat-reference",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "public-constant",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "implementation-constant",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "global-variable",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "resourcestring",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "procedure-address",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "public-inheritance",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "private-field",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "public-property",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "type-alias",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "pointer-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "array-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "procedural-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "interface-ancestor",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "implementation-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "class-reference",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "default-parameter",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "record-field",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "local-variable-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "parameter-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "local-procedure-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "local-type-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "field-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "method-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "unit-level-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "inline-variable-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "for-variable-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "anonymous-parameter-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "qualified-call",
+      "category": "qualification",
+      "status": "FAIL"
+    },
+    {
+      "id": "qualified-type",
+      "category": "qualification",
+      "status": "PASS"
+    },
+    {
+      "id": "dotted-unit-call",
+      "category": "qualification",
+      "status": "PASS"
+    },
+    {
+      "id": "dotted-unit-type",
+      "category": "qualification",
+      "status": "PASS"
+    },
+    {
+      "id": "ambiguous-interface",
+      "category": "ambiguity",
+      "status": "PASS"
+    },
+    {
+      "id": "ambiguous-implementation",
+      "category": "ambiguity",
+      "status": "PASS"
+    },
+    {
+      "id": "ambiguity-across-sections",
+      "category": "ambiguity",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-vs-plain",
+      "category": "generics",
+      "status": "FAIL"
+    },
+    {
+      "id": "generic-arity",
+      "category": "generics",
+      "status": "FAIL"
+    },
+    {
+      "id": "generic-argument",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-constraint",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-nested",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-implementation",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-parameter-shadow",
+      "category": "generics",
+      "status": "FAIL"
+    },
+    {
+      "id": "scoped-export",
+      "category": "enums",
+      "status": "FAIL"
+    },
+    {
+      "id": "unscoped-export",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "scoped-collision",
+      "category": "enums",
+      "status": "FAIL"
+    },
+    {
+      "id": "unscoped-reference",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "scoped-reference",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "nested-type-export",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "helper-string-use",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "helper-unused",
+      "category": "helpers",
+      "status": "PASS"
+    },
+    {
+      "id": "helper-class-use",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "helper-unrelated-receiver",
+      "category": "helpers",
+      "status": "PASS"
+    },
+    {
+      "id": "helper-export",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "helper-public-export",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "initialization-call",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "finalization-call",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "both-lifecycle-calls",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "legacy-begin-call",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "keep-initializing-unit",
+      "category": "lifecycle",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-finalizing-unit",
+      "category": "lifecycle",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-legacy-init-unit",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "keep-transitive-effects",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "keep-native-effects",
+      "category": "lifecycle",
+      "status": "PASS"
+    },
+    {
+      "id": "comments-not-usage",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "strings-not-usage",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "escaped-string",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "uses-word-in-string",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "inline-define-on",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "inline-define-off",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "inline-undef",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "if-defined",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "nested-conditionals",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "inactive-reference",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "include-uses",
+      "category": "includes",
+      "status": "FAIL"
+    },
+    {
+      "id": "include-declaration",
+      "category": "includes",
+      "status": "PASS"
+    },
+    {
+      "id": "include-reference",
+      "category": "includes",
+      "status": "PASS"
+    },
+    {
+      "id": "include-nested",
+      "category": "includes",
+      "status": "FAIL"
+    },
+    {
+      "id": "unknown-unit",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-exact",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-namespaced",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-not-recursive",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-missing-source",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "operator-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "attribute-reference",
+      "category": "advanced",
+      "status": "FAIL"
+    },
+    {
+      "id": "with-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "inherited-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "is-type-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "as-type-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "sizeof-type",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "explicit-cast",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "threadvar-type",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-only-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-first-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-last-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-middle-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-all-items",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-move-new-clause",
+      "category": "rewrite",
+      "status": "FAIL"
+    },
+    {
+      "id": "rewrite-move-existing-clause",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-remove-implementation",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-case-insensitive",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-prefix-boundary",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-dotted-boundary",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-comments-preserved",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-line-comment",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-string-preserved",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-comment-keyword",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-semicolon-comment",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-remove-disabled",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-move-disabled",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-empty-plan",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-absent-unit",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-multiple-moves",
+      "category": "rewrite",
+      "status": "FAIL"
+    },
+    {
+      "id": "rewrite-directive-preserved",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "malformed-consumer",
+      "category": "errors",
+      "status": "PASS"
+    },
+    {
+      "id": "unterminated-string",
+      "category": "errors",
+      "status": "PASS"
+    },
+    {
+      "id": "malformed-dependency",
+      "category": "errors",
+      "status": "PASS"
+    },
+    {
+      "id": "missing-include",
+      "category": "includes",
+      "status": "PASS"
+    },
+    {
+      "id": "ifopt-rangecheck",
+      "category": "directives",
+      "status": "FAIL"
+    },
+    {
+      "id": "if-nested-expression",
+      "category": "directives",
+      "status": "FAIL"
+    },
+    {
+      "id": "scale-references-10",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "scale-references-100",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "scale-references-1000",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "scale-references-5000",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "project-define-debug-release",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "platform-win32-win64",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "namespace-prefix-resolution",
+      "category": "resolution",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "unit-alias-resolution",
+      "category": "resolution",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "project-in-path",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "package-dcu-only",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "dfm-streaming-registration",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "rtti-string-registration",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "initialization-order",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "compiler-overload-binding",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "compiler-helper-precedence",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cache-include-invalidation",
+      "category": "cache",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cache-source-invalidation",
+      "category": "cache",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cache-context-isolation",
+      "category": "cache",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "encoding-preservation",
+      "category": "filesystem",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "rollback-build-failure",
+      "category": "filesystem",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cancellation-transaction",
+      "category": "filesystem",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "project-imported-props",
+      "category": "project",
+      "status": "BLOCKED"
+    }
+  ]
+}

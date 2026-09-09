@@ -112,3 +112,18 @@ its different coverage does not negate these research failures.
 
 Every future correction must name affected case IDs, preserve unrelated regressions
 and justify any policy/oracle revision. Do not derive expectations from current output.
+
+## Source include increment
+
+Source-relative and nested includes now load through the production adapter. Probe
+observations expose `includedSources` with parent, resolved path and SHA-256 of the
+bytes read. Explicit include paths are supported by the adapter constructor; project
+evaluation still needs to supply those paths and the correct compiler context.
+
+`include-declaration`, `include-reference` and `missing-include` now pass.
+`include-uses` and `include-nested` extract their contents but retain imports with an
+incomplete-analysis reason: editing include provenance is not implemented yet.
+Their removal expectations remain unchanged and therefore remain FAIL. Guarded
+recursive includes are conservatively rejected. DUnitX additionally covers nested
+provenance, path precedence, inactive missing includes, cycles, repeat includes,
+content hashes and multiline literal punctuation in root and included sources.

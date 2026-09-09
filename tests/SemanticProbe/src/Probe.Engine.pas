@@ -15,6 +15,7 @@ type
     procedure RegisterDependency(Context: TProjectContext; Dependency: TJSONObject);
     procedure RegisterDependencies(Context: TProjectContext);
     procedure ObserveTree(const Tree: IUnitSyntaxTree);
+    procedure ObserveSources(const Tree: IUnitSyntaxTree);
     procedure Analyze(const Tree: IUnitSyntaxTree; Context: TProjectContext);
     procedure Rewrite(const Analysis: TUnitAnalysisResult);
     procedure RunAnalysis;
@@ -81,6 +82,25 @@ begin
   TProbeJson.Put(FObservation, 'implementationIdentifiers', Tree.GetIdentifiersUsedInImplementation);
   TProbeJson.Put(FObservation, 'exports', Tree.GetExportedIdentifiers);
   FObservation.AddPair('initialization', TJSONBool.Create(Tree.HasInitializationSection));
+  ObserveSources(Tree);
+end;
+
+procedure TProbeEngine.ObserveSources(const Tree: IUnitSyntaxTree);
+var Sources: IUnitSourceDependencies; Dependency: TSourceDependency;
+  Items: TJSONArray; Item: TJSONObject;
+begin
+  Items := TJSONArray.Create;
+  FObservation.AddPair('includedSources', Items);
+  if not Supports(Tree, IUnitSourceDependencies, Sources) then
+    Exit;
+  for Dependency in Sources.GetSourceDependencies do
+  begin
+    Item := TJSONObject.Create;
+    Item.AddPair('parent', Dependency.ParentPath);
+    Item.AddPair('path', Dependency.FilePath);
+    Item.AddPair('sha256', Dependency.ContentHash);
+    Items.AddElement(Item);
+  end;
 end;
 
 procedure TProbeEngine.Analyze(const Tree: IUnitSyntaxTree; Context: TProjectContext);
