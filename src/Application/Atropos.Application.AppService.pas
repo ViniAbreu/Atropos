@@ -36,8 +36,10 @@ type
     procedure ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
     function RunFinalBuild(const AFullPath: string; ARemoved, AMoved: Integer): TBuildMetrics;
     function ProcessInlineHints(const AHints: TArray<TInlineHint>; LModifier: TApplyUsesChanges): Integer;
-    procedure CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
+    procedure CommitChanges(const AMetricsBefore,
+      AMetricsAfter: TBuildMetrics);
     procedure RollbackChanges(const AErrorMessage: string);
+    procedure RecordRolledBackReport;
     procedure GenerateReports(const AOutputDirectory: string);
     procedure CollectProjectParserWarnings;
     procedure CollectResolverWarnings;
@@ -349,11 +351,17 @@ begin
   Log('Rollback complete. Project restored to original state.');
 end;
 
-procedure TProjectCleanerAppService.CommitChanges(const AMetricsBefore, AMetricsAfter: TBuildMetrics; const AFullPath: string; ATimeMs, AUnitCount, ASearchPathCount: Integer);
+procedure TProjectCleanerAppService.RecordRolledBackReport;
+begin
+  FReportGen.AddWarning(
+    'Final build failed. All listed changes were rolled back; no source changes were retained.');
+end;
+
+procedure TProjectCleanerAppService.CommitChanges(const AMetricsBefore,
+  AMetricsAfter: TBuildMetrics);
 begin
   Log('Final build successful! Committing changes...');
   FFileService.CommitBackups;
-  FReportGen.SetAnalysisInfo(ExtractFileName(AFullPath), ATimeMs, AUnitCount, ASearchPathCount);
   FReportGen.AddMetrics(AMetricsBefore, AMetricsAfter);
 end;
 
@@ -394,6 +402,7 @@ var
   LStopwatch: TStopwatch;
 begin
   LStopwatch := TStopwatch.StartNew;
+  LUnitCount := 0;
   LFullPath := TPath.GetFullPath(ADprojPath);
   LBasePath := TPath.GetDirectoryName(LFullPath);
   LReportOutputDirectory := FConfig.OutputDirectory;
@@ -414,6 +423,8 @@ begin
   begin
     Log('Analysis aborted because the baseline build is not healthy. No files were changed.');
     FFileService.RestoreBackups;
+    FReportGen.SetAnalysisInfo(ExtractFileName(LFullPath),
+      LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
     GenerateReports(LReportOutputDirectory);
     Exit(False);
   end;
@@ -426,11 +437,12 @@ begin
     ProcessUnits(LBasePath, ADprojPath, LTotalRemoved, LTotalMoved, LUnitCount, LLogger, LContext, LAnalyzer, LModifier);
     CollectProjectParserWarnings;
     CollectResolverWarnings;
-    
     if (LTotalRemoved = 0) and (LTotalMoved = 0) then
     begin
       Log('No modifications were necessary.');
       FFileService.CommitBackups;
+      FReportGen.SetAnalysisInfo(ExtractFileName(LFullPath),
+        LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
       GenerateReports(LReportOutputDirectory);
       Exit(True);
     end;
@@ -439,6 +451,9 @@ begin
     if not LMetricsAfter.Success then
     begin
       RollbackChanges(LMetricsAfter.ErrorMessage);
+      RecordRolledBackReport;
+      FReportGen.SetAnalysisInfo(ExtractFileName(LFullPath),
+        LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
       GenerateReports(LReportOutputDirectory);
       Exit(False);
     end;
@@ -455,6 +470,9 @@ begin
         if not LVerifyMetrics.Success then
         begin
           RollbackChanges('Verification build failed after resolving inline hints: ' + LVerifyMetrics.ErrorMessage);
+          RecordRolledBackReport;
+          FReportGen.SetAnalysisInfo(ExtractFileName(LFullPath),
+            LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
           GenerateReports(LReportOutputDirectory);
           Exit(False);
         end;
@@ -463,7 +481,9 @@ begin
       end;
     end;
       
-    CommitChanges(LMetricsBefore, LMetricsAfter, LFullPath, LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
+    CommitChanges(LMetricsBefore, LMetricsAfter);
+    FReportGen.SetAnalysisInfo(ExtractFileName(LFullPath),
+      LStopwatch.ElapsedMilliseconds, LUnitCount, LSearchPathCount);
     GenerateReports(LReportOutputDirectory);
     Result := True;
   finally

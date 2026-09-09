@@ -62,6 +62,8 @@ type
     procedure SemicolonInsideBlockCommentDoesNotEndUsesClause;
     [Test]
     procedure SemicolonInsideInFilePathDoesNotEndUsesClause;
+    [Test]
+    procedure MovingMultipleUnitsPreservesTheirResolutionOrder;
   end;
 
 implementation
@@ -368,6 +370,32 @@ begin
   LResult := TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'UnitB', True);
   Assert.IsFalse(LResult.Contains('UnitB'));
   Assert.IsTrue(LResult.Contains('folder;legacy\UnitA.pas'));
+end;
+
+procedure TApplyUsesChangesTests.MovingMultipleUnitsPreservesTheirResolutionOrder;
+var
+  LSource: string;
+  LService: TMockFileService;
+  LModifier: TApplyUsesChanges;
+  LAnalysis: TUnitAnalysisResult;
+  LConfig: TToolConfig;
+begin
+  LSource := 'unit Editor;' + sLineBreak + 'interface' + sLineBreak +
+    'uses Winapi.Windows, Vcl.Graphics;' + sLineBreak + 'implementation' +
+    sLineBreak + 'uses JPEG;' + sLineBreak +
+    'procedure Capture; begin TBitmap.Create.Free; end;' + sLineBreak + 'end.';
+  LConfig := TToolConfig.Default.WithMoveToImplementation(True);
+  LService := TMockFileService.Create(LSource);
+  LModifier := TApplyUsesChanges.Create(LService, LConfig);
+  try
+    LAnalysis.UnusedUnits := [];
+    LAnalysis.UnitsToMoveToImpl := ['Winapi.Windows', 'Vcl.Graphics'];
+    LModifier.Execute('Editor.pas', LAnalysis);
+    Assert.IsTrue(LService.Content.Contains(
+      'uses Winapi.Windows, Vcl.Graphics, JPEG;'));
+  finally
+    LModifier.Free;
+  end;
 end;
 
 initialization

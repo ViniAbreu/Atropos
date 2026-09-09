@@ -735,6 +735,8 @@ begin
       Assert.AreEqual(1, LFiles.RestoreCallCount);
       Assert.AreEqual(0, LFiles.CommitCallCount);
       Assert.AreEqual(1, LReports.AddUnitCallCount);
+      Assert.AreEqual(1, LReports.SetInfoCallCount);
+      Assert.AreEqual(1, LReports.WarningCallCount);
     finally
       LService.Free;
     end;

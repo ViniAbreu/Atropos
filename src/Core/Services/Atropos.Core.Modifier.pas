@@ -398,6 +398,7 @@ procedure TApplyUsesChanges.Execute(const AFilePath: string; const AAnalysisResu
 var
   LContent: string;
   LUnit: string;
+  LUnitIndex: Integer;
 begin
   FFileService.BackupFile(AFilePath);
   LContent := FFileService.ReadFileContent(AFilePath);
@@ -413,8 +414,9 @@ begin
   
   if FConfig.MoveToImplementation then
   begin
-    for LUnit in AAnalysisResult.UnitsToMoveToImpl do
+    for LUnitIndex := High(AAnalysisResult.UnitsToMoveToImpl) downto 0 do
     begin
+      LUnit := AAnalysisResult.UnitsToMoveToImpl[LUnitIndex];
       LContent := RemoveUnitFromUsesClause(LContent, LUnit, True);
       LContent := AddUnitToImplementationUses(LContent, LUnit);
     end;
