@@ -86,6 +86,12 @@ type
     ['{696D2906-FCBA-429C-A20D-261F8091EAC0}']
     function ParseFile(const AFilePath: string): IUnitSyntaxTree;
   end;
+
+  IAnalysisSnapshot = interface
+    ['{A5999012-1383-498A-9B35-CBD991803CAE}']
+    procedure BeginAnalysis;
+    procedure ValidateAnalysis;
+  end;
   
   IFileService = interface
     ['{0F09BA45-AE89-4D69-8C03-3D04620A8653}']

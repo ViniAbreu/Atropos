@@ -34,7 +34,22 @@ Active includes are loaded with source provenance and SHA-256 hashes. A missing
 include or an include cycle raises a parser error, preserving the consumer through
 the same unknown-analysis path. Uses entries originating in includes veto consumer
 edits because the current editor cannot safely address their original file. These
-hashes are provenance metadata, not yet a snapshot validation before writing.
+hashes also participate in the production parser's analysis snapshot.
+
+The application collects every unit decision before applying any uses edit. Its
+production parser records the exact bytes read from consumers, lazily resolved
+providers and includes, then verifies all recorded hashes before applying the plan.
+Different content observed in repeated reads invalidates the plan even if the file
+is subsequently restored. A changed or deleted source aborts before the first write;
+the existing exception/rollback path remains responsible for transaction recovery.
+Dry-run consumes the same collected and validated plan. Cancellation is checked
+during collection, before application and between applications.
+
+This is a source consistency check, not filesystem locking. External changes after
+the pre-application check remain a concurrency limitation. Project properties,
+compiler context and source lookup directory listings are not yet captured in this
+snapshot. Custom parsers without the optional snapshot port still get analysis
+before writing, but do not provide the production adapter's byte validation.
 
 Every transaction uses `.atropos-transaction.json` in the project directory. The manifest associates the original and backup paths with one transaction identifier and the SHA-256 hash of the original content. Recovery validates this relationship and the hash before restoring a file. A committed manifest only completes backup cleanup; it never rolls the accepted source changes back.
 

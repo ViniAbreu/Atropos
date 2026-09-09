@@ -111,6 +111,7 @@
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Analysis.pas"/>
         <DCCReference Include="src\Atropos.Tests.AnalysisDecisions.pas"/>
         <DCCReference Include="src\Atropos.Tests.SourceIncludes.pas"/>
+        <DCCReference Include="src\Atropos.Tests.AnalysisSnapshot.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Config.pas"/>
         <DCCReference Include="..\src\Adapters\Logger\Atropos.Adapters.Logger.pas"/>
@@ -119,6 +120,7 @@
         <DCCReference Include="src\Atropos.Tests.DprojParser.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas"/>
+        <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas"/>
         <DCCReference Include="src\Atropos.Tests.DelphiASTAdapter.pas"/>
         <DCCReference Include="src\Atropos.Tests.CompilerDirectives.pas"/>
@@ -133,6 +135,7 @@
         <DCCReference Include="src\Atropos.Tests.ExternalResolver.pas"/>
         <DCCReference Include="src\Atropos.Tests.Integration.pas"/>
         <DCCReference Include="..\src\Application\Atropos.Application.AppService.pas"/>
+        <DCCReference Include="..\src\Application\Atropos.Application.AnalysisPlan.pas"/>
         <DCCReference Include="..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
         <DCCReference Include="..\src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas"/>
         <DCCReference Include="src\Atropos.Tests.BuildReliability.pas"/>

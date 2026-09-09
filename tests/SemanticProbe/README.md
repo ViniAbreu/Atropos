@@ -127,3 +127,10 @@ Their removal expectations remain unchanged and therefore remain FAIL. Guarded
 recursive includes are conservatively rejected. DUnitX additionally covers nested
 provenance, path precedence, inactive missing includes, cycles, repeat includes,
 content hashes and multiline literal punctuation in root and included sources.
+
+The subsequent analysis-plan increment is exercised by
+`Atropos.Tests.AnalysisSnapshot`: it tests the application boundary between planning
+and writing, shared provider/include byte validation, cancellation and dry-run.
+Probe runs use the parser directly and do not by themselves demonstrate that
+application ordering or snapshot validation. These tests do not promote the blocked
+project-context or persistent-cache scenarios.

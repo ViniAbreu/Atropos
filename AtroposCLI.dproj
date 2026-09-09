@@ -109,6 +109,7 @@
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>
@@ -116,6 +117,7 @@
         <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
         <DCCReference Include="src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.AppService.pas"/>
+        <DCCReference Include="src\Application\Atropos.Application.AnalysisPlan.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.Factory.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas"/>

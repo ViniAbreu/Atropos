@@ -3,7 +3,7 @@ unit Atropos.Adapters.SourceIncludes;
 interface
 
 uses System.Generics.Collections, Atropos.Core.Ports,
-  SimpleParser.Lexer.Types;
+  SimpleParser.Lexer.Types, Atropos.Adapters.SourceSnapshot;
 
 type
   TSourceIncludeResolver = class(TInterfacedObject, IIncludeHandler)
@@ -12,11 +12,13 @@ type
     FIncludePaths: TArray<string>;
     FAncestors: TList<string>;
     FDependencies: TList<TSourceDependency>;
+    FSnapshot: TSourceSnapshot;
     function ResolveInclude(const AParentFile, AIncludeName: string): string;
     procedure CheckCycle(const AParentFile, AFilePath: string);
     procedure RecordDependency(const AParentFile, AFilePath, AHash: string);
   public
-    constructor Create(const ARootFile: string; const AIncludePaths: TArray<string>);
+    constructor Create(const ARootFile: string; const AIncludePaths: TArray<string>;
+      ASnapshot: TSourceSnapshot = nil);
     destructor Destroy; override;
     function GetIncludeFileContent(const ParentFileName, IncludeName: string;
       out Content, FileName: string): Boolean;
@@ -28,10 +30,11 @@ implementation
 uses System.SysUtils, System.IOUtils, Atropos.Adapters.DelphiSource;
 
 constructor TSourceIncludeResolver.Create(const ARootFile: string;
-  const AIncludePaths: TArray<string>);
+  const AIncludePaths: TArray<string>; ASnapshot: TSourceSnapshot);
 begin
   inherited Create;
   FRootFile := TPath.GetFullPath(ARootFile);
+  FSnapshot := ASnapshot;
   FIncludePaths := Copy(AIncludePaths);
   FAncestors := TList<string>.Create;
   FAncestors.Add(FRootFile);
@@ -123,6 +126,8 @@ begin
   FileName := ResolveInclude(LParentFile, IncludeName);
   CheckCycle(LParentFile, FileName);
   LSource := TDelphiSourceReader.Read(FileName);
+  if Assigned(FSnapshot) then
+    FSnapshot.RecordSource(FileName, LSource.ContentHash);
   Content := LSource.Text;
   RecordDependency(LParentFile, FileName, LSource.ContentHash);
   Result := True;
