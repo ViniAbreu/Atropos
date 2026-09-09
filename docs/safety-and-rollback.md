@@ -13,6 +13,9 @@ Each execution is handled as a transaction:
 When several interface dependencies move together, their original relative
 order is preserved in the implementation clause. This matters when different
 units export the same identifier and Delphi resolves it by uses-clause order.
+Helper methods used in an implementation also retain access to receiver types
+declared by interface method signatures, so dependencies such as
+`System.SysUtils` are not removed from calls like `SmallInt.ToString`.
 If the verification build fails, the report marks every listed transformation
 as rolled back and retains the actual project, duration, unit, and search-path
 counts for diagnosis.

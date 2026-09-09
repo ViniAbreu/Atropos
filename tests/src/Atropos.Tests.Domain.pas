@@ -47,6 +47,8 @@ type
     procedure QualifiedIdentifierPreservesOnlyNamedUnit;
     [Test]
     procedure UniqueIdentifierDoesNotPreserveUnrelatedUnit;
+    [Test]
+    procedure ImplementationHelperUsesReceiverTypeDeclaredInInterface;
   end;
 
 implementation
@@ -163,6 +165,24 @@ begin
   Assert.IsTrue(FContext.UnitHasInitialization('SideEffect.Unit'));
   Assert.IsFalse(FContext.UnitHasInitialization('Native.Unit'));
   Assert.IsFalse(FContext.UnitHasInitialization('Missing.Unit'));
+end;
+
+procedure TDomainTests.ImplementationHelperUsesReceiverTypeDeclaredInInterface;
+var
+  LSyntaxTree: TMockSyntaxTree;
+  LResult: TUnitAnalysisResult;
+begin
+  FContext.RegisterUnitExports('System.SysUtils', [
+    '!HELPER:ToString:SmallInt']);
+  LSyntaxTree := TMockSyntaxTree.Create;
+  LSyntaxTree.UnitName := 'SegmentosClientes';
+  LSyntaxTree.IntfUses := ['System.SysUtils'];
+  LSyntaxTree.IntfIdents := ['ACodSegm', 'SmallInt'];
+  LSyntaxTree.ImplIdents := ['ACodSegm', 'ToString'];
+  LResult := FAnalyzer.Execute(LSyntaxTree, FContext);
+  Assert.AreEqual(0, Integer(Length(LResult.UnusedUnits)));
+  Assert.AreEqual(1, Integer(Length(LResult.UnitsToMoveToImpl)));
+  Assert.AreEqual('System.SysUtils', LResult.UnitsToMoveToImpl[0]);
 end;
 
 procedure TDomainTests.CollidingUnqualifiedIdentifierPreservesEveryCandidate;
