@@ -26,6 +26,8 @@ type
     procedure Test_FileNotFound_ThrowsException;
     [Test]
     procedure Test_ParseUtf8BomFileAtExactBufferBoundary;
+    [Test]
+    procedure Test_ParseModernMultilineStrings;
   end;
 
 implementation
@@ -127,6 +129,32 @@ begin
   Assert.AreEqual<Int64>(CFileSize, TFile.GetSize(FTestFile));
   LTree := FParser.ParseFile(FTestFile);
   Assert.AreEqual('Utf8BomUnit', LTree.GetUnitName);
+end;
+
+procedure TDelphiASTAdapterTests.Test_ParseModernMultilineStrings;
+var
+  LImplementationIdentifiers: TArray<string>;
+  LSource: string;
+  LTree: IUnitSyntaxTree;
+begin
+  LSource := 'unit MultilineStringUnit;' + sLineBreak +
+    'interface' + sLineBreak +
+    'implementation' + sLineBreak +
+    'procedure Run;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  ExecuteSQL(' + '''''''' + sLineBreak +
+    '    select ''System.SysUtils'' from sample' + sLineBreak +
+    '  ' + '''''''' + ', CreateParameters);' + sLineBreak +
+    'end;' + sLineBreak +
+    'end.';
+  WriteUtf8BomFile(LSource);
+
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.AreEqual('MultilineStringUnit', LTree.GetUnitName);
+  LImplementationIdentifiers := LTree.GetIdentifiersUsedInImplementation;
+  Assert.Contains(LImplementationIdentifiers, 'ExecuteSQL');
+  Assert.Contains(LImplementationIdentifiers, 'CreateParameters');
+  Assert.DoesNotContain(LImplementationIdentifiers, 'System.SysUtils');
 end;
 
 initialization

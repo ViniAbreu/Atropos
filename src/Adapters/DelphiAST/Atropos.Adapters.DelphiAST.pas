@@ -4,6 +4,7 @@ interface
 uses
   System.SysUtils,
   System.IOUtils,
+  System.RegularExpressions,
   System.Generics.Collections,
   Atropos.Core.Ports,
   DelphiAST.Classes,
@@ -52,11 +53,50 @@ type
 
 implementation
 
+type
+  TDelphiSourceNormalizer = class
+  private
+    class function CreateStringPlaceholder(const AMatch: TMatch): string; static;
+  public
+    class function Normalize(const ASource: string): string; static;
+  end;
+
+class function TDelphiSourceNormalizer.CreateStringPlaceholder(
+  const AMatch: TMatch): string;
+var
+  LLineBreaks: string;
+begin
+  LLineBreaks := TRegEx.Replace(AMatch.Value, '[^\r\n]', EmptyStr);
+  Result := '''''' + LLineBreaks;
+end;
+
+class function TDelphiSourceNormalizer.Normalize(const ASource: string): string;
+const
+  CMultilineStringPattern = '^[\t ]*''''''[\t ]*\r?\n.*?^[\t ]*''''''';
+var
+  LIndex: Integer;
+  LMatch: TMatch;
+  LMatches: TMatchCollection;
+  LPlaceholder: string;
+begin
+  Result := ASource;
+  LMatches := TRegEx.Matches(ASource, CMultilineStringPattern,
+    [roMultiLine, roSingleLine]);
+  for LIndex := LMatches.Count - 1 downto 0 do
+  begin
+    LMatch := LMatches.Item[LIndex];
+    LPlaceholder := CreateStringPlaceholder(LMatch);
+    Delete(Result, LMatch.Index + 1, LMatch.Length);
+    Insert(LPlaceholder, Result, LMatch.Index + 1);
+  end;
+end;
+
 function TDelphiASTAdapter.CreateSourceStream(const AFilePath: string): TStringStream;
 var
   LSource: string;
 begin
   LSource := TFile.ReadAllText(AFilePath);
+  LSource := TDelphiSourceNormalizer.Normalize(LSource);
   Result := TStringStream.Create(LSource, TEncoding.UTF8);
 end;
 
