@@ -29,9 +29,13 @@ type
   TBuildOutputParser = class
   private
     class function ContainsBuildError(const AOutput: string): Boolean; static;
+    class function GetDiagnosticCount(const AOutput,
+      ACodePrefix: string): Integer; static;
     class function GetBuildError(const AOutput: string): string; static;
     class function GetExecutableDirectory(const AOutput,
       AProjectPath: string): string; static;
+    class function GetInlineHints(const AOutput,
+      AProjectPath: string): TArray<TInlineHint>; static;
   public
     class function Parse(const AOutput, AProjectPath: string; AExitCode: Cardinal): TBuildMetrics; static;
   end;
@@ -221,39 +225,12 @@ var
   LMatch: TMatch;
   LExeDir: string;
   LExePath: string;
-  LHintsList: TList<TInlineHint>;
-  LHint: TInlineHint;
-  LRegexPattern: string;
-  LProjDir: string;
 begin
   Result := Default(TBuildMetrics);
   Result.DiagnosticOutput := AOutput;
-  LProjDir := TPath.GetDirectoryName(AProjectPath);
-  
-  Result.Hints := 0;
-  for LMatch in TRegEx.Matches(AOutput, '\[dcc[a-zA-Z0-9]* Hint\]') do
-    Inc(Result.Hints);
-  
-  Result.Warnings := 0;
-  for LMatch in TRegEx.Matches(AOutput, '\[dcc[a-zA-Z0-9]* Warning\]') do
-    Inc(Result.Warnings);
-
-  LHintsList := TList<TInlineHint>.Create;
-  try
-    LRegexPattern := '([^\s\[\]][^\r\n\[\]]*?\.pas).*?(H2443|H2445).*?unit ''([^'']+)''';
-    for LMatch in TRegEx.Matches(AOutput, LRegexPattern) do
-    begin
-      LHint.FilePath := LMatch.Groups[1].Value.Trim;
-      if TPath.IsRelativePath(LHint.FilePath) then
-        LHint.FilePath := TPath.GetFullPath(TPath.Combine(LProjDir, LHint.FilePath));
-      LHint.HintType := LMatch.Groups[2].Value;
-      LHint.UnitNeeded := LMatch.Groups[3].Value;
-      LHintsList.Add(LHint);
-    end;
-    Result.InlineHints := LHintsList.ToArray;
-  finally
-    LHintsList.Free;
-  end;
+  Result.Hints := GetDiagnosticCount(AOutput, 'H');
+  Result.Warnings := GetDiagnosticCount(AOutput, 'W');
+  Result.InlineHints := GetInlineHints(AOutput, AProjectPath);
 
   Result.Success := (AExitCode = 0) and
     not ContainsBuildError(AOutput);
@@ -270,6 +247,68 @@ begin
   Result.ExeSizeBytes := 0;
   if TFile.Exists(LExePath) then
     Result.ExeSizeBytes := TFile.GetSize(LExePath);
+end;
+
+class function TBuildOutputParser.GetDiagnosticCount(const AOutput,
+  ACodePrefix: string): Integer;
+var
+  LDiagnosticKeys: TDictionary<string, Byte>;
+  LKey: string;
+  LMatch: TMatch;
+  LPattern: string;
+begin
+  LPattern := '(?im)^(?:\s*\[dcc[^\]]+\]\s*)?' +
+    '(?<file>[^\r\n]*?\.pas)\((?<location>\d+(?:,\d+)?)\)\s*:\s*' +
+    '(?:(?:hint|warning)\s+)?(?<code>' + ACodePrefix +
+    '\d{4})\s*:?\s*(?<message>.*?)(?:\s+\[[^\]\r\n]+\.dproj\])?\s*$';
+  LDiagnosticKeys := TDictionary<string, Byte>.Create;
+  try
+    for LMatch in TRegEx.Matches(AOutput, LPattern) do
+    begin
+      LKey := LowerCase(LMatch.Groups['file'].Value.Trim + '|' +
+        LMatch.Groups['location'].Value + '|' +
+        LMatch.Groups['code'].Value + '|' +
+        LMatch.Groups['message'].Value.Trim);
+      LDiagnosticKeys.TryAdd(LKey, 0);
+    end;
+    Result := LDiagnosticKeys.Count;
+  finally
+    LDiagnosticKeys.Free;
+  end;
+end;
+
+class function TBuildOutputParser.GetInlineHints(const AOutput,
+  AProjectPath: string): TArray<TInlineHint>;
+var
+  LHint: TInlineHint;
+  LHintKeys: TDictionary<string, Byte>;
+  LHints: TList<TInlineHint>;
+  LMatch: TMatch;
+  LProjectDirectory: string;
+begin
+  LProjectDirectory := TPath.GetDirectoryName(AProjectPath);
+  LHintKeys := TDictionary<string, Byte>.Create;
+  LHints := TList<TInlineHint>.Create;
+  try
+    for LMatch in TRegEx.Matches(AOutput,
+      '([^\s\[\]][^\r\n\[\]]*?\.pas).*?(H2443|H2445).*?unit ''([^'']+)''') do
+    begin
+      LHint.FilePath := LMatch.Groups[1].Value.Trim;
+      if TPath.IsRelativePath(LHint.FilePath) then
+        LHint.FilePath := TPath.GetFullPath(TPath.Combine(LProjectDirectory,
+          LHint.FilePath));
+      LHint.HintType := LMatch.Groups[2].Value;
+      LHint.UnitNeeded := LMatch.Groups[3].Value;
+      if not LHintKeys.TryAdd(LowerCase(LHint.FilePath + '|' +
+        LHint.HintType + '|' + LHint.UnitNeeded), 0) then
+        Continue;
+      LHints.Add(LHint);
+    end;
+    Result := LHints.ToArray;
+  finally
+    LHints.Free;
+    LHintKeys.Free;
+  end;
 end;
 
 class function TBuildOutputParser.ContainsBuildError(

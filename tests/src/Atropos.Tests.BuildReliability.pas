@@ -165,6 +165,12 @@ type
     [Test]
     procedure BuildOutputCountsDiagnosticsAndInlineHints;
     [Test]
+    procedure MSBuildOutputCountsUnlabelledHintsAndWarnings;
+    [Test]
+    procedure RepeatedMSBuildDiagnosticsAreCountedOnce;
+    [Test]
+    procedure DiagnosticParserPreservesSpacesAndUnicodePaths;
+    [Test]
     procedure QuotedExecutableOutputPathPreservesSpacesAndUnicode;
     [Test]
     procedure UnquotedExecutableOutputPathRemainsSupported;
@@ -562,6 +568,50 @@ begin
   Assert.AreEqual(1, Integer(Length(LMetrics.InlineHints)));
   Assert.AreEqual('System.SysUtils', LMetrics.InlineHints[0].UnitNeeded);
   Assert.AreEqual(LOutput, LMetrics.DiagnosticOutput);
+end;
+
+procedure TBuildReliabilityTests.MSBuildOutputCountsUnlabelledHintsAndWarnings;
+var
+  LMetrics: TBuildMetrics;
+  LOutput: string;
+begin
+  LOutput := 'Unit1.pas(10): H2144 Symbol ''Value'' is declared but never used' +
+    sLineBreak + 'Unit1.pas(11): Hint H2219 Private symbol ''Run'' declared ' +
+    'but never used' + sLineBreak +
+    'Unit1.pas(12): warning W1000 Symbol ''OldValue'' is deprecated';
+  LMetrics := TBuildOutputParser.Parse(LOutput, 'Project.dproj', 0);
+  Assert.AreEqual(2, LMetrics.Hints);
+  Assert.AreEqual(1, LMetrics.Warnings);
+end;
+
+procedure TBuildReliabilityTests.RepeatedMSBuildDiagnosticsAreCountedOnce;
+var
+  LMetrics: TBuildMetrics;
+  LOutput: string;
+begin
+  LOutput := 'Unit1.pas(10): H2144 Symbol ''Value'' is declared but never used' +
+    sLineBreak + '  Unit1.pas(10): H2144 Symbol ''Value'' is declared but ' +
+    'never used [C:\Project\Sample.dproj]' + sLineBreak +
+    '[dcc32 Hint] Unit2.pas(20): H2443 Inline function ''Run'' has not been ' +
+    'expanded because unit ''System.SysUtils'' is not specified in USES list' +
+    sLineBreak + '[dcc32 Hint] Unit2.pas(20): H2443 Inline function ''Run'' ' +
+    'has not been expanded because unit ''System.SysUtils'' is not specified ' +
+    'in USES list';
+  LMetrics := TBuildOutputParser.Parse(LOutput, 'C:\Project\Sample.dproj', 0);
+  Assert.AreEqual(2, LMetrics.Hints);
+  Assert.AreEqual(1, Integer(Length(LMetrics.InlineHints)));
+end;
+
+procedure TBuildReliabilityTests.DiagnosticParserPreservesSpacesAndUnicodePaths;
+var
+  LMetrics: TBuildMetrics;
+  LOutput: string;
+begin
+  LOutput := 'C:\Projetos\Área de Trabalho\Minha Unit.pas(7,3): ' +
+    'H2144 Symbol ''Value'' is declared but never used';
+  LMetrics := TBuildOutputParser.Parse(LOutput, 'C:\Projetos\Sample.dproj', 0);
+  Assert.AreEqual(1, LMetrics.Hints);
+  Assert.AreEqual(0, LMetrics.Warnings);
 end;
 
 procedure TBuildReliabilityTests.MSBuildErrorIsReportedWithItsDiagnosticContext;
