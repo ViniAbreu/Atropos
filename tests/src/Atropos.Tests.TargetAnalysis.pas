@@ -33,6 +33,10 @@ type
     [Test] procedure IfOptIsExplicitlyIncomplete;
     [Test] procedure IfAndElseIfSelectTheActiveDeclaration;
     [Test] procedure AliasesAndNamespacesResolveTargetSources;
+    [Test] [TestCase('First namespace', '0')] [TestCase('Second namespace', '1')]
+    procedure NamespaceOrderSelectsMatchingSource(const AOrder: Integer);
+    [Test] [TestCase('Debug alias', '0')] [TestCase('Release alias', '1')]
+    procedure ConfigurationAliasSelectsMatchingSource(const AConfig: Integer);
     [Test] procedure IncompleteProviderIsNotAccepted;
     [Test] [TestCase('Compiler32', 'Win32')]
     [TestCase('Compiler64', 'Win64')]
@@ -202,6 +206,50 @@ begin
   Assert.Contains<string>(LExports, 'TToken');
 end;
 
+procedure TTargetAnalysisTests.NamespaceOrderSelectsMatchingSource(const AOrder: Integer);
+var LContext: TProjectCompilationContext; LResolver: IExternalUnitResolver;
+  LExports: TArray<string>; LInit, LNative: Boolean; LExpected: string;
+begin
+  LContext := Context('Win64');
+  LContext.UnitPaths := [WriteSource('Second.Provider.pas',
+    'unit Second.Provider; interface type TSecond = Integer; implementation end.'),
+    WriteSource('First.Provider.pas',
+    'unit First.Provider; interface type TFirst = Integer; implementation end.')];
+  LContext.Namespaces := ['First', 'Second'];
+  LExpected := 'TFirst';
+  if AOrder = 1 then
+  begin
+    LContext.Namespaces := ['Second', 'First'];
+    LExpected := 'TSecond';
+  end;
+  LResolver := TTargetUnitResolver.Create(Parser([]), LContext, '');
+  Assert.IsTrue(LResolver.TryResolveUnit('Provider', LExports, LInit, LNative));
+  Assert.AreEqual<NativeInt>(1, Length(LExports));
+  Assert.AreEqual(LExpected, LExports[0]);
+end;
+
+procedure TTargetAnalysisTests.ConfigurationAliasSelectsMatchingSource(const AConfig: Integer);
+var LContext: TProjectCompilationContext; LResolver: IExternalUnitResolver;
+  LExports: TArray<string>; LInit, LNative: Boolean; LExpected: string;
+begin
+  LContext := Context('Win64');
+  LContext.UnitPaths := [WriteSource('DebugProvider.pas',
+    'unit DebugProvider; interface type TDebug = Integer; implementation end.'),
+    WriteSource('ReleaseProvider.pas',
+    'unit ReleaseProvider; interface type TRelease = Integer; implementation end.')];
+  LContext.Aliases := ['OldDep=DebugProvider'];
+  LExpected := 'TDebug';
+  if AConfig = 1 then
+  begin
+    LContext.Target := TBuildTarget.Create('Release', 'Win64');
+    LContext.Aliases := ['OldDep=ReleaseProvider'];
+    LExpected := 'TRelease';
+  end;
+  LResolver := TTargetUnitResolver.Create(Parser([]), LContext, '');
+  Assert.IsTrue(LResolver.TryResolveUnit('OldDep', LExports, LInit, LNative));
+  Assert.AreEqual<NativeInt>(1, Length(LExports));
+  Assert.AreEqual(LExpected, LExports[0]);
+end;
 procedure TTargetAnalysisTests.IncompleteProviderIsNotAccepted;
 var LContext: TProjectCompilationContext; LResolver: IExternalUnitResolver;
   LExports: TArray<string>; LInit, LNative: Boolean;

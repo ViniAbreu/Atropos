@@ -118,6 +118,7 @@
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Compilation.pas"/>
         <DCCReference Include="src\Atropos.Tests.AnalysisDecisions.pas"/>
         <DCCReference Include="src\Atropos.Tests.SourceIncludes.pas"/>
+        <DCCReference Include="src\Atropos.Tests.ConditionalImports.pas"/>
         <DCCReference Include="src\Atropos.Tests.Profiling.pas"/>
         <DCCReference Include="..\src\Core\Services\Atropos.Core.Profiling.pas"/>
         <DCCReference Include="src\Atropos.Tests.CacheLifecycle.pas"/>

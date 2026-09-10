@@ -147,7 +147,17 @@ begin
   if AIndex >= Length(FTokens) then
     Exit;
   if not ((FTokens[AIndex].Text = ',') or (FTokens[AIndex].Text = ';')) then
-    Exit;
+  begin
+    if (FTokens[AIndex].Kind <> stIdentifier) or LEntry.Condition.IsEmpty or
+      not FTokens[AIndex].Condition.StartsWith(LEntry.Condition + ':') then
+      Exit;
+    // Mutually exclusive alternatives share the eventual comma/semicolon.
+    // Their conditional entries remain immutable and have no physical separator here.
+    LEntry.Separator := 0;
+    AClause.Entries.Add(LEntry);
+    Dec(AIndex);
+    Exit(True);
+  end;
   LEntry.Separator := FTokens[AIndex].StartOffset;
   AClause.Entries.Add(LEntry);
   Result := True;

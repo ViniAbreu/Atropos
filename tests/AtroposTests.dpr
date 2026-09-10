@@ -27,6 +27,7 @@ uses
   Atropos.Core.Compilation in '..\src\Core\Domain\Atropos.Core.Compilation.pas',
   Atropos.Tests.AnalysisDecisions in 'src\Atropos.Tests.AnalysisDecisions.pas',
   Atropos.Tests.SourceIncludes in 'src\Atropos.Tests.SourceIncludes.pas',
+  Atropos.Tests.ConditionalImports in 'src\Atropos.Tests.ConditionalImports.pas',
   Atropos.Tests.Profiling in 'src\Atropos.Tests.Profiling.pas',
   Atropos.Core.Profiling in '..\src\Core\Services\Atropos.Core.Profiling.pas',
   Atropos.Tests.CacheLifecycle in 'src\Atropos.Tests.CacheLifecycle.pas',

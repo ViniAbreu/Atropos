@@ -216,3 +216,25 @@ These small console/VCL fixtures do not establish large-project throughput or ju
 persistent caching. Compare repeated runs and source/toolchain hashes before drawing
 performance conclusions. Direct use of AtroposProfile applies edits; supply only a
 disposable project copy, as the runner does automatically.
+
+ContextRuntime validates all four Debug/Release x Win32/Win64 targets in one cleanup.
+Imported context.props supplies configuration-specific aliases, namespace order and
+a Debug define. The consumer has both define/platform-specific dependencies; its
+DPR maps Mapped to chosen/Mapped.pas despite a competing root file. Every target's
+runtime output must be identical before/after, while an unused import is actually
+removed. Three separately compiled negative controls change the alias, namespace
+order or DPR mapping and must select different observable values. Direct resolver
+tests also use distinct exports to prove selection among competing files.
+
+The scanner now accepts complete qualified IF/ELSE alternatives; names assembled
+partially across directives remain unsupported. The uses reader recognizes mutually
+exclusive branch alternatives sharing a separator, enabling safe edits elsewhere
+in that list. Conditional entries remain immutable; independent guards cannot stand
+in for a missing comma. Regression tests cover these boundaries and idempotence.
+
+The quality gate runs run-context-runtime-tests.ps1 for both CLI architectures. Its
+supplementary evidence is artifacts/integration/<platform>/context-runtime/result.json,
+with input/binary/runner hashes and all target/control observations. Working copies
+are retained under the ignored artifacts directory for inspection; fixtures remain
+unchanged. Contracts cover project defines, platforms, namespaces, aliases, DPR paths
+and imported props without modifying the historical Probe catalog or BLOCKED totals.
