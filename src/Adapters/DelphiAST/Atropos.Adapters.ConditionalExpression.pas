@@ -2,7 +2,7 @@ unit Atropos.Adapters.ConditionalExpression;
 
 interface
 
-uses System.SysUtils;
+uses System.SysUtils, System.Generics.Collections, Atropos.Core.Compilation;
 
 type
   TConditionalValue = record
@@ -16,6 +16,11 @@ type
     FText, FToken, FCompilerVersion: string;
     FPosition, FDepth: Integer;
     FDefined: TFunc<string, Boolean>;
+    FNumbers: TArray<TCompilerOption>;
+    FObservedNames: TDictionary<string, Boolean>;
+    function KnownNumber(const AName: string): string;
+    function NumericName(const AName: string): string;
+    function SizeValue: TConditionalValue;
     procedure Next;
     procedure Require(const AToken: string);
     function Atom: TConditionalValue;
@@ -26,7 +31,10 @@ type
     function AsBoolean(const AValue: TConditionalValue): Boolean;
     function CompareValues(const ALeft, ARight: TConditionalValue): Integer;
   public
-    constructor Create(const ADefined: TFunc<string, Boolean>; const ACompilerVersion: string);
+    constructor Create(const ADefined: TFunc<string, Boolean>; const ACompilerVersion: string;
+      const ANumbers: TArray<TCompilerOption> = nil);
+    destructor Destroy; override;
+    procedure ObserveIdentifier(const AName: string);
     function Evaluate(const AText: string): Boolean;
   end;
 
@@ -43,11 +51,61 @@ begin
 end;
 
 constructor TConditionalExpression.Create(const ADefined: TFunc<string, Boolean>;
-  const ACompilerVersion: string);
+  const ACompilerVersion: string; const ANumbers: TArray<TCompilerOption>);
 begin
   inherited Create;
   FDefined := ADefined;
   FCompilerVersion := ACompilerVersion;
+  FNumbers := Copy(ANumbers);
+  FObservedNames := TDictionary<string, Boolean>.Create;
+end;
+
+destructor TConditionalExpression.Destroy;
+begin
+  FObservedNames.Free;
+  inherited;
+end;
+
+procedure TConditionalExpression.ObserveIdentifier(const AName: string);
+begin
+  FObservedNames.AddOrSetValue(UpperCase(AName), True);
+end;
+
+function TConditionalExpression.KnownNumber(const AName: string): string;
+var LOption: TCompilerOption;
+begin
+  for LOption in FNumbers do
+    if SameText(LOption.Name, AName) then
+      Exit(LOption.Value);
+  raise EInvalidOpException.Create('Unknown compiler numeric fact: ' + AName);
+end;
+
+function TConditionalExpression.SizeValue: TConditionalValue;
+var LName: string;
+begin
+  Next;
+  Require('(');
+  LName := NumericName(FToken);
+  Next;
+  Require(')');
+  Result := Default(TConditionalValue);
+  Result.IsInteger := TryStrToInt64(KnownNumber('SIZEOF.' + LName), Result.IntegerValue);
+  if not Result.IsInteger then
+    raise EInvalidOpException.Create('Invalid compiler size fact: ' + LName);
+  Result.Number := Result.IntegerValue;
+end;
+
+function TConditionalExpression.NumericName(const AName: string): string;
+begin
+  if AName.StartsWith('SYSTEM.') then
+  begin
+    if FObservedNames.ContainsKey('SYSTEM') then
+      raise EInvalidOpException.Create('Numeric qualifier requires declaration resolution: SYSTEM');
+    Exit(Copy(AName, 8, MaxInt));
+  end;
+  if FObservedNames.ContainsKey(AName) or FObservedNames.ContainsKey('USES') then
+    raise EInvalidOpException.Create('Numeric name requires declaration resolution: ' + AName);
+  Result := AName;
 end;
 
 procedure TConditionalExpression.Next;
@@ -111,8 +169,11 @@ begin
     end;
     if FToken = 'TRUE' then begin Next; Exit(TConditionalValue.BooleanValue(True)) end;
     if FToken = 'FALSE' then begin Next; Exit(TConditionalValue.BooleanValue(False)) end;
+    if FToken = 'SIZEOF' then Exit(SizeValue);
     LName := FToken;
     if LName = 'COMPILERVERSION' then LName := FCompilerVersion;
+    if (LName = 'RTLVERSION') or (LName = 'SYSTEM.RTLVERSION') then
+      LName := KnownNumber(NumericName(LName));
     LFormat := TFormatSettings.Invariant;
     Result.IsBoolean := False;
     Result.IsInteger := TryStrToInt64(LName, Result.IntegerValue);

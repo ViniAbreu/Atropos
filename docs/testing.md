@@ -50,6 +50,14 @@ options and source directives; empty project options retain defaults and invalid
 values fail explicitly. Tests cover both target compilers, option precedence and
 the missing-default regression. Contexts without probed defaults remain unknown.
 
+Numeric conditional facts are probed with the selected compiler for primitive
+System types and TMethod. RTLVersion is recorded only when the compiler confirms
+it matches CompilerVersion. Unknown sizes remain errors. Before declaration binding
+is available, unqualified numeric names already seen in active source or following
+uses clauses remain unknown; explicit System qualification can disambiguate a local
+type unless System itself has appeared. This conservative boundary includes names
+introduced by includes. Tests cover target-specific sizes and local name shadowing.
+
 The same adapter coverage exercises modern Delphi multiline string literals. Their contents are replaced with line-preserving placeholders for syntax analysis, preventing SQL or other embedded text from being interpreted as Delphi identifiers while keeping diagnostics aligned with the original source.
 
 Coverage only:

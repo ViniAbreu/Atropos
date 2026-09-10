@@ -11,6 +11,7 @@ type
     FRoot: string;
     function WriteSource(const AName, AText: string): string;
     function Parse(const ASource: string; const AOptions: TArray<TCompilerOption> = nil): IUnitSyntaxTree;
+    function ParseNumeric(const ASource: string): IUnitSyntaxTree;
   public
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
@@ -50,6 +51,13 @@ type
     [Test] procedure UnknownSwitchAndMalformedBranchesFail;
     [Test] procedure InvalidProjectSwitchDoesNotSilentlyUseDefault;
     [Test] procedure ResourceDirectiveDoesNotChangeRangeChecking;
+    [TestCase('LocalType', '0')]
+    [TestCase('ImportedType', '1')]
+    [TestCase('LocalVersion', '2')]
+    [TestCase('SystemQualifier', '3')]
+    [TestCase('IncludeType', '4')]
+    procedure NumericNamesRequiringBindingRemainUnknown(AScenario: Integer);
+    [Test] procedure QualifiedNumericFactsIgnoreUnrelatedLocalType;
     [Test] procedure PreparationRetainsParentLinesAndIncludedPath;
   end;
 
@@ -57,6 +65,44 @@ implementation
 
 uses System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Adapters.ConditionalExpression, Atropos.Adapters.DelphiAST;
+
+function TConditionalEvaluationTests.ParseNumeric(const ASource: string): IUnitSyntaxTree;
+var LContext: TProjectCompilationContext; LSymbols: TCompilerSymbols; LParser: IASTParser;
+begin
+  LContext := Default(TProjectCompilationContext);
+  LSymbols := Default(TCompilerSymbols);
+  LSymbols.CompilerVersion := '36.0';
+  SetLength(LSymbols.NumericValues, 2);
+  LSymbols.NumericValues[0].Name := 'SIZEOF.EXTENDED';
+  LSymbols.NumericValues[0].Value := '10';
+  LSymbols.NumericValues[1].Name := 'RTLVERSION';
+  LSymbols.NumericValues[1].Value := '36.0';
+  LParser := TDelphiASTAdapter.Create(LContext, LSymbols);
+  Result := LParser.ParseFile(WriteSource('Consumer.pas', ASource));
+end;
+
+procedure TConditionalEvaluationTests.NumericNamesRequiringBindingRemainUnknown(AScenario: Integer);
+const Sources: array[0..4] of string = (
+  'type Extended = Integer; {$IF SizeOf(Extended) = 10}',
+  'uses Provider; {$IF SizeOf(Extended) = 10}',
+  'const RTLVersion = 1; {$IF RTLVersion = 36}',
+  'type System = class end; {$IF SizeOf(System.Extended) = 10}',
+  '{$I shadow.inc} {$IF SizeOf(Extended) = 10}');
+begin
+  WriteSource('shadow.inc', 'type Extended = Integer;');
+  Assert.WillRaise(procedure begin
+    ParseNumeric('unit Consumer; interface ' + Sources[AScenario] +
+      'type TWrong = Integer;{$ENDIF} implementation end.');
+  end, EASTParserException);
+end;
+
+procedure TConditionalEvaluationTests.QualifiedNumericFactsIgnoreUnrelatedLocalType;
+var LTree: IUnitSyntaxTree;
+begin
+  LTree := ParseNumeric('unit Consumer; interface type Extended = Integer; ' +
+    '{$IF SizeOf(System.Extended) = 10}type TCorrect = Integer;{$ENDIF} implementation end.');
+  Assert.Contains<string>(LTree.GetExportedIdentifiers, 'TCorrect');
+end;
 
 procedure TConditionalEvaluationTests.ResourceDirectiveDoesNotChangeRangeChecking;
 var LTree: IUnitSyntaxTree; LOption: TCompilerOption;
