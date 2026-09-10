@@ -3,7 +3,8 @@
 - `--dry-run` reports candidates but does not produce an applicable patch.
 - The VCL interface does not export reports or select an output directory.
 - The CLI has no interactive cancellation option.
-- Analysis depends on units and search paths obtained from the `.dproj`.
+- Analysis starts from evaluated `.dproj` units and active literal DPR mappings.
+  Implicit compilation reachability is not yet complete.
 - The default application uses [MSBuild contexts](project-context.md) for imports,
   properties and target-specific source lists. Properties/items produced during
   build targets are not fully evaluated; detected deferred compiler properties preserve

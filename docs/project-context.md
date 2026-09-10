@@ -2,8 +2,8 @@
 
 `TAppServiceFactory` now uses `IProjectContextProvider` for target-specific analysis.
 Every requested configuration/platform gets its own parser, source resolver and
-export cache. The workflow gathers the union of project units, analyzes that union
-under each selected context and intersects proposed actions before writing. A unit
+export cache. The workflow gathers the union of project units and active explicit
+DPR mappings, analyzes that union under each selected context and intersects proposed actions before writing. A unit
 needed in any context is preserved; a parse failure vetoes edits for that file.
 With no explicit target, evaluation uses the project's defaults.
 The provider runs the installed .NET Framework MSBuild evaluation API in an isolated
@@ -42,9 +42,11 @@ existing process runner supplies cancellation, timeout and process-tree cleanup.
   IFNDEF use the selected context. IF, ELSEIF and IFOPT remain incomplete and preserve
   consumers or reject providers instead of trusting the legacy evaluator's host
   compiler assumptions. Effective switch/expression evaluation remains follow-up work.
-- Ordered namespaces and single-step aliases are used for source lookup; project
-  PAS mappings take precedence over searched sources. Full scoped binding, DPR
-  `uses ... in` mappings, generated units and DCU/source equivalence remain incomplete.
+- Ordered namespaces and single-step aliases are used for source lookup;
+  active DPR `uses ... in` mappings take precedence over PAS filename lookup and
+  searched sources. Mapped sources join the unit union even without DCCReference.
+  Full scoped binding, implicit compilation reachability, generated units and
+  DCU/source equivalence remain incomplete.
 - A lexical scan of active and inactive source text protects names occurring in
   conditional imports. Independent unconditional imports can still be removed.
   Conditional qualified names that cannot be delimited fail conservatively. Uses
@@ -53,8 +55,15 @@ existing process runner supplies cancellation, timeout and process-tree cleanup.
   model. The union is analyzed even in contexts where a file is absent from that
   context's DCCReference list; this can preserve target-exclusive files unnecessarily.
   Precise compilation reachability and occurrence identity remain follow-up work.
+- DPR paths are read from the AST under each target context and resolved relative
+  to the MSBuild project directory, including when MainSource is in a subdirectory.
+  Only literal paths are accepted. Duplicate mappings, missing
+  mapped files and incomplete project parsing abort planning before edits. A mapped
+  provider with a mismatched unit declaration is unknown; search does not fall back.
+  Project includes containing uses remain explicitly unsupported.
 - Project/import hashes and source/include hashes are validated after all target
-  analyses, before the first edit. Directory listings, task outputs, compiler CFG
+  analyses, before the first edit. The parser snapshot starts before reading the DPR
+  and is retained throughout analysis. Directory listings, task outputs, compiler CFG
   settings outside evaluated properties and filesystem locking remain outside this
   snapshot. Direct deferred compiler properties currently preserve affected analysis.
 - Windows PowerShell and .NET Framework MSBuild are required. PowerShell execution

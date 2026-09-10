@@ -13,6 +13,7 @@ type
     procedure HandlePtIfOptDirect(Sender: TmwBasePasLex); override;
     procedure HandlePtIfDirect(Sender: TmwBasePasLex); override;
     procedure HandlePtElseIfDirect(Sender: TmwBasePasLex); override;
+    procedure MainUsedUnitExpression; override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -21,6 +22,26 @@ type
 
 implementation
 
+uses DelphiAST.Classes, DelphiAST.Consts;
+
+procedure TContextSyntaxBuilder.MainUsedUnitExpression;
+var LExpression: TSyntaxNode;
+begin
+  inherited;
+  LExpression := FStack.Peek.FindNode(ntExpression);
+  if not Assigned(LExpression) then
+  begin
+    PreserveDirective('Missing project source path');
+    Exit;
+  end;
+  if Length(LExpression.ChildNodes) <> 1 then
+  begin
+    PreserveDirective('Compound project source path');
+    Exit;
+  end;
+  if LExpression.ChildNodes[0].Typ <> ntLiteral then
+    PreserveDirective('Nonliteral project source path');
+end;
 constructor TContextSyntaxBuilder.Create;
 begin
   inherited;

@@ -1,4 +1,4 @@
-unit Atropos.Tests.TargetAnalysis;
+﻿unit Atropos.Tests.TargetAnalysis;
 
 interface
 
@@ -18,6 +18,12 @@ type
   public
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
+    [Test] procedure ProjectMappingOverridesFilenameSearch;
+    [Test] procedure MismatchedMappedDeclarationDoesNotFallBack;
+    [Test] procedure DuplicateProjectMappingsAreRejected;
+    [Test] procedure MissingMappedSourceFailsExplicitly;
+    [Test] procedure CompoundProjectPathIsRejected;
+    [Test] procedure ProjectSourceMutationInvalidatesSnapshot;
     [Test] procedure ExplicitSymbolsDoNotInheritHostPlatform;
     [Test] procedure DefinesReachIncludes;
     [Test] procedure ConditionalReferencesAfterUsesRemainAnalyzable;
@@ -48,7 +54,7 @@ uses System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Adapters.CompilerSymbols, Atropos.Adapters.BuildService,
   Atropos.Adapters.ProjectContext, Atropos.Adapters.TargetAnalysisFactory,
   Atropos.Adapters.FileSystem, Atropos.Application.AppService,
-  Atropos.Tests.BuildReliability;
+  Atropos.Tests.BuildReliability, Atropos.Adapters.ProjectSourceMappings;
 
 procedure TTargetAnalysisTests.Setup;
 begin
@@ -313,10 +319,12 @@ begin
   WriteSource('shared.props', '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
     '<PropertyGroup Condition="''$(Config)'' == ''Debug''"><DCC_Define>NEED_PROVIDER</DCC_Define></PropertyGroup></Project>');
   LProjectPath := WriteSource('Test.dproj', '<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
-    '<PropertyGroup><Config>Debug</Config><Platform>Win32</Platform><AppType>Console</AppType></PropertyGroup>' +
+    '<PropertyGroup><Config>Debug</Config><Platform>Win32</Platform><AppType>Console</AppType><MainSource>Main.dpr</MainSource></PropertyGroup>' +
     '<Import Project="shared.props"/><ItemGroup><DCCReference Include="Consumer.pas"/>' +
     '<DCCReference Include="Provider.pas"/><DCCReference Include="Unused.pas"/></ItemGroup>' +
-    '<ItemGroup Condition="''$(Platform)'' == ''Win64''"><DCCReference Include="Only64.pas"/></ItemGroup></Project>');
+    '</Project>');
+  WriteSource('Main.dpr', 'program Main; uses Consumer in ''Consumer.pas''' +
+    '{$IFDEF WIN64}, Only64 in ''Only64.pas''{$ENDIF}; begin end.');
   LConfig := TToolConfig.Default;
   LConfig.RemoveUnused := True;
   LConfig.EnableDebug := True;
@@ -376,6 +384,89 @@ begin RunMatrix(True) end;
 procedure TTargetAnalysisTests.ProjectMetadataMutationPreventsApplication;
 begin RunMatrix(False, True) end;
 
+procedure TTargetAnalysisTests.ProjectMappingOverridesFilenameSearch;
+var LContext: TProjectCompilationContext; LParser: IASTParser;
+  LResolver: IExternalUnitResolver; LExports: TArray<string>; LInit, LNative: Boolean;
+begin
+  TDirectory.CreateDirectory(TPath.Combine(FRoot, 'chosen'));
+  TDirectory.CreateDirectory(TPath.Combine(FRoot, 'source'));
+  WriteSource('chosen\Provider.pas', 'unit Provider; interface type TChosen = Integer; implementation end.');
+  WriteSource('Provider.pas', 'unit Provider; interface type TWrong = Integer; implementation end.');
+  LContext := Context('Win64');
+  LContext.MainSource := WriteSource('source\Main.dpr',
+    'program Main; uses Provider in ''chosen\Provider.pas''; begin end.');
+  LParser := Parser([]);
+  LContext := TProjectSourceMappings.Resolve(LContext, LParser);
+  Assert.AreEqual<NativeInt>(1, Length(LContext.SourceMappings));
+  Assert.AreEqual('Provider', LContext.SourceMappings[0].UnitName);
+  Assert.AreEqual(TPath.Combine(FRoot, 'chosen\Provider.pas'), LContext.SourceMappings[0].FilePath);
+  LResolver := TTargetUnitResolver.Create(LParser, LContext, FDelphiPath);
+  Assert.IsTrue(LResolver.TryResolveUnit('Provider', LExports, LInit, LNative));
+  Assert.Contains<string>(LExports, 'TChosen');
+  Assert.AreEqual<NativeInt>(1, Length(LExports));
+end;
+
+procedure TTargetAnalysisTests.MissingMappedSourceFailsExplicitly;
+var LContext: TProjectCompilationContext; LParser: IASTParser;
+begin
+  LContext := Context('Win64');
+  LContext.MainSource := WriteSource('Main.dpr',
+    'program Main; uses Missing in ''Absent.pas''; begin end.');
+  LParser := Parser([]);
+  Assert.WillRaise(procedure begin TProjectSourceMappings.Resolve(LContext, LParser) end,
+    EFileNotFoundException);
+end;
+
+procedure TTargetAnalysisTests.CompoundProjectPathIsRejected;
+var LContext: TProjectCompilationContext; LParser: IASTParser;
+begin
+  LContext := Context('Win64');
+  LContext.MainSource := WriteSource('Main.dpr',
+    'program Main; uses Provider in ''Actual'' + ''File.pas''; begin end.');
+  LParser := Parser([]);
+  Assert.WillRaise(procedure begin TProjectSourceMappings.Resolve(LContext, LParser) end,
+    EInvalidOperation);
+end;
+
+procedure TTargetAnalysisTests.ProjectSourceMutationInvalidatesSnapshot;
+var LContext: TProjectCompilationContext; LParser: IASTParser; LSnapshot: IAnalysisSnapshot;
+begin
+  LContext := Context('Win64');
+  LContext.MainSource := WriteSource('Main.dpr', 'program Main; begin end.');
+  LParser := Parser([]);
+  Assert.IsTrue(Supports(LParser, IAnalysisSnapshot, LSnapshot));
+  LSnapshot.BeginAnalysis;
+  TProjectSourceMappings.Resolve(LContext, LParser);
+  WriteSource('Main.dpr', 'program Changed; begin end.');
+  Assert.WillRaise(procedure begin LSnapshot.ValidateAnalysis end, EInvalidOperation);
+end;
+procedure TTargetAnalysisTests.MismatchedMappedDeclarationDoesNotFallBack;
+var LContext: TProjectCompilationContext; LParser: IASTParser;
+  LResolver: IExternalUnitResolver; LExports: TArray<string>; LInit, LNative: Boolean;
+begin
+  WriteSource('Wrong.pas', 'unit Different; interface type TWrong = Integer; implementation end.');
+  WriteSource('Provider.pas', 'unit Provider; interface type TFallback = Integer; implementation end.');
+  LContext := Context('Win64');
+  LContext.MainSource := WriteSource('Main.dpr',
+    'program Main; uses Provider in ''Wrong.pas''; begin end.');
+  LParser := Parser([]);
+  LContext := TProjectSourceMappings.Resolve(LContext, LParser);
+  LResolver := TTargetUnitResolver.Create(LParser, LContext, FDelphiPath);
+  Assert.IsFalse(LResolver.TryResolveUnit('Provider', LExports, LInit, LNative));
+  Assert.IsTrue(string.Join('; ', LResolver.GetWarnings).Contains('different unit'));
+end;
+
+procedure TTargetAnalysisTests.DuplicateProjectMappingsAreRejected;
+var LContext: TProjectCompilationContext; LParser: IASTParser;
+begin
+  WriteSource('Provider.pas', 'unit Provider; interface implementation end.');
+  LContext := Context('Win64');
+  LContext.MainSource := WriteSource('Main.dpr',
+    'program Main; uses Provider in ''Provider.pas'', Provider in ''Provider.pas''; begin end.');
+  LParser := Parser([]);
+  Assert.WillRaise(procedure begin TProjectSourceMappings.Resolve(LContext, LParser) end,
+    EInvalidOperation);
+end;
 initialization
   TDUnitX.RegisterTestFixture(TTargetAnalysisTests);
 

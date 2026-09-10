@@ -5,6 +5,16 @@ interface
 uses Atropos.Core.Ports;
 
 type
+  TUnitSourceMapping = record
+    UnitName: string;
+    FilePath: string;
+  end;
+
+  IProjectSourceImports = interface
+    ['{5CCA6010-8074-4FC7-85EF-566022BF9D74}']
+    function GetProjectImports: TArray<TUnitSourceMapping>;
+  end;
+
   TCompilerOption = record
     Name: string;
     Value: string;
@@ -19,6 +29,7 @@ type
     CompilerFileVersion: string;
     Defines: TArray<string>;
     UnitPaths: TArray<string>;
+    SourceMappings: TArray<TUnitSourceMapping>;
     SearchPaths: TArray<string>;
     IncludePaths: TArray<string>;
     Namespaces: TArray<string>;
@@ -34,8 +45,10 @@ type
   end;
 
   TTargetAnalysisServices = record
+    // The factory starts the snapshot before reading project sources.
     Parser: IASTParser;
     Resolver: IExternalUnitResolver;
+    UnitPaths: TArray<string>;
   end;
 
   ITargetAnalysisFactory = interface
