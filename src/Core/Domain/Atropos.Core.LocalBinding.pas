@@ -2,39 +2,82 @@ unit Atropos.Core.LocalBinding;
 
 interface
 
-uses Atropos.Core.Ports;
+uses Atropos.Core.Ports, System.Generics.Collections;
 
 type
   TLocalBindingState = (lbExternal, lbLocal, lbUnknown);
   TLocalSymbolBinding = class
   private
     FFacts: TUnitSymbolFacts;
+    FDeclarations: TObjectDictionary<string, TList<Integer>>;
+    FOverloads: TDictionary<string, Boolean>;
+    procedure IndexDeclarations;
+    class function ScopeKey(AScope: Integer; const AName: string): string; static;
     function HasOverloads(const AName: string): Boolean;
     function InScope(AScope: Integer; const AName: string;
       const AReference: TSymbolReference): TLocalBindingState;
     function Bind(const AReference: TSymbolReference): TLocalBindingState;
   public
     constructor Create(const AFacts: TUnitSymbolFacts);
+    destructor Destroy; override;
     function Identifiers(AInterface: Boolean; AUncertainOnly: Boolean = False): TArray<string>;
   end;
 
 implementation
 
-uses System.SysUtils, System.Generics.Collections;
+uses System.SysUtils;
 
 constructor TLocalSymbolBinding.Create(const AFacts: TUnitSymbolFacts);
 begin
   inherited Create;
   FFacts := AFacts;
+  FFacts.Declarations := Copy(AFacts.Declarations);
+  FFacts.Scopes := Copy(AFacts.Scopes);
+  FFacts.References := Copy(AFacts.References);
+  FDeclarations := TObjectDictionary<string, TList<Integer>>.Create([doOwnsValues]);
+  FOverloads := TDictionary<string, Boolean>.Create;
+  IndexDeclarations;
+end;
+
+destructor TLocalSymbolBinding.Destroy;
+begin
+  FOverloads.Free;
+  FDeclarations.Free;
+  inherited;
+end;
+
+class function TLocalSymbolBinding.ScopeKey(AScope: Integer; const AName: string): string;
+begin
+  Result := IntToStr(AScope) + ':' + UpperCase(AName);
+end;
+
+procedure TLocalSymbolBinding.IndexDeclarations;
+var I: Integer; LDeclaration: TSymbolDeclaration; LKey: string; LItems: TList<Integer>;
+begin
+  for I := 0 to High(FFacts.Declarations) do
+  begin
+    LDeclaration := FFacts.Declarations[I];
+    LKey := ScopeKey(LDeclaration.ScopeId, LDeclaration.Name);
+    if not FDeclarations.TryGetValue(LKey, LItems) then
+    begin
+      LItems := TList<Integer>.Create;
+      FDeclarations.Add(LKey, LItems);
+    end;
+    LItems.Add(I);
+    if (LDeclaration.Kind = skRoutine) and not LDeclaration.CanShadow then
+      FOverloads.AddOrSetValue(UpperCase(LDeclaration.Name), True);
+  end;
 end;
 
 function TLocalSymbolBinding.InScope(AScope: Integer; const AName: string;
   const AReference: TSymbolReference): TLocalBindingState;
-var LDeclaration: TSymbolDeclaration;
+var LDeclaration: TSymbolDeclaration; LItems: TList<Integer>; I: Integer;
 begin
   Result := lbExternal;
-  for LDeclaration in FFacts.Declarations do
+  if not FDeclarations.TryGetValue(ScopeKey(AScope, AName), LItems) then Exit;
+  for I in LItems do
   begin
+    LDeclaration := FFacts.Declarations[I];
     if (LDeclaration.ScopeId <> AScope) or
       (LDeclaration.AvailableFrom > AReference.Position) or
       not SameText(LDeclaration.Name, AName) then
@@ -49,13 +92,8 @@ begin
 end;
 
 function TLocalSymbolBinding.HasOverloads(const AName: string): Boolean;
-var LDeclaration: TSymbolDeclaration;
 begin
-  for LDeclaration in FFacts.Declarations do
-    if (LDeclaration.Kind = skRoutine) and not LDeclaration.CanShadow and
-      SameText(LDeclaration.Name, AName) then
-      Exit(True);
-  Result := False;
+  Result := FOverloads.ContainsKey(UpperCase(AName));
 end;
 
 function TLocalSymbolBinding.Bind(const AReference: TSymbolReference): TLocalBindingState;
