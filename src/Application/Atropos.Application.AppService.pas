@@ -418,7 +418,7 @@ begin
       Continue;
     FFileService.BackupFile(LHint.FilePath);
     FFileService.WriteFileContent(LHint.FilePath, LUpdated);
-    Log('Fixed ' + LHint.HintType + ' in ' + ExtractFileName(LHint.FilePath) + ': injected ' + LHint.UnitNeeded);
+    Log('Applied ' + LHint.HintType + ' edit in ' + ExtractFileName(LHint.FilePath) + ': injected ' + LHint.UnitNeeded);
     Inc(Result);
   end;
 end;
@@ -542,10 +542,10 @@ begin
     
     if Length(LMetricsAfter.InlineHints) > 0 then
     begin
-      Log(Format('Found %d inline hints (H2443/H2445). Applying post-operative fixes...', [Length(LMetricsAfter.InlineHints)]));
-      LMetricsAfter.ResolvedInlineHintsCount := ProcessInlineHints(LMetricsAfter.InlineHints, LModifier);
+      Log(Format('Found %d distinct inline hint requests (H2443/H2445). Applying edits...', [Length(LMetricsAfter.InlineHints)]));
+      LMetricsAfter.InlineHintEditsCount := ProcessInlineHints(LMetricsAfter.InlineHints, LModifier);
       
-      if LMetricsAfter.ResolvedInlineHintsCount > 0 then
+      if LMetricsAfter.InlineHintEditsCount > 0 then
       begin
         Log('Re-verifying build after post-operative fixes...');
         LVerifyMetrics := RunFinalBuild(LFullPath, LTotalRemoved, LTotalMoved);
@@ -558,7 +558,7 @@ begin
           GenerateReports(LReportOutputDirectory);
           Exit(False);
         end;
-        LVerifyMetrics.ResolvedInlineHintsCount := LMetricsAfter.ResolvedInlineHintsCount;
+        LVerifyMetrics.InlineHintEditsCount := LMetricsAfter.InlineHintEditsCount;
         LMetricsAfter := LVerifyMetrics;
       end;
     end;

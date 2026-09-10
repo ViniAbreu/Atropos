@@ -172,6 +172,8 @@ type
     [Test]
     procedure MSBuildOutputCountsUnlabelledHintsAndWarnings;
     [Test]
+    procedure MSBuildOutputCountsHintWarningPrefix;
+    [Test]
     procedure RepeatedMSBuildDiagnosticsAreCountedOnce;
     [Test]
     procedure DiagnosticParserPreservesSpacesAndUnicodePaths;
@@ -603,6 +605,17 @@ begin
     'Unit1.pas(12): warning W1000 Symbol ''OldValue'' is deprecated';
   LMetrics := TBuildOutputParser.Parse(LOutput, 'Project.dproj', 0);
   Assert.AreEqual(2, LMetrics.Hints);
+  Assert.AreEqual(1, LMetrics.Warnings);
+end;
+
+procedure TBuildReliabilityTests.MSBuildOutputCountsHintWarningPrefix;
+var LMetrics: TBuildMetrics; LOutput: string;
+begin
+  LOutput := 'Unit1.pas(10): Hint warning H2443: Inline function ''Run'' has not been ' +
+    'expanded because unit ''System.SysUtils'' is not specified in USES list [C:\Project.dproj]' +
+    sLineBreak + 'Unit1.pas(11): warning W1000: Symbol is deprecated';
+  LMetrics := TBuildOutputParser.Parse(LOutput, 'C:\Project.dproj', 0);
+  Assert.AreEqual(1, LMetrics.Hints);
   Assert.AreEqual(1, LMetrics.Warnings);
 end;
 
