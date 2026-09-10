@@ -327,8 +327,8 @@ begin
     'implementation' + sLineBreak + 'end.';
   LResult := TApplyUsesChanges.RemoveUnitFromUsesClause(LSource, 'Legacy.Unit', True);
   Assert.IsFalse(LResult.Contains('Legacy.Unit'));
-  Assert.IsFalse(LResult.Contains('compatibility only'));
-  Assert.IsTrue(LResult.Contains('uses System.SysUtils;'));
+  Assert.IsTrue(LResult.Contains('{ compatibility only }'));
+  Assert.IsTrue(LResult.Contains('System.SysUtils;'));
 end;
 
 procedure TApplyUsesChangesTests.SemicolonInsideLineCommentDoesNotEndUsesClause;

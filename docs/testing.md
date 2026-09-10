@@ -94,6 +94,17 @@ instantiates an abbreviated custom attribute through RTTI before and after edits
 It requires removal of the plain-type collision while retaining the generic and
 attribute providers in the interface, with identical lifecycle output on Win32/Win64.
 
+Occurrence-edit tests verify section-specific decisions, original positions after
+multiline strings/comments, stable ordering, in-path mappings, stale-plan rejection,
+conditional uncertainty and no-op writes. Real file tests compare every byte for
+default encoding, UTF-8 with/without BOM and UTF-16, using LF and CRLF. Removal now
+retains comments even when their associated import is deleted.
+The UsesConsole runtime gate builds Debug/Release on both platforms before and after
+moving a provider into a guarded implementation clause. Debug emits Extra|7 and
+Release emits 7; repeated optimization must leave the source hash unchanged. This
+checks parenthesized conditional directives with the compiler: the pinned AST lexer
+does not itself apply their conditional-state transitions reliably.
+
 Declaration provenance tests split routine/type headers across includes and the
 main source. The adapter retains the starting file even when DelphiAST assigns
 the compound node's ending file. The class-method fixture uses an explicit public

@@ -34,3 +34,8 @@ if ($LASTEXITCODE -ne 0) { throw "Atropos failed: $LASTEXITCODE" }
 ```
 
 The CLI has no interactive cancellation option. Start from a clean branch, review the diff, and do not run two instances against the same source files.
+
+Dry-run preflights the selected remove/move operations through the same editor used
+for application. With neither action selected, dry-run previews both categories.
+Only safely editable occurrences are reported as candidates; rejected edits carry
+a preservation reason. No backup or source write is performed for an unchanged plan.

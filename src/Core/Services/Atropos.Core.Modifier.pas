@@ -1,37 +1,46 @@
-﻿unit Atropos.Core.Modifier;
+unit Atropos.Core.Modifier;
 
 interface
-uses
-  Atropos.Core.Ports,
-  Atropos.Core.Domain,
-  Atropos.Core.Config;
+
+uses Atropos.Core.Ports, Atropos.Core.Domain, Atropos.Core.Config,
+  Atropos.Core.UsesEditPlan;
 
 type
   TApplyUsesChanges = class
   private
     FFileService: IFileService;
     FConfig: TToolConfig;
-    class function RemoveUnitSafely(const ASource, AUnitToRemove: string): string;
-    class function AddUnitToUsesClause(const ASource, AUnitToAdd: string; AIsInterface: Boolean): string;
-    class function AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
-    class function GetDirectiveLevel(const ASource: string; AStartPos, AEndPos: Integer): Integer;
-    class function GetDirectiveBlockStart(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
-    class function GetDirectiveBlockEnd(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
-    class function InjectUnconditionalUses(const ASource, AUnitToAdd: string; AWordPos: Integer): string;
-    class function RewriteConditionalUses(const ASource, AUnitToAdd: string; AImplPos, AWordPos, ASemiPos: Integer): string;
-    class function SanitizeUsesKeyword(const ASource: string; AWordPos, ASemiPos: Integer; out ANewSemiPos: Integer): string;
-    class function RelocateSemicolon(const ASource: string; AImplPos, ASemiPos: Integer): string;
-    class function FindClauseTerminator(const ASource: string; AStartPos: Integer): Integer;
   public
     constructor Create(AFileService: IFileService; AConfig: TToolConfig);
+    function Prepare(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult): TUsesEditPlan;
+    procedure ApplyPlan(const AFilePath: string; const APlan: TUsesEditPlan);
     procedure Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);
     class function RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;
     class function AddUnitToInterfaceUses(const ASource, AUnitToAdd: string): string;
+    class function EnsureInterfaceImport(const ASource, AUnitToAdd: string): string;
   end;
 
 implementation
-uses System.RegularExpressions,
-  System.SysUtils;
+
+uses System.SysUtils, System.Classes, Atropos.Core.Analysis, Atropos.Core.UsesEditor,
+  Atropos.Core.UsesSyntax;
+
+class function TApplyUsesChanges.EnsureInterfaceImport(const ASource, AUnitToAdd: string): string;
+var LEditor: TUsesEditor; LDocument: TUsesSource; LClause: TUsesClause; LIndex: Integer;
+begin
+  LEditor := TUsesEditor.Create(ASource);
+  LDocument := TUsesSource.Create(ASource);
+  try
+    if LDocument.Find(AUnitToAdd, usImplementation, LClause, LIndex) then
+      LEditor.Move(AUnitToAdd, usImplementation);
+    if not Assigned(LClause) then
+      LEditor.Add(AUnitToAdd, AUnitToAdd, usInterface);
+    Result := LEditor.Source;
+  finally
+    LDocument.Free;
+    LEditor.Free;
+  end;
+end;
 
 constructor TApplyUsesChanges.Create(AFileService: IFileService; AConfig: TToolConfig);
 begin
@@ -39,391 +48,66 @@ begin
   FConfig := AConfig;
 end;
 
-class function TApplyUsesChanges.FindClauseTerminator(const ASource: string;
-  AStartPos: Integer): Integer;
-type
-  TScanState = (ssCode, ssString, ssLineComment, ssBraceComment, ssParenComment);
-var
-  I: Integer;
-  LState: TScanState;
+function TApplyUsesChanges.Prepare(const AFilePath: string;
+  const AAnalysisResult: TUnitAnalysisResult): TUsesEditPlan;
+var LPlanner: TUsesEditPlanner; LPreviewConfig: TToolConfig;
 begin
-  Result := 0;
-  LState := ssCode;
-  I := AStartPos;
-  while I <= Length(ASource) do
-  begin
-    case LState of
-      ssCode:
-        begin
-          if ASource[I] = ';' then
-            Exit(I);
-          if ASource[I] = '''' then
-            LState := ssString;
-          if ASource[I] = '{' then
-            LState := ssBraceComment;
-          if (ASource[I] = '/') and (I < Length(ASource)) and
-            (ASource[I + 1] = '/') then
-          begin
-            LState := ssLineComment;
-            Inc(I);
-          end;
-          if (ASource[I] = '(') and (I < Length(ASource)) and
-            (ASource[I + 1] = '*') then
-          begin
-            LState := ssParenComment;
-            Inc(I);
-          end;
-        end;
-      ssString:
-        if ASource[I] = '''' then
-        begin
-          LState := ssCode;
-          if (I < Length(ASource)) and (ASource[I + 1] = '''') then
-          begin
-            LState := ssString;
-            Inc(I);
-          end;
-        end;
-      ssLineComment:
-        if CharInSet(ASource[I], [#10, #13]) then
-          LState := ssCode;
-      ssBraceComment:
-        if ASource[I] = '}' then
-          LState := ssCode;
-      ssParenComment:
-        if (ASource[I] = '*') and (I < Length(ASource)) and
-          (ASource[I + 1] = ')') then
-        begin
-          LState := ssCode;
-          Inc(I);
-        end;
-    end;
-    Inc(I);
+  LPreviewConfig := FConfig;
+  if FConfig.DryRun and not FConfig.RemoveUnused and not FConfig.MoveToImplementation then
+    LPreviewConfig := FConfig.WithRemoveUnused(True).WithMoveToImplementation(True);
+  LPlanner := TUsesEditPlanner.Create(FFileService.ReadFileContent(AFilePath), AFilePath, LPreviewConfig);
+  try
+    Result := LPlanner.Prepare(AAnalysisResult);
+  finally
+    LPlanner.Free;
   end;
 end;
 
-class function TApplyUsesChanges.RemoveUnitSafely(const ASource, AUnitToRemove: string): string;
-var
-  LEscapedUnit: string;
-  LRegex: TRegEx;
-  LBoundary: string;
-  LAlias: string;
-  LTrivia: string;
+procedure TApplyUsesChanges.ApplyPlan(const AFilePath: string; const APlan: TUsesEditPlan);
+var LCurrent: string;
 begin
-  Result := ASource;
-  LEscapedUnit := TRegEx.Escape(AUnitToRemove);
-  LBoundary := '(?<![\w\.])' + LEscapedUnit + '(?![\w\.])';
-  LAlias := '(?:\s+in\s+''(?:''''|[^''])*'')?';
-  LTrivia := '(?:\s|\{[^}]*\}|\(\*.*?\*\)|//[^\r\n]*(?:\r?\n|$))*';
-
-  // Match complete entries only, so names inside comments are not modified.
-  LRegex := TRegEx.Create('(?is)(\buses\s*|,\s*)' + LBoundary + LAlias + LTrivia + ',\s*');
-  if LRegex.IsMatch(Result) then
-  begin
-    Result := LRegex.Replace(Result, '$1', 1);
+  if FConfig.DryRun or not APlan.HasChanges then
     Exit;
-  end;
-
-  LRegex := TRegEx.Create('(?is),(' + LTrivia + ')' + LBoundary + LAlias + LTrivia);
-  if LRegex.IsMatch(Result) then
-  begin
-    Result := LRegex.Replace(Result, '$1', 1);
+  LCurrent := FFileService.ReadFileContent(AFilePath);
+  if LCurrent = APlan.Updated then
     Exit;
-  end;
-
-  LRegex := TRegEx.Create('(?is)(\buses\s*)' + LBoundary + LAlias + LTrivia);
-  if LRegex.IsMatch(Result) then
-    Result := LRegex.Replace(Result, '$1', 1);
-end;
-
-class function TApplyUsesChanges.RemoveUnitFromUsesClause(const ASource, AUnitToRemove: string; AIsInterface: Boolean): string;
-var
-  LUsesPos: Integer;
-  LSemiPos: Integer;
-  LSearchStart: Integer;
-  LNewUsesText: string;
-  LMatch: TMatch;
-  LSectionMatch: TMatch;
-  LImplMatch: TMatch;
-  LRegex: TRegEx;
-begin
-  Result := ASource;
-  
-  if AIsInterface then
-    LSectionMatch := TRegEx.Match(ASource, '^\s*interface\b', [roIgnoreCase, roMultiLine]);
-  
-  if not AIsInterface then
-    LSectionMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
-    
-  if not LSectionMatch.Success then
-    Exit;
-
-  LSearchStart := LSectionMatch.Index;
-  LRegex := TRegEx.Create('^\s*uses\b', [roIgnoreCase, roMultiLine]);
-  LMatch := LRegex.Match(ASource, LSearchStart);
-  if not LMatch.Success then
-    Exit;
-  
-  LUsesPos := LMatch.Index;
-  if AIsInterface then
-  begin
-    LImplMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
-    if LImplMatch.Success and (LUsesPos > LImplMatch.Index) then
-      Exit; 
-  end;
-
-  LSemiPos := FindClauseTerminator(ASource, LUsesPos);
-  if LSemiPos = 0 then
-    Exit;
-  
-  LNewUsesText := RemoveUnitSafely(Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1), AUnitToRemove);
-  
-  if TRegEx.IsMatch(LNewUsesText, '(?i)^\s*uses\s*;\s*$') then
-    LNewUsesText := EmptyStr;
-    
-  Result := Copy(ASource, 1, LUsesPos - 1) + LNewUsesText + Copy(ASource, LSemiPos + 1, MaxInt);
-end;
-
-class function TApplyUsesChanges.GetDirectiveLevel(const ASource: string; AStartPos, AEndPos: Integer): Integer;
-var
-  LMatches: TMatchCollection;
-  LMatch: TMatch;
-  LVal: string;
-begin
-  Result := 0;
-  LMatches := TRegEx.Matches(Copy(ASource, AStartPos, AEndPos - AStartPos + 1), '\{\$(IFDEF|IFNDEF|IF|ENDIF|IFEND)\b', [roIgnoreCase]);
-  for LMatch in LMatches do
-  begin
-    LVal := LMatch.Value.ToUpper;
-    if LVal.StartsWith('{$IFDEF') or LVal.StartsWith('{$IFNDEF') or LVal.StartsWith('{$IF') then
-    begin
-      Inc(Result);
-      Continue;
-    end;
-      
-    if LVal.StartsWith('{$ENDIF') or LVal.StartsWith('{$IFEND') then
-      Dec(Result);
-  end;
-end;
-
-class function TApplyUsesChanges.GetDirectiveBlockStart(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
-var
-  LMatches: TMatchCollection;
-  LMatch: TMatch;
-  LVal: string;
-  LDepth: Integer;
-begin
-  Result := ATargetPos;
-  LDepth := 0;
-  LMatches := TRegEx.Matches(Copy(ASource, AStartPos, ATargetPos - AStartPos + 1), '\{\$(IFDEF|IFNDEF|IF|ENDIF|IFEND)\b', [roIgnoreCase]);
-  for LMatch in LMatches do
-  begin
-    LVal := LMatch.Value.ToUpper;
-    if LVal.StartsWith('{$IFDEF') or LVal.StartsWith('{$IFNDEF') or LVal.StartsWith('{$IF') then
-    begin
-      if LDepth = 0 then
-        Result := AStartPos + LMatch.Index - 1;
-      Inc(LDepth);
-      Continue;
-    end;
-    
-    if LVal.StartsWith('{$ENDIF') or LVal.StartsWith('{$IFEND') then
-    begin
-      Dec(LDepth);
-      if LDepth = 0 then
-        Result := ATargetPos;
-    end;
-  end;
-end;
-
-class function TApplyUsesChanges.GetDirectiveBlockEnd(const ASource: string; AStartPos, ATargetPos: Integer): Integer;
-var
-  LMatches: TMatchCollection;
-  LMatch: TMatch;
-  LVal: string;
-  LDepth: Integer;
-begin
-  Result := ATargetPos;
-  LDepth := GetDirectiveLevel(ASource, AStartPos, ATargetPos);
-  if LDepth = 0 then
-    Exit;
-    
-  LMatches := TRegEx.Matches(Copy(ASource, ATargetPos + 1, MaxInt), '\{\$(IFDEF|IFNDEF|IF|ENDIF|IFEND)\b', [roIgnoreCase]);
-  for LMatch in LMatches do
-  begin
-    LVal := LMatch.Value.ToUpper;
-    if LVal.StartsWith('{$IFDEF') or LVal.StartsWith('{$IFNDEF') or LVal.StartsWith('{$IF') then
-    begin
-      Inc(LDepth);
-      Continue;
-    end;
-    
-    if LVal.StartsWith('{$ENDIF') or LVal.StartsWith('{$IFEND') then
-    begin
-      Dec(LDepth);
-      if LDepth = 0 then
-      begin
-        Result := ATargetPos + LMatch.Index + Pos('}', Copy(ASource, ATargetPos + LMatch.Index, MaxInt)) - 1;
-        Exit;
-      end;
-    end;
-  end;
-end;
-
-class function TApplyUsesChanges.InjectUnconditionalUses(const ASource, AUnitToAdd: string; AWordPos: Integer): string;
-begin
-  Result := Copy(ASource, 1, AWordPos + 3) + ' ' + AUnitToAdd + ',' + Copy(ASource, AWordPos + 4, MaxInt);
-end;
-
-class function TApplyUsesChanges.SanitizeUsesKeyword(const ASource: string; AWordPos, ASemiPos: Integer; out ANewSemiPos: Integer): string;
-var
-  LTextBetween: string;
-begin
-  LTextBetween := Copy(ASource, AWordPos + 4, ASemiPos - (AWordPos + 4));
-  if TRegEx.IsMatch(LTextBetween, '[a-zA-Z_]') then
-  begin
-    Result := Copy(ASource, 1, AWordPos - 1) + ',' + Copy(ASource, AWordPos + 4, MaxInt);
-    ANewSemiPos := ASemiPos - 3;
-    Exit;
-  end;
-  
-  Result := Copy(ASource, 1, AWordPos - 1) + Copy(ASource, AWordPos + 4, MaxInt);
-  ANewSemiPos := ASemiPos - 4;
-end;
-
-class function TApplyUsesChanges.RelocateSemicolon(const ASource: string; AImplPos, ASemiPos: Integer): string;
-var
-  LSearchPos: Integer;
-begin
-  Result := ASource;
-  if GetDirectiveLevel(Result, AImplPos, ASemiPos) = 0 then
-    Exit;
-    
-  LSearchPos := GetDirectiveBlockEnd(Result, AImplPos, ASemiPos);
-    
-  Delete(Result, ASemiPos, 1);
-  Insert(';', Result, LSearchPos);
-end;
-
-class function TApplyUsesChanges.RewriteConditionalUses(const ASource, AUnitToAdd: string; AImplPos, AWordPos, ASemiPos: Integer): string;
-var
-  LInsertPos: Integer;
-  LNewSemiPos: Integer;
-begin
-  LInsertPos := GetDirectiveBlockStart(ASource, AImplPos, AWordPos);
-    
-  Result := SanitizeUsesKeyword(ASource, AWordPos, ASemiPos, LNewSemiPos);
-  Result := RelocateSemicolon(Result, AImplPos, LNewSemiPos);
-  Insert(sLineBreak + 'uses ' + AUnitToAdd + sLineBreak, Result, LInsertPos);
-end;
-
-class function TApplyUsesChanges.AddUnitToUsesClause(const ASource, AUnitToAdd: string; AIsInterface: Boolean): string;
-var
-  LSectionPos: Integer;
-  LUsesPos: Integer;
-  LSemiPos: Integer;
-  LWordPos: Integer;
-  LMatch: TMatch;
-  LSectionMatch: TMatch;
-  LNextSectionMatch: TMatch;
-  LRegex: TRegEx;
-  LUsesClauseText: string;
-begin
-  Result := ASource;
-  
-  LSectionMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
-  if AIsInterface then
-    LSectionMatch := TRegEx.Match(ASource, '^\s*interface\b', [roIgnoreCase, roMultiLine]);
-
-  if not LSectionMatch.Success then
-    Exit;
-  LSectionPos := LSectionMatch.Index;
-
-  LRegex := TRegEx.Create('^\s*uses\b', [roIgnoreCase, roMultiLine]);
-  LMatch := LRegex.Match(ASource, LSectionPos);
-  
-  if AIsInterface then
-    LNextSectionMatch := TRegEx.Match(ASource, '^\s*implementation\b', [roIgnoreCase, roMultiLine]);
-
-  if (not LMatch.Success) or (AIsInterface and LNextSectionMatch.Success and (LMatch.Index > LNextSectionMatch.Index)) then
-  begin
-    Result := Copy(ASource, 1, LSectionPos + LSectionMatch.Length - 1) + sLineBreak + 
-      'uses' + sLineBreak + '  ' + AUnitToAdd + ';' + 
-      Copy(ASource, LSectionPos + LSectionMatch.Length, MaxInt);
-    Exit;
-  end;
-  
-  LUsesPos := LMatch.Index;
-  LSemiPos := FindClauseTerminator(ASource, LUsesPos);
-  
-  if LSemiPos = 0 then
-    Exit;
-
-  LUsesClauseText := Copy(ASource, LUsesPos, LSemiPos - LUsesPos + 1);
-  if TRegEx.IsMatch(LUsesClauseText, '(?i)(?<![\w\.])' + TRegEx.Escape(AUnitToAdd) + '(?![\w\.])') then
-  begin
-    if AIsInterface then
-      Exit;
-
-    Result := RemoveUnitSafely(Result, AUnitToAdd);
-    LMatch := LRegex.Match(Result, LSectionPos);
-    if not LMatch.Success then
-      Exit;
-      
-    LUsesPos := LMatch.Index;
-    LSemiPos := FindClauseTerminator(Result, LUsesPos);
-  end;
-  
-  LWordPos := LUsesPos + LMatch.Length - 4; 
-  if GetDirectiveLevel(Result, LSectionPos, LWordPos) = 0 then
-  begin
-    Result := InjectUnconditionalUses(Result, AUnitToAdd, LWordPos);
-    Exit;
-  end;
-  
-  Result := RewriteConditionalUses(Result, AUnitToAdd, LSectionPos, LWordPos, LSemiPos);
-end;
-
-class function TApplyUsesChanges.AddUnitToImplementationUses(const ASource, AUnitToAdd: string): string;
-begin
-  Result := AddUnitToUsesClause(ASource, AUnitToAdd, False);
-end;
-
-class function TApplyUsesChanges.AddUnitToInterfaceUses(const ASource, AUnitToAdd: string): string;
-begin
-  Result := AddUnitToUsesClause(ASource, AUnitToAdd, True);
+  if LCurrent <> APlan.Original then
+    raise EInvalidOperation.Create('Source changed after the edit plan was prepared: ' + AFilePath);
+  FFileService.BackupFile(AFilePath);
+  FFileService.WriteFileContent(AFilePath, APlan.Updated);
 end;
 
 procedure TApplyUsesChanges.Execute(const AFilePath: string; const AAnalysisResult: TUnitAnalysisResult);
-var
-  LContent: string;
-  LUnit: string;
-  LUnitIndex: Integer;
 begin
-  FFileService.BackupFile(AFilePath);
-  LContent := FFileService.ReadFileContent(AFilePath);
-  
-  if FConfig.RemoveUnused then
-  begin
-    for LUnit in AAnalysisResult.UnusedUnits do
-    begin
-      LContent := RemoveUnitFromUsesClause(LContent, LUnit, True);
-      LContent := RemoveUnitFromUsesClause(LContent, LUnit, False);
-    end;
+  ApplyPlan(AFilePath, Prepare(AFilePath, AAnalysisResult));
+end;
+
+class function TApplyUsesChanges.RemoveUnitFromUsesClause(const ASource,
+  AUnitToRemove: string; AIsInterface: Boolean): string;
+var LEditor: TUsesEditor; LSection: TUsesSection;
+begin
+  LSection := usImplementation;
+  if AIsInterface then
+    LSection := usInterface;
+  LEditor := TUsesEditor.Create(ASource);
+  try
+    LEditor.Remove(AUnitToRemove, LSection);
+    Result := LEditor.Source;
+  finally
+    LEditor.Free;
   end;
-  
-  if FConfig.MoveToImplementation then
-  begin
-    for LUnitIndex := High(AAnalysisResult.UnitsToMoveToImpl) downto 0 do
-    begin
-      LUnit := AAnalysisResult.UnitsToMoveToImpl[LUnitIndex];
-      LContent := RemoveUnitFromUsesClause(LContent, LUnit, True);
-      LContent := AddUnitToImplementationUses(LContent, LUnit);
-    end;
+end;
+
+class function TApplyUsesChanges.AddUnitToInterfaceUses(const ASource, AUnitToAdd: string): string;
+var LEditor: TUsesEditor;
+begin
+  LEditor := TUsesEditor.Create(ASource);
+  try
+    LEditor.Add(AUnitToAdd, AUnitToAdd, usInterface);
+    Result := LEditor.Source;
+  finally
+    LEditor.Free;
   end;
-  
-  FFileService.WriteFileContent(AFilePath, LContent);
 end;
 
 end.
-

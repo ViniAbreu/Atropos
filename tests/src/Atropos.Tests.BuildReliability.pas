@@ -1596,6 +1596,7 @@ begin
     LAST := TASTParserStub.Create;
     LAST.SyntaxTree := TUnitSyntaxTreeStub.Create;
     LFiles := TFileServiceSpy.Create;
+    LFiles.Content := 'unit TestUnit; interface uses Unused.Unit; implementation end.';
     LReports := TReportGeneratorStub.Create;
     LResolver := TExternalResolverStub.Create;
     LResolver.ResolveKnownUnits := True;
@@ -1726,6 +1727,7 @@ begin
     LAST := TASTParserStub.Create;
     LAST.SyntaxTree := TUnitSyntaxTreeStub.Create;
     LFiles := TFileServiceSpy.Create;
+    LFiles.Content := 'unit TestUnit; interface uses Unused.Unit; implementation end.';
     LResolver := TExternalResolverStub.Create;
     LResolver.ResolveKnownUnits := True;
     LSuccess := Default(TBuildMetrics);

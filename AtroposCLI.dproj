@@ -113,6 +113,10 @@
         <DCCReference Include="src\Core\Domain\Atropos.Core.Config.pas"/>
         <DCCReference Include="src\Adapters\Logger\Atropos.Adapters.Logger.pas"/>
         <DCCReference Include="src\Core\Services\Atropos.Core.Modifier.pas"/>
+        <DCCReference Include="src\Core\Services\Atropos.Core.SourceTokens.pas"/>
+        <DCCReference Include="src\Core\Services\Atropos.Core.UsesSyntax.pas"/>
+        <DCCReference Include="src\Core\Services\Atropos.Core.UsesEditor.pas"/>
+        <DCCReference Include="src\Core\Services\Atropos.Core.UsesEditPlan.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectContext.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.CompilerSymbols.pas"/>

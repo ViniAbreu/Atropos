@@ -10,6 +10,10 @@ type
     FInitialized: Boolean;
     FResult: TUnitAnalysisResult;
     FDecisions: TList<TDependencyDecision>;
+    FAllowed: TDictionary<string, TDependencyAction>;
+    FStructured: Boolean;
+    procedure IntersectDecisions(const ADecisions: TArray<TDependencyDecision>);
+    class function DecisionKey(const ADecision: TDependencyDecision): string; static;
     class function Contains(const AValues: TArray<string>; const AValue: string): Boolean; static;
     class function Intersect(const ALeft, ARight: TArray<string>): TArray<string>; static;
     function IsAllowed(const ADecision: TDependencyDecision): Boolean;
@@ -28,11 +32,13 @@ constructor TAnalysisIntersection.Create;
 begin
   inherited;
   FDecisions := TList<TDependencyDecision>.Create;
+  FAllowed := TDictionary<string, TDependencyAction>.Create;
 end;
 
 destructor TAnalysisIntersection.Destroy;
 begin
   FDecisions.Free;
+  FAllowed.Free;
   inherited;
 end;
 
@@ -65,6 +71,7 @@ procedure TAnalysisIntersection.Include(const ATarget: string;
   const AAnalysis: TUnitAnalysisResult);
 var LDecision, LTagged: TDependencyDecision; LReason: string;
 begin
+  IntersectDecisions(AAnalysis.Decisions);
   if not FInitialized then
   begin
     FResult.UnitName := AAnalysis.UnitName;
@@ -86,12 +93,51 @@ begin
 end;
 
 function TAnalysisIntersection.IsAllowed(const ADecision: TDependencyDecision): Boolean;
+var LAction: TDependencyAction;
 begin
+  if FStructured and (ADecision.Action <> daPreserve) then
+    Exit(FAllowed.TryGetValue(DecisionKey(ADecision), LAction) and (LAction = ADecision.Action));
   if ADecision.Action = daRemove then
     Exit(Contains(FResult.UnusedUnits, ADecision.UnitName));
   if ADecision.Action = daMoveToImplementation then
     Exit(Contains(FResult.UnitsToMoveToImpl, ADecision.UnitName));
   Result := True;
+end;
+
+class function TAnalysisIntersection.DecisionKey(const ADecision: TDependencyDecision): string;
+begin
+  Result := LowerCase(ADecision.UnitName) + ':' + IntToStr(Ord(ADecision.Section));
+end;
+
+procedure TAnalysisIntersection.IntersectDecisions(const ADecisions: TArray<TDependencyDecision>);
+var LKey: string; LDecision: TDependencyDecision; LCurrent: TDictionary<string, TDependencyAction>;
+  LAction: TDependencyAction;
+begin
+  LCurrent := TDictionary<string, TDependencyAction>.Create;
+  try
+    for LDecision in ADecisions do
+    begin
+      LKey := DecisionKey(LDecision);
+      LAction := LDecision.Action;
+      if LCurrent.ContainsKey(LKey) and (LCurrent[LKey] <> LAction) then
+        LAction := daPreserve;
+      if LDecision.State in [dsUnknown, dsAmbiguous] then
+        LAction := daPreserve;
+      LCurrent.AddOrSetValue(LKey, LAction);
+    end;
+    if not FInitialized then
+    begin
+      FStructured := Length(ADecisions) > 0;
+      for LKey in LCurrent.Keys do
+        FAllowed.Add(LKey, LCurrent[LKey]);
+      Exit;
+    end;
+    for LKey in FAllowed.Keys.ToArray do
+      if not LCurrent.TryGetValue(LKey, LAction) or (LAction <> FAllowed[LKey]) then
+        FAllowed.Remove(LKey);
+  finally
+    LCurrent.Free;
+  end;
 end;
 
 function TAnalysisIntersection.Combined: TUnitAnalysisResult;

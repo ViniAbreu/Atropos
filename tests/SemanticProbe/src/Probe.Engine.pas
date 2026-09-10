@@ -152,6 +152,7 @@ begin
   Override := FRequest.GetValue('changes') as TJSONObject;
   if Assigned(Override) then
   begin
+    Changes.Decisions := nil;
     Changes.UnusedUnits := TProbeJson.Strings(Override, 'unused');
     Changes.UnitsToMoveToImpl := TProbeJson.Strings(Override, 'moved');
   end;

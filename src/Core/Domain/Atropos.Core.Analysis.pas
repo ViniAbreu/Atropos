@@ -9,12 +9,18 @@ type
   TDependencyState = (dsUsed, dsUnused, dsAmbiguous, dsUnknown);
   TDependencyAction = (daPreserve, daRemove, daMoveToImplementation);
 
+  TSourceOccurrence = record
+    FilePath, Condition: string;
+    StartOffset, EndOffset: Integer;
+  end;
+
   TDependencyDecision = record
     UnitName: string;
     Section: TUsesSection;
     State: TDependencyState;
     Action: TDependencyAction;
     Reason: string;
+    Occurrence: TSourceOccurrence;
     class function Create(const AUnitName: string; ASection: TUsesSection;
       AState: TDependencyState; AAction: TDependencyAction;
       const AReason: string): TDependencyDecision; static;
@@ -42,6 +48,7 @@ class function TDependencyDecision.Create(const AUnitName: string;
   ASection: TUsesSection; AState: TDependencyState; AAction: TDependencyAction;
   const AReason: string): TDependencyDecision;
 begin
+  Result := Default(TDependencyDecision);
   if (AState in [dsUnknown, dsAmbiguous]) and (AAction <> daPreserve) then
     raise EArgumentException.Create('Uncertain dependencies must be preserved.');
   Result.UnitName := AUnitName;

@@ -34,6 +34,7 @@ type
       const AFactory: ITargetAnalysisFactory; const AReport: IReportGenerator;
       const ALog: TLogEvent; const ACancel: TCancellationCheck; const ALogger: ILogger);
     destructor Destroy; override;
+    procedure ValidateSnapshots;
     function BuildPlan(const AProjectPath, ADelphiPath: string;
       const ATargets: TArray<TBuildTarget>; out AUnitCount, ASearchPathCount: Integer): TUnitAnalysisPlan;
   end;
@@ -182,6 +183,13 @@ begin
   end;
 end;
 
+procedure TTargetAnalysisWorkflow.ValidateSnapshots;
+var LSnapshot: IAnalysisSnapshot;
+begin
+  for LSnapshot in FSnapshots do
+    LSnapshot.ValidateAnalysis;
+end;
+
 function TTargetAnalysisWorkflow.BuildPlan(const AProjectPath, ADelphiPath: string;
   const ATargets: TArray<TBuildTarget>; out AUnitCount, ASearchPathCount: Integer): TUnitAnalysisPlan;
 var
@@ -189,7 +197,6 @@ var
   LServices: TArray<TTargetAnalysisServices>;
   LIndex: Integer;
   LUnits: TArray<string>;
-  LSnapshot: IAnalysisSnapshot;
 begin
   LContexts := CollectContexts(AProjectPath, ADelphiPath, ATargets);
   LServices := PrepareTargets(LContexts, ADelphiPath);
@@ -200,8 +207,7 @@ begin
   for LIndex := 0 to High(LContexts) do
     AnalyzeTarget(LContexts[LIndex], LServices[LIndex], LUnits);
   CheckCancellation;
-  for LSnapshot in FSnapshots do
-    LSnapshot.ValidateAnalysis;
+  ValidateSnapshots;
   Result := CreatePlan;
 end;
 

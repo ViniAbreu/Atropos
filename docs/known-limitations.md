@@ -1,6 +1,6 @@
 # Known limitations
 
-- `--dry-run` reports candidates but does not produce an applicable patch.
+- `--dry-run` prepares edits in memory and reports candidates, but does not export a standalone patch.
 - The VCL interface does not export reports or select an output directory.
 - The CLI has no interactive cancellation option.
 - Analysis starts from evaluated `.dproj` units and active literal DPR mappings.
