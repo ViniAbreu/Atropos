@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{57D90B34-5185-4927-B1E6-91B25C0A0D67}</ProjectGuid>
+    <MainSource>ConditionalConsole.dpr</MainSource>
+    <Base>true</Base>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <AppType>Console</AppType>
+    <FrameworkType>None</FrameworkType>
+    <ProjectVersion>20.1</ProjectVersion>
+    <DCC_DcuOutput>.artifacts\$(Platform)\$(Config)</DCC_DcuOutput>
+    <DCC_ExeOutput>.artifacts\$(Platform)\$(Config)</DCC_ExeOutput>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
+    <DCC_RangeChecking>false</DCC_RangeChecking>
+    <DCC_Namespace>System;$(DCC_Namespace)</DCC_Namespace>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug'">
+    <DCC_Define>WITH_CHOSEN;$(DCC_Define)</DCC_Define>
+    <DCC_Optimize>false</DCC_Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <DCCReference Include="Conditional.Consumer.pas" />
+    <DCCReference Include="Conditional.Chosen.pas" />
+    <DCCReference Include="Conditional.Unused.pas" />
+    <DCCReference Include="Conditional.Other.pas" />
+    <DCCReference Include="Conditional.Always.pas" />
+    <DelphiCompile Include="ConditionalConsole.dpr"><MainSource>MainSource</MainSource></DelphiCompile>
+    <BuildConfiguration Include="Debug"><Key>Debug</Key></BuildConfiguration>
+    <BuildConfiguration Include="Release"><Key>Release</Key></BuildConfiguration>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <BorlandProject><Delphi.Personality><Source><Source Name="MainSource">ConditionalConsole.dpr</Source></Source></Delphi.Personality><Platforms><Platform value="Win32">True</Platform><Platform value="Win64">True</Platform></Platforms></BorlandProject>
+    <ProjectFileVersion>12</ProjectFileVersion>
+  </ProjectExtensions>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" />
+</Project>

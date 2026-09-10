@@ -10,8 +10,11 @@
   build targets are not fully evaluated; detected deferred compiler properties preserve
   analysis. The legacy XML parser remains available for injected/custom services.
 - Target contexts are separate and actions are intersected before writing. Parsing
-  and name-based binding are still partial; IF, ELSEIF and IFOPT are preserved as
-  incomplete, not treated as proof that a dependency is unused.
+  and name-based binding are still partial. Conditional expressions support Boolean
+  operators, DEFINED, parentheses and numeric comparisons; IFOPT requires a known
+  project or source switch. Unsupported operands/options fail explicitly and preserve
+  dependencies. Arithmetic, bitwise operations, Declared/SizeOf, RTLVersion and high
+  precision decimal comparisons are not inferred.
 - Unresolved dependencies are preserved conservatively.
 - Active includes are resolved relative to their containing source, then through
   evaluated project include paths. Missing includes, cycles and excessive nesting fail

@@ -65,6 +65,8 @@ type
     FSnapshot: TSourceSnapshot;
     FExplicitContext: Boolean;
     FDefines, FContextReasons: TArray<string>;
+    FCompilerVersion: string;
+    FOptions: TArray<TCompilerOption>;
     function CreateSourceStream(const AFilePath: string;
       out AConstraints: TArray<string>): TStringStream;
   public
@@ -84,8 +86,9 @@ implementation
 uses Atropos.Adapters.ExportFacts, Atropos.Adapters.ImplicitEffects, Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
   Atropos.Adapters.MemberReferences, Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
+  Atropos.Adapters.ConditionalSource,
   Atropos.Adapters.ConditionalImports,
-  SimpleParser.Lexer.Types;
+  DelphiAST.SimpleParserEx, SimpleParser.Lexer, SimpleParser.Lexer.Types;
 
 constructor TDelphiASTAdapter.Create;
 begin
@@ -108,6 +111,8 @@ begin
   FExplicitContext := True;
   FIncludePaths := Copy(AContext.IncludePaths);
   FDefines := ASymbols.Defines + AContext.Defines;
+  FCompilerVersion := ASymbols.CompilerVersion;
+  FOptions := Copy(AContext.Options);
   if Length(AContext.DeferredProperties) > 0 then
     FContextReasons := ['Build targets can change compiler settings: ' +
       string.Join(', ', AContext.DeferredProperties)];
@@ -167,6 +172,9 @@ var
   LDefine: string;
   LReasons: TArray<string>;
   LConstraints: TArray<string>;
+  LPrepared: TConditionalSource;
+  LText, LVersion: string;
+  LLexer: TmwPasLex;
 begin
   if not FileExists(AFilePath) then
     raise EASTParserException.CreateFmt('File not found: %s', [AFilePath]);
@@ -181,13 +189,24 @@ begin
         LBuilder := TAtroposSyntaxBuilder.Create;
       try
         LIncludes := TSourceIncludeResolver.Create(AFilePath, FIncludePaths, FSnapshot);
-        LIncludeHandler := LIncludes;
-        LBuilder.IncludeHandler := LIncludeHandler;
         if not FExplicitContext then
           LBuilder.InitDefinesDefinedByCompiler;
         if FExplicitContext then
           for LDefine in FDefines do
             LBuilder.AddDefine(LDefine);
+        LVersion := FCompilerVersion;
+        if not FExplicitContext then
+          LVersion := FloatToStr(CompilerVersion, TFormatSettings.Invariant);
+        LLexer := LBuilder.Lexer.Lexer;
+        LPrepared := TConditionalSource.Create(LIncludes,
+          function(AName: string): Boolean
+          begin Result := LLexer.IsDefined(AName) end, LVersion, FOptions);
+        LIncludeHandler := LPrepared;
+        LBuilder.IncludeHandler := LIncludeHandler;
+        LText := LPrepared.Prepare(LSourceStream.DataString, AFilePath);
+        LSourceStream.Size := 0;
+        LSourceStream.WriteString(LText);
+        LSourceStream.Position := 0;
         LRoot := LBuilder.Run(LSourceStream);
         if LRoot = nil then
           raise EASTParserException.Create('Parser returned nil tree.');
@@ -196,7 +215,7 @@ begin
         if FExplicitContext then
           LReasons := LReasons + TContextSyntaxBuilder(LBuilder).IncompleteReasons;
         Result := TDelphiASTSyntaxTree.Create(AFilePath, LRoot,
-          LIncludes.GetDependencies, LReasons, LConstraints);
+          LPrepared.GetDependencies, LReasons, LConstraints);
       finally
         LBuilder.Free;
       end;

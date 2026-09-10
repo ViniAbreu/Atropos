@@ -63,6 +63,13 @@ edits crossing directives and unsupported relocation remain unchanged with a rea
 Unconditional entries can be removed when the affected separator and neighboring
 entry are also unconditional. Includes hiding a destination clause prevent insertion.
 
+Conditional source preparation lives in the AST adapter. It evaluates supported
+expressions against the selected context, blanks inactive text while retaining line
+breaks, and supplies prepared active includes under internal keys with their original
+filenames. The real sources and hashes remain snapshot inputs. No transformed text
+is written back. Unsupported expressions stop parsing rather than selecting a false
+branch. The DelphiAST submodule remains pinned and unchanged.
+
 `IUnitExportFacts` carries symbol kind and generic arity independently of legacy
 export names. Resolver caches and aliases forward these facts to the Core. Type
 lookups require matching arity; generic routine calls may infer their arguments.

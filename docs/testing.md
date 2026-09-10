@@ -105,6 +105,16 @@ Release emits 7; repeated optimization must leave the source hash unchanged. Thi
 checks parenthesized conditional directives with the compiler: the pinned AST lexer
 does not itself apply their conditional-state transitions reliably.
 
+ConditionalConsole validates nested expressions, Delphi operator precedence, IFOPT,
+ELSEIF and state carried through nested includes using actual compiler output.
+Debug emits Precedence|8|Include and Release emits Precedence|100|Include before and
+after removal of an unconditional unused import. Conditional providers remain in
+the source. Unit tests also cover exact large integer comparisons across platforms,
+repeated includes with different defines, inactive missing includes, local/project
+switch precedence and explicit rejection of unsupported expressions. Compiler probes
+rejected PUSH/POP and the tested parenthesized IF-expression directive; these are not
+used as evidence of supported Delphi syntax.
+
 Declaration provenance tests split routine/type headers across includes and the
 main source. The adapter retains the starting file even when DelphiAST assigns
 the compound node's ending file. The class-method fixture uses an explicit public

@@ -38,10 +38,18 @@ existing process runner supplies cancellation, timeout and process-tree cleanup.
   is explicit. This probing currently supports Win32/Win64 Console and Application
   projects; other application types fail explicitly. The generated executable is
   never run, and temporary compiler products are removed.
-- Project defines and include paths reach both consumers and providers. IFDEF and
-  IFNDEF use the selected context. IF, ELSEIF and IFOPT remain incomplete and preserve
-  consumers or reject providers instead of trusting the legacy evaluator's host
-  compiler assumptions. Effective switch/expression evaluation remains follow-up work.
+- Project defines and include paths reach both consumers and providers. A source
+  preparation pass evaluates IFDEF/IFNDEF, IF/ELSEIF and known IFOPT switches before
+  the AST lexer chooses branches. Defines and switches flow through active includes
+  in source order; repeated includes retain distinct prepared content and original
+  filenames. Inactive includes are not loaded. Unknown expressions or switches
+  reject parsing and preserve consumers/providers with diagnostics.
+- Boolean precedence follows Delphi: NOT, AND, OR/XOR, then comparisons. Supported
+  operands include DEFINED, Boolean literals, signed Int64 integers, limited decimal
+  literals and the selected compiler's CompilerVersion. Integer comparisons remain
+  exact on both platforms. Decimal literals are limited to 16 characters; mixed
+  numeric comparisons outside exact double integer range are rejected. Arithmetic,
+  bitwise expressions, declaration queries and RTLVersion remain unsupported.
 - Ordered namespaces and single-step aliases are used for source lookup;
   active DPR `uses ... in` mappings take precedence over PAS filename lookup and
   searched sources. Mapped sources join the unit union even without DCCReference.

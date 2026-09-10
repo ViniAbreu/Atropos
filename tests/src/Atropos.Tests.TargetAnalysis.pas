@@ -31,7 +31,7 @@ type
     [Test] procedure EntireConditionalUsesArePreserved;
     [Test] procedure InactiveImportsAlsoConstrainEditing;
     [Test] procedure IfOptIsExplicitlyIncomplete;
-    [Test] procedure IfAndElseIfAreExplicitlyIncomplete;
+    [Test] procedure IfAndElseIfSelectTheActiveDeclaration;
     [Test] procedure AliasesAndNamespacesResolveTargetSources;
     [Test] procedure IncompleteProviderIsNotAccepted;
     [Test] [TestCase('Compiler32', 'Win32')]
@@ -134,12 +134,11 @@ begin
 end;
 
 procedure TTargetAnalysisTests.CheckIncomplete(const ASource: string);
-var LParser: IASTParser; LTree: IUnitSyntaxTree; LDiagnostics: IUnitAnalysisDiagnostics;
+var LParser: IASTParser;
 begin
   LParser := Parser(['SELECTED']);
-  LTree := LParser.ParseFile(WriteSource('Consumer.pas', ASource));
-  Assert.IsTrue(Supports(LTree, IUnitAnalysisDiagnostics, LDiagnostics));
-  Assert.IsTrue(Length(LDiagnostics.GetIncompleteAnalysisReasons) > 0);
+  Assert.WillRaise(procedure begin LParser.ParseFile(WriteSource('Consumer.pas', ASource)); end,
+    EASTParserException);
 end;
 
 procedure TTargetAnalysisTests.ConditionalUsesArePreserved;
@@ -178,10 +177,15 @@ begin
   CheckIncomplete('unit Consumer; interface {$IFOPT R+}type TChecked = Integer;{$ENDIF} implementation end.');
 end;
 
-procedure TTargetAnalysisTests.IfAndElseIfAreExplicitlyIncomplete;
+procedure TTargetAnalysisTests.IfAndElseIfSelectTheActiveDeclaration;
+var LParser: IASTParser; LTree: IUnitSyntaxTree;
 begin
-  CheckIncomplete('unit Consumer; interface {$IF Defined(ABSENT)}type TOne = Integer;' +
-    '{$ELSEIF Defined(SELECTED)}type TTwo = Integer;{$IFEND} implementation end.');
+  LParser := Parser(['SELECTED']);
+  LTree := LParser.ParseFile(WriteSource('Consumer.pas',
+    'unit Consumer; interface {$IF Defined(ABSENT)}type TOne = Integer;' +
+    '{$ELSEIF Defined(SELECTED)}type TTwo = Integer;{$IFEND} implementation end.'));
+  Assert.AreEqual<NativeInt>(1, Length(LTree.GetExportedIdentifiers));
+  Assert.AreEqual('TTwo', LTree.GetExportedIdentifiers[0]);
 end;
 
 procedure TTargetAnalysisTests.AliasesAndNamespacesResolveTargetSources;

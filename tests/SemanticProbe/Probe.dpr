@@ -26,6 +26,8 @@ uses
   Atropos.Adapters.SourceSnapshot in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas',
   Atropos.Adapters.DelphiAST in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas',
   Atropos.Adapters.ContextSyntaxBuilder in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.ContextSyntaxBuilder.pas',
+  Atropos.Adapters.ConditionalExpression in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalExpression.pas',
+  Atropos.Adapters.ConditionalSource in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalSource.pas',
   Atropos.Adapters.ConditionalImports in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas',
   Atropos.Adapters.SyntaxFacts in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SyntaxFacts.pas',
   Atropos.Adapters.HelperFacts in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas',
