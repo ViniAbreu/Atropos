@@ -1,0 +1,1 @@
+Cancelar sem deixar alteracoes parciais.

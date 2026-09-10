@@ -1,0 +1,1 @@
+Metodo efetivamente selecionado nao muda apos limpeza.

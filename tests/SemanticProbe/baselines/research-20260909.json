@@ -1,0 +1,776 @@
+{
+  "schemaVersion": 1,
+  "kind": "historical-status-extract",
+  "source": "atropos-research/results/20260909-135136-022/summary.json",
+  "sourceSha256": "BB2F289334D8E36322083DB01DCA2A8CAA380244240EB04741430225018B74D0",
+  "createdUtc": "2026-09-09T16:51:55.107928Z",
+  "executableSha256": "27096C72F3D1828E6342F3A4076760AAB4E8C8F76188EAB93094B699BF4395D9",
+  "catalogSha256": "65E7C43439DB73EB04688868820090631BBDB6E991DB3BBEE0A8D90F25D4550A",
+  "total": 152,
+  "passed": 96,
+  "failed": 38,
+  "errors": 0,
+  "blocked": 18,
+  "results": [
+    {
+      "id": "empty-unit",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "unused-interface",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "unused-implementation",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "move-call",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-signature",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-return",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-both-sections",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-implementation",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "mixed-remove-move",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "unused-both-sections",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "case-insensitive",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "repeat-reference",
+      "category": "basic",
+      "status": "PASS"
+    },
+    {
+      "id": "public-constant",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "implementation-constant",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "global-variable",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "resourcestring",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "procedure-address",
+      "category": "references",
+      "status": "PASS"
+    },
+    {
+      "id": "public-inheritance",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "private-field",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "public-property",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "type-alias",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "pointer-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "array-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "procedural-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "interface-ancestor",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "implementation-type",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "class-reference",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "default-parameter",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "record-field",
+      "category": "types",
+      "status": "PASS"
+    },
+    {
+      "id": "local-variable-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "parameter-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "local-procedure-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "local-type-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "field-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "method-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "unit-level-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "inline-variable-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "for-variable-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "anonymous-parameter-shadow",
+      "category": "scope",
+      "status": "FAIL"
+    },
+    {
+      "id": "qualified-call",
+      "category": "qualification",
+      "status": "FAIL"
+    },
+    {
+      "id": "qualified-type",
+      "category": "qualification",
+      "status": "PASS"
+    },
+    {
+      "id": "dotted-unit-call",
+      "category": "qualification",
+      "status": "PASS"
+    },
+    {
+      "id": "dotted-unit-type",
+      "category": "qualification",
+      "status": "PASS"
+    },
+    {
+      "id": "ambiguous-interface",
+      "category": "ambiguity",
+      "status": "PASS"
+    },
+    {
+      "id": "ambiguous-implementation",
+      "category": "ambiguity",
+      "status": "PASS"
+    },
+    {
+      "id": "ambiguity-across-sections",
+      "category": "ambiguity",
+      "status": "FAIL"
+    },
+    {
+      "id": "generic-vs-plain",
+      "category": "generics",
+      "status": "FAIL"
+    },
+    {
+      "id": "generic-arity",
+      "category": "generics",
+      "status": "FAIL"
+    },
+    {
+      "id": "generic-argument",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-constraint",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-nested",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-implementation",
+      "category": "generics",
+      "status": "PASS"
+    },
+    {
+      "id": "generic-parameter-shadow",
+      "category": "generics",
+      "status": "FAIL"
+    },
+    {
+      "id": "scoped-export",
+      "category": "enums",
+      "status": "FAIL"
+    },
+    {
+      "id": "unscoped-export",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "scoped-collision",
+      "category": "enums",
+      "status": "FAIL"
+    },
+    {
+      "id": "unscoped-reference",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "scoped-reference",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "nested-type-export",
+      "category": "enums",
+      "status": "PASS"
+    },
+    {
+      "id": "helper-string-use",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "helper-unused",
+      "category": "helpers",
+      "status": "PASS"
+    },
+    {
+      "id": "helper-class-use",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "helper-unrelated-receiver",
+      "category": "helpers",
+      "status": "PASS"
+    },
+    {
+      "id": "helper-export",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "helper-public-export",
+      "category": "helpers",
+      "status": "FAIL"
+    },
+    {
+      "id": "initialization-call",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "finalization-call",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "both-lifecycle-calls",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "legacy-begin-call",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "keep-initializing-unit",
+      "category": "lifecycle",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-finalizing-unit",
+      "category": "lifecycle",
+      "status": "PASS"
+    },
+    {
+      "id": "keep-legacy-init-unit",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "keep-transitive-effects",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "keep-native-effects",
+      "category": "lifecycle",
+      "status": "FAIL"
+    },
+    {
+      "id": "comments-not-usage",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "strings-not-usage",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "escaped-string",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "uses-word-in-string",
+      "category": "trivia",
+      "status": "PASS"
+    },
+    {
+      "id": "inline-define-on",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "inline-define-off",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "inline-undef",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "if-defined",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "nested-conditionals",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "inactive-reference",
+      "category": "directives",
+      "status": "PASS"
+    },
+    {
+      "id": "include-uses",
+      "category": "includes",
+      "status": "FAIL"
+    },
+    {
+      "id": "include-declaration",
+      "category": "includes",
+      "status": "FAIL"
+    },
+    {
+      "id": "include-reference",
+      "category": "includes",
+      "status": "FAIL"
+    },
+    {
+      "id": "include-nested",
+      "category": "includes",
+      "status": "FAIL"
+    },
+    {
+      "id": "unknown-unit",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-exact",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-namespaced",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-not-recursive",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "resolver-missing-source",
+      "category": "resolution",
+      "status": "PASS"
+    },
+    {
+      "id": "operator-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "attribute-reference",
+      "category": "advanced",
+      "status": "FAIL"
+    },
+    {
+      "id": "with-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "inherited-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "is-type-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "as-type-reference",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "sizeof-type",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "explicit-cast",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "threadvar-type",
+      "category": "advanced",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-only-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-first-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-last-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-middle-item",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-all-items",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-move-new-clause",
+      "category": "rewrite",
+      "status": "FAIL"
+    },
+    {
+      "id": "rewrite-move-existing-clause",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-remove-implementation",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-case-insensitive",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-prefix-boundary",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-dotted-boundary",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-comments-preserved",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-line-comment",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-string-preserved",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-comment-keyword",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-semicolon-comment",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-remove-disabled",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-move-disabled",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-empty-plan",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-absent-unit",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "rewrite-multiple-moves",
+      "category": "rewrite",
+      "status": "FAIL"
+    },
+    {
+      "id": "rewrite-directive-preserved",
+      "category": "rewrite",
+      "status": "PASS"
+    },
+    {
+      "id": "malformed-consumer",
+      "category": "errors",
+      "status": "PASS"
+    },
+    {
+      "id": "unterminated-string",
+      "category": "errors",
+      "status": "PASS"
+    },
+    {
+      "id": "malformed-dependency",
+      "category": "errors",
+      "status": "PASS"
+    },
+    {
+      "id": "missing-include",
+      "category": "includes",
+      "status": "FAIL"
+    },
+    {
+      "id": "ifopt-rangecheck",
+      "category": "directives",
+      "status": "FAIL"
+    },
+    {
+      "id": "if-nested-expression",
+      "category": "directives",
+      "status": "FAIL"
+    },
+    {
+      "id": "scale-references-10",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "scale-references-100",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "scale-references-1000",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "scale-references-5000",
+      "category": "scale",
+      "status": "PASS"
+    },
+    {
+      "id": "project-define-debug-release",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "platform-win32-win64",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "namespace-prefix-resolution",
+      "category": "resolution",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "unit-alias-resolution",
+      "category": "resolution",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "project-in-path",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "package-dcu-only",
+      "category": "project",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "dfm-streaming-registration",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "rtti-string-registration",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "initialization-order",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "compiler-overload-binding",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "compiler-helper-precedence",
+      "category": "runtime",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cache-include-invalidation",
+      "category": "cache",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cache-source-invalidation",
+      "category": "cache",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cache-context-isolation",
+      "category": "cache",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "encoding-preservation",
+      "category": "filesystem",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "rollback-build-failure",
+      "category": "filesystem",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cancellation-transaction",
+      "category": "filesystem",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "project-imported-props",
+      "category": "project",
+      "status": "BLOCKED"
+    }
+  ]
+}

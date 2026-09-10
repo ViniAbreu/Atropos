@@ -1,5 +1,11 @@
 # Tests, coverage, and quality gates
 
+The separate [semantic baseline](../tests/SemanticProbe/README.md) reproduces the
+research catalog against the real parser and domain, preserving known functional
+failures and blocked integration scenarios. It records source/binary hashes and
+compiler identity, and intentionally returns a nonzero exit code while failures
+remain. It is not part of the all-green quality gate.
+
 `tests\AtroposTests.dproj` covers the domain, `.dproj` parsing, DelphiAST, resolution, files, modifier, reports, CLI behavior, application composition, logging, execution lifecycle, presentation state, builds, and integration.
 
 ```powershell

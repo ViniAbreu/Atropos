@@ -1,0 +1,1 @@
+Debug e Release nao compartilham fatos de variantes diferentes.

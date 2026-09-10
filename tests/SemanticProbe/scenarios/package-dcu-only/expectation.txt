@@ -1,0 +1,1 @@
+Preservar com diagnostico de ausencia de fonte.

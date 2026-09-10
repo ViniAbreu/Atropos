@@ -1,0 +1,1 @@
+Preservar registro e carregamento de componentes sem referencias textuais.

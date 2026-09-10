@@ -1,0 +1,2 @@
+# Preserve the original research bytes, including LF rewrite fixtures and hashes.
+scenarios/** -text
