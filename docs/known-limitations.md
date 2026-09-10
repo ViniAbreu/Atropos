@@ -6,6 +6,9 @@
 - Analysis depends on units and search paths obtained from the `.dproj`.
 - The `.dproj` evaluator supports quoted `==`/`!=` comparisons, `and`, `or`, parentheses, and `Exists('path')`. Unsupported MSBuild functions or expressions are skipped conservatively and recorded as analysis warnings instead of being treated as ordinary false conditions without explanation.
 - Imported MSBuild project files and property functions are not evaluated by the project parser. Keep analysis-critical unit lists and search paths in the `.dproj`; unsupported conditions in those sections are reported.
+- A separate [MSBuild context provider](project-context.md) now evaluates imports and
+  target-specific properties in tests. It is not yet wired into the application;
+  per-target parsing and compatible-decision combination remain required.
 - Unresolved dependencies are preserved conservatively.
 - Active includes are resolved relative to their containing source, then through
   explicitly supplied include paths. Project include-path evaluation is not yet
