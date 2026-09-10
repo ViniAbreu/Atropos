@@ -35,6 +35,7 @@ type
     [TestCase('IncludeMutation', '2')]
     procedure UnitPreparationValidatesSnapshot(AKind: Integer);
     [Test] procedure NativePreparationFindsSiblingSource;
+    [Test] procedure UnitPreparationRejectsRecompiledRoot;
   end;
 
 implementation
@@ -276,6 +277,11 @@ begin
   TFile.WriteAllText(FSource, 'unit NativeProbe; interface {$I shape.inc}' +
     '{$IF SizeOf(TPayload)=1}type SmallSelected=Integer;{$ENDIF} implementation end.', TEncoding.UTF8);
   LRunner := TObservingCompilerRunner.Create;
+  TDirectory.CreateDirectory(TPath.Combine(FRoot, 'isolated'));
+  TFile.Move(FSource, TPath.Combine(FRoot, 'isolated\NativeProbe.pas'));
+  TFile.Move(FInclude, TPath.Combine(FRoot, 'isolated\shape.inc'));
+  FSource := TPath.Combine(FRoot, 'isolated\NativeProbe.pas');
+  FInclude := TPath.Combine(FRoot, 'isolated\shape.inc');
   LRunner.FailFirstProgram := True;
   if AKind > 0 then LRunner.MutateAfter := 5;
   LRunner.PathToMutate := FSource;
@@ -285,6 +291,7 @@ begin
   if AKind > 0 then
   begin
     Assert.WillRaise(procedure begin LPreparer.Prepare(FSource, LHash) end, EInvalidOperation);
+    Assert.AreEqual(5, LRunner.Calls);
     Exit;
   end;
   LPrepared := LPreparer.Prepare(FSource, LHash);
@@ -292,6 +299,17 @@ begin
   Assert.AreEqual(5, LRunner.Calls);
   LPreparer.Prepare(FSource, LHash);
   Assert.AreEqual(5, LRunner.Calls);
+end;
+
+procedure TCompilerDependencySourceTests.UnitPreparationRejectsRecompiledRoot;
+var LPreparer: ICompilerSourcePreparer; LRunner: TObservingCompilerRunner; LHash: string;
+begin
+  LRunner := TObservingCompilerRunner.Create;
+  LRunner.FailFirstProgram := True;
+  LPreparer := TNativeSourcePreparer.Create(Context('Win64'), FDelphi, LRunner);
+  LHash := TDelphiSourceReader.ReadRaw(FSource).ContentHash;
+  Assert.WillRaise(procedure begin LPreparer.Prepare(FSource, LHash) end, EInvalidOperation);
+  Assert.AreEqual(3, LRunner.Calls);
 end;
 
 initialization
