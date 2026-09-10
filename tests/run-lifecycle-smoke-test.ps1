@@ -77,4 +77,8 @@ finally {
         (Split-Path $resolved -Leaf).StartsWith('AtroposLifecycle-', [StringComparison]::Ordinal)) {
         Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue
     }
+    if ($sections[0].Contains('Lifecycle.Helpers') -or
+        -not $sections[1].Contains('Lifecycle.Helpers')) {
+        throw 'String helper import was not moved to implementation.'
+    }
 }

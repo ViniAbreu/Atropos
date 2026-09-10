@@ -73,3 +73,9 @@ Helper fact tests parse record/class helpers with default, private, public and
 protected visibility, distinguish methods from properties, exclude ordinary and
 implementation types, verify source locations and independent repeated reads.
 These tests validate declaration extraction, not compiler helper precedence.
+
+Helper integration regressions distinguish receivers across routines, parameter
+shadowing, class fields, aliases, chains, bare calls, with blocks and lifecycle
+variables. Competing helper imports and absent member facts remain unknown.
+The lifecycle runtime fixture calls a string helper before and after optimization
+and requires its import to move to implementation without changing output.

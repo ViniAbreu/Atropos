@@ -3,22 +3,11 @@ unit Atropos.Core.Domain;
 interface
 uses
   System.Generics.Collections,
-  Atropos.Core.Ports, Atropos.Core.Analysis, Atropos.Core.Effects, System.SysUtils;
+  Atropos.Core.UnitSymbols, Atropos.Core.HelperBinding, Atropos.Core.Ports, Atropos.Core.Analysis, Atropos.Core.Effects, System.SysUtils;
 
 type
   
-  TUnitExports = class
-  public
-    UnitName: string;
-    ExportedIdentifiers: TList<string>;
-    ExportedHelpers: TObjectDictionary<string, TList<string>>;
-    HasInitialization: Boolean;
-    Imports: TArray<string>;
-    ImportsKnown: Boolean;
-    IsNative: Boolean;
-    constructor Create(const AUnitName: string; AHasInit: Boolean = False; AIsNative: Boolean = False);
-    destructor Destroy; override;
-  end;
+  TUnitExports = Atropos.Core.UnitSymbols.TUnitExports;
   
   TProjectContext = class
   private
@@ -37,7 +26,10 @@ type
     constructor Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
     destructor Destroy; override;
     procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False; AIsNative: Boolean = False);
-    function UnitExportsIdentifier(const AUnitName, AIdentifier: string; const AAllUsedIdents: TArray<string>): Boolean;
+    function UnitExportsIdentifier(const AUnitName, AIdentifier: string;
+      const AAllUsedIdents: TArray<string>; AIncludeHelpers: Boolean = True): Boolean;
+    function AssessHelpers(const AUnitName: string; const AVisibleUnits: TArray<string>;
+      const AReferences: TArray<TMemberReference>; AKnown, AInterface: Boolean): THelperUse;
     function FindAmbiguities(const AVisibleUnits,
       AIdentifiers: TArray<string>): TArray<string>;
     function FindUnitAmbiguity(const AUnitName: string;
@@ -61,6 +53,9 @@ type
   TAnalyzeUnitUses = class
   private
     FLogger: ILogger;
+    FReferences: TArray<TMemberReference>;
+    FReferencesKnown, FReferenceInterface: Boolean;
+    FHelperUse: THelperUse;
     function IsUnitUsed(AContext: TProjectContext; const AUnitName: string;
       const AUsedIdentifiers, AVisibleIdentifiers: TArray<string>): Boolean;
     function MustPreserve(AContext: TProjectContext; const AUnitName: string;
@@ -76,23 +71,6 @@ type
   end;
 
 implementation
-
-constructor TUnitExports.Create(const AUnitName: string; AHasInit: Boolean = False; AIsNative: Boolean = False);
-begin
-  UnitName := AUnitName;
-  HasInitialization := AHasInit;
-  ImportsKnown := False;
-  IsNative := AIsNative;
-  ExportedIdentifiers := TList<string>.Create;
-  ExportedHelpers := TObjectDictionary<string, TList<string>>.Create([doOwnsValues]);
-end;
-
-destructor TUnitExports.Destroy;
-begin
-  ExportedHelpers.Free;
-  ExportedIdentifiers.Free;
-  inherited;
-end;
 
 constructor TProjectContext.Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
 begin
@@ -212,7 +190,16 @@ begin
   Result := LExports.HasInitialization;
 end;
 
-function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string; const AAllUsedIdents: TArray<string>): Boolean;
+function TProjectContext.AssessHelpers(const AUnitName: string;
+  const AVisibleUnits: TArray<string>; const AReferences: TArray<TMemberReference>;
+  AKnown, AInterface: Boolean): THelperUse;
+begin
+  Result := THelperBinding.Assess(AUnitName, FUnitExports, AVisibleUnits,
+    AReferences, AKnown, AInterface);
+end;
+
+function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string;
+  const AAllUsedIdents: TArray<string>; AIncludeHelpers: Boolean): Boolean;
 var
   LExports: TUnitExports;
   LBaseIdent: string;
@@ -248,7 +235,7 @@ begin
       
     Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
     
-    if not Result then
+    if not Result and AIncludeHelpers then
     begin
       if LExports.ExportedHelpers.TryGetValue(LBaseIdent, LTargetTypes) then
       begin
@@ -304,7 +291,7 @@ begin
     begin
       if not HasUnit(LUnitName) then
         Continue;
-      if not UnitExportsIdentifier(LUnitName, AIdentifier, []) then
+      if not UnitExportsIdentifier(LUnitName, AIdentifier, [], False) then
         Continue;
       LMatches.Add(LUnitName);
     end;
@@ -386,10 +373,12 @@ var
   LIdent: string;
 begin
   Result := False;
+  if FHelperUse = huUsed then
+    Exit(True);
   for LIdent in AUsedIdentifiers do
   begin
     if AContext.UnitExportsIdentifier(AUnitName, LIdent,
-      AVisibleIdentifiers) then
+      AVisibleIdentifiers, False) then
     begin
       if Assigned(FLogger) then
         FLogger.Log(Format('DEBUG-MATCH: [%s] matched with exported identifier [%s]', [AUnitName, LIdent]));
@@ -431,6 +420,14 @@ begin
   begin
     ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsAmbiguous,
       daPreserve, LReason));
+    Exit;
+  end;
+  FHelperUse := AContext.AssessHelpers(AUnitName, AVisibleUnits, FReferences,
+    FReferencesKnown, FReferenceInterface);
+  if FHelperUse = huUnknown then
+  begin
+    ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsUnknown,
+      daPreserve, 'Helper receiver or precedence could not be resolved.'));
     Exit;
   end;
   Result := False;
@@ -492,9 +489,14 @@ var
   LUnitName: string;
   LUsedInIntf: Boolean;
   LUsedInImpl: Boolean;
+  LMembers: IUnitMemberReferences;
 begin
   Result := Default(TUnitAnalysisResult);
   Result.UnitName := ASyntaxTree.GetUnitName;
+  FReferences := nil;
+  FReferencesKnown := Supports(ASyntaxTree, IUnitMemberReferences, LMembers);
+  if FReferencesKnown then
+    FReferences := LMembers.GetMemberReferences;
   LDecisions := TDependencyDecisions.Create;
   LAmbiguities := TList<string>.Create;
   try
@@ -510,6 +512,7 @@ begin
 
     for LUnitName in LIntfUses do
     begin
+      FReferenceInterface := True;
       if PreserveConstrainedImport(ASyntaxTree, LUnitName, usInterface, LDecisions) then
         Continue;
       if MustPreserve(AContext, LUnitName, usInterface,
@@ -525,6 +528,7 @@ begin
         Continue;
       end;
 
+      FReferenceInterface := False;
       if MustPreserve(AContext, LUnitName, usInterface,
         LIntfUses + LImplUses, LImplIdents, LDecisions) then
         Continue;
@@ -544,6 +548,7 @@ begin
 
     for LUnitName in LImplUses do
     begin
+      FReferenceInterface := False;
       if PreserveConstrainedImport(ASyntaxTree, LUnitName, usImplementation, LDecisions) then
         Continue;
       if MustPreserve(AContext, LUnitName, usImplementation,
