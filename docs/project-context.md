@@ -118,9 +118,15 @@ the dependency reader accounts for compiler lists that name their source directo
 instead of their fresh output directory. Temporary files are deleted, and cached
 preparations are reused only while their recorded inputs remain unchanged.
 
-This path currently requires precompiled dependencies: a dependency unit regenerated
-from an uncaptured source is rejected. Relative resource/object lookup, recursive
-includes, custom toolchains and complete build-target effects remain limitations.
+For regenerated dependencies, the reader retains both the original path reported by
+the compiler and the generated DCU path. The corresponding Pascal source, its include
+graph and resource/object references extend the snapshot before the second compilation.
+ResourcePath and _ObjectPath come from the evaluated project. Capture visits all
+conditional branches and records missing candidates; this can invalidate a preparation
+even when a changed input was inactive. A new or unidentified dependency is rejected.
+
+Relative resource/object relocation for the instrumented root, recursive includes in
+that root, custom toolchains and complete build-target effects remain limitations.
 The declaration-dependent fallback currently accepts Pascal units, not DPR sources.
 Failure, timeout, cancellation or an incomplete trace never substitutes guessed
 conditional values.

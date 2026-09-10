@@ -373,3 +373,11 @@ constrained. Process tests cover cancellation, stale or missing artifacts, chang
 project/environment settings, and project hooks. The dependency reader is checked
 against generated lists as well as malformed and missing paths. These checks do not
 establish support for uncaptured regenerated dependencies or every Delphi version.
+
+CompilerDependencySources tests compile a source-only dependency on Win32/Win64,
+verify the dependency and its include enter the snapshot, reject mutations after
+validation compilation, and require a new preparation when the include changes.
+Source-closure tests cover resource/object mutation, missing resource creation,
+recursive includes and cancellation. MSBuild evaluation is checked for resource
+and object search paths. The dependency reader retains the reported path alongside
+the generated DCU path, rather than deriving provenance from temporary output alone.

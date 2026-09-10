@@ -2,7 +2,8 @@ unit Atropos.Adapters.CompilerTraceProcess;
 
 interface
 
-uses Atropos.Core.Ports, Atropos.Core.Compilation, Atropos.Adapters.BuildService;
+uses Atropos.Core.Ports, Atropos.Core.Compilation, Atropos.Adapters.BuildService,
+  Atropos.Adapters.CompilerDependencies;
 
 type
   TCompilerTraceProcess = class
@@ -24,13 +25,15 @@ type
     function CompileProgram(const AContext: TProjectCompilationContext;
       const ADelphiPath, AProgramPath, AOutputPath: string;
       out ADependencies: TArray<string>): string;
+    function CompileProgramEntries(const AContext: TProjectCompilationContext;
+      const ADelphiPath, AProgramPath, AOutputPath: string;
+      out ADependencies: TArray<TCompilerDependency>): string;
   end;
 
 implementation
 
 uses System.SysUtils, System.Classes, System.IOUtils, System.JSON,
-  Atropos.Adapters.DelphiPowerShell, Atropos.Adapters.CompilerTraceScript,
-  Atropos.Adapters.CompilerDependencies;
+  Atropos.Adapters.DelphiPowerShell, Atropos.Adapters.CompilerTraceScript;
 
 constructor TCompilerTraceProcess.Create(const ARunner: IBuildProcessRunner;
   const ACancel: TCancellationCheck);
@@ -92,6 +95,16 @@ end;
 function TCompilerTraceProcess.CompileProgram(const AContext: TProjectCompilationContext;
   const ADelphiPath, AProgramPath, AOutputPath: string;
   out ADependencies: TArray<string>): string;
+var LEntries: TArray<TCompilerDependency>; I: Integer;
+begin
+  Result := CompileProgramEntries(AContext, ADelphiPath, AProgramPath, AOutputPath, LEntries);
+  SetLength(ADependencies, Length(LEntries));
+  for I := 0 to High(LEntries) do ADependencies[I] := LEntries[I].FilePath;
+end;
+
+function TCompilerTraceProcess.CompileProgramEntries(const AContext: TProjectCompilationContext;
+  const ADelphiPath, AProgramPath, AOutputPath: string;
+  out ADependencies: TArray<TCompilerDependency>): string;
 var LDependencies: string;
 begin
   LDependencies := TPath.Combine(AOutputPath, TPath.GetFileNameWithoutExtension(AProgramPath) + '.d');
@@ -100,7 +113,7 @@ begin
   if Length(TDirectory.GetFiles(AOutputPath, '*.dcu')) > 0 then
     raise EInvalidOperation.Create('Dependency discovery requires an output directory without compiled units.');
   Result := Execute(AContext, ADelphiPath, AProgramPath, AOutputPath, True);
-  ADependencies := TCompilerDependencies.Read(LDependencies, AOutputPath);
+  ADependencies := TCompilerDependencies.ReadEntries(LDependencies, AOutputPath);
 end;
 
 function TCompilerTraceProcess.Execute(const AContext: TProjectCompilationContext;

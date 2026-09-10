@@ -47,6 +47,7 @@ uses
   Atropos.Adapters.TracedIncludes in 'src\Adapters\DelphiAST\Atropos.Adapters.TracedIncludes.pas',
   Atropos.Adapters.CompilerPreparation in 'src\Adapters\DelphiAST\Atropos.Adapters.CompilerPreparation.pas',
   Atropos.Adapters.CompilerInputs in 'src\Adapters\DelphiAST\Atropos.Adapters.CompilerInputs.pas',
+  Atropos.Adapters.CompilerSourceInputs in 'src\Adapters\DelphiAST\Atropos.Adapters.CompilerSourceInputs.pas',
   Atropos.Adapters.NativeSourcePreparer in 'src\Adapters\DelphiAST\Atropos.Adapters.NativeSourcePreparer.pas',
   Atropos.Adapters.ConditionalSource in 'src\Adapters\DelphiAST\Atropos.Adapters.ConditionalSource.pas',
   Atropos.Adapters.ConditionalImports in 'src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas',

@@ -18,9 +18,9 @@
   other unsupported arithmetic, bitwise and precision cases are not inferred.
 - Compiler-prepared units retain their imports, including imports referenced only
   by conditional expressions. Their declarations can still inform other consumers.
-  This preparation requires precompiled dependencies; regenerated dependency units
-  without source snapshots are rejected. Relative resource/object paths, guarded
-  recursive includes and declaration-bound DPR conditions remain unsupported or
+  Regenerated dependencies require identifiable source/include/resource snapshots;
+  unknown sources and new dependencies are rejected. Relative resource/object paths
+  and guarded recursive includes in the instrumented root, and declaration-bound DPR conditions remain unsupported or
   restricted. See [project contexts](project-context.md).
 - Unresolved dependencies are preserved conservatively.
 - The historical anonymous-parameter scenario uses an inline `reference to` variable

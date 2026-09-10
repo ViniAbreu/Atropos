@@ -165,6 +165,8 @@ begin
     Result.UnitPaths := ReadStrings(LData, 'unitPaths');
     Result.SearchPaths := ReadStrings(LData, 'searchPaths');
     Result.IncludePaths := ReadStrings(LData, 'includePaths');
+    Result.ResourcePaths := ReadStrings(LData, 'resourcePaths');
+    Result.ObjectPaths := ReadStrings(LData, 'objectPaths');
     Result.Namespaces := ReadStrings(LData, 'namespaces');
     Result.Aliases := ReadStrings(LData, 'aliases');
     Result.Options := ReadOptions(LData);

@@ -28,7 +28,8 @@ implementation
 
 uses System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Adapters.DelphiSource, Atropos.Adapters.CompilerInputs,
-  Atropos.Adapters.CompilerTraceProcess, Atropos.Adapters.SourceSnapshot;
+  Atropos.Adapters.CompilerTraceProcess, Atropos.Adapters.SourceSnapshot,
+  Atropos.Adapters.CompilerDependencies;
 
 constructor TNativeSourcePreparer.Create(const AContext: TProjectCompilationContext;
   const ADelphiPath: string; const ARunner: IBuildProcessRunner; const ACancel: TCancellationCheck);
@@ -39,6 +40,8 @@ begin
   FContext.ProjectFiles := Copy(AContext.ProjectFiles);
   FContext.SearchPaths := Copy(AContext.SearchPaths);
   FContext.IncludePaths := Copy(AContext.IncludePaths);
+  FContext.ResourcePaths := Copy(AContext.ResourcePaths);
+  FContext.ObjectPaths := Copy(AContext.ObjectPaths);
   FDelphiPath := ADelphiPath;
   FRunner := ARunner;
   FCancel := ACancel;
@@ -96,9 +99,9 @@ function TNativeSourcePreparer.PrepareIn(const AFilePath, AExpectedHash,
   ADirectory: string): TCompilerPreparedSource;
 var LInputs: TCompilerInputs; LTrace: TCompilerBranchTrace; LCompiler: TCompilerTraceProcess;
   LSource: TDelphiSourceContent; LProgram, LDiscovery, LValidation, LOutput: string;
-  LDependencies: TArray<string>; LIndex: Integer;
+  LDependencies: TArray<TCompilerDependency>; LIndex: Integer;
 begin
-  LInputs := TCompilerInputs.Create(AFilePath, FContext, FDelphiPath);
+  LInputs := TCompilerInputs.Create(AFilePath, FContext, FDelphiPath, FCancel);
   try
     LSource := LInputs.ReadRoot;
     if not SameText(LSource.ContentHash, AExpectedHash) then
@@ -114,10 +117,10 @@ begin
       TDirectory.CreateDirectory(LValidation);
       LCompiler := TCompilerTraceProcess.Create(FRunner, FCancel);
       try
-        LDependencies := LCompiler.DiscoverDependencies(FContext, FDelphiPath, LProgram, LDiscovery);
+        LCompiler.CompileProgramEntries(FContext, FDelphiPath, LProgram, LDiscovery, LDependencies);
         LInputs.CaptureDependencies(LDependencies, LDiscovery);
         LInputs.Validate;
-        LOutput := LCompiler.CompileProgram(FContext, FDelphiPath, LProgram, LValidation, LDependencies);
+        LOutput := LCompiler.CompileProgramEntries(FContext, FDelphiPath, LProgram, LValidation, LDependencies);
         LInputs.ValidateDependencies(LDependencies, LValidation);
         Result.Text := TDelphiSourceReader.Normalize(LTrace.Replay(LOutput));
         Result.SourceHash := LSource.ContentHash;
