@@ -79,6 +79,17 @@ type
     function GetLifecycleSections: TArray<TLifecycleSection>;
   end;
 
+  THelperMemberKind = (hmMethod, hmProperty);
+  THelperDeclaration = record
+    HelperName, ReceiverType, MemberName, Visibility, SourcePath: string;
+    Kind: THelperMemberKind;
+    NormalizedLine, NormalizedColumn: Integer;
+  end;
+  IUnitHelperFacts = interface
+    ['{C78AFA04-0892-4DA8-A362-2D2CE2BEF256}']
+    function GetHelperDeclarations: TArray<THelperDeclaration>;
+  end;
+
   IUnitSourceDependencies = interface
     ['{7EBA76D2-050F-48CD-82F7-955CBAB1DCC5}']
     function GetSourceDependencies: TArray<TSourceDependency>;

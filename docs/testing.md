@@ -69,3 +69,7 @@ Manual `RegisterUnitExports` alone also leaves dependency metadata unknown;
 callers must supply `RegisterUnitDependencies`, including an explicit empty list
 when appropriate. SemanticProbe forwards imports from each parsed provider, and
 synthetic unit tests declare their dependency-free fixtures explicitly.
+Helper fact tests parse record/class helpers with default, private, public and
+protected visibility, distinguish methods from properties, exclude ordinary and
+implementation types, verify source locations and independent repeated reads.
+These tests validate declaration extraction, not compiler helper precedence.

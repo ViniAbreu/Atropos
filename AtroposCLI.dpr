@@ -30,6 +30,7 @@ uses
   Atropos.Adapters.ContextSyntaxBuilder in 'src\Adapters\DelphiAST\Atropos.Adapters.ContextSyntaxBuilder.pas',
   Atropos.Adapters.ConditionalImports in 'src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas',
   Atropos.Adapters.SyntaxFacts in 'src\Adapters\DelphiAST\Atropos.Adapters.SyntaxFacts.pas',
+  Atropos.Adapters.HelperFacts in 'src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas',
   Atropos.Adapters.SyntaxBuilder in 'src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas',
   Atropos.Adapters.FileSystem in 'src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas',
   Atropos.Adapters.FileTransaction in 'src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas',

@@ -29,3 +29,12 @@ Main adapter responsibilities:
 - `BuildService`: AutoBuild, timeout, cancellation, and metrics;
 - `DelphiEnvironment`: project version and RAD Studio installation discovery;
 - `ReportGenerator`: text and HTML output.
+
+Helper declarations are available through the optional Core port
+`IUnitHelperFacts`. The DelphiAST adapter returns interface helper names, receiver
+type spellings, member names/kinds, visibility and normalized source locations.
+Methods are siblings of the HELPER node or children of visibility blocks; they
+are not children of HELPER. Private members remain facts, not public exports.
+This additive port does not yet participate in import decisions. Receiver scope,
+aliases, inheritance and helper precedence still require binding before replacing
+the legacy helper matching heuristic.

@@ -16,7 +16,7 @@ type
 
   TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
     IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints,
-    IProjectSourceImports, IUnitLifecycleFacts)
+    IProjectSourceImports, IUnitLifecycleFacts, IUnitHelperFacts)
   private
     FFileName: string;
     FUnitName: string;
@@ -56,6 +56,7 @@ type
     function GetPreservedImportNames: TArray<string>;
     function GetProjectImports: TArray<TUnitSourceMapping>;
     function GetLifecycleSections: TArray<TLifecycleSection>;
+    function GetHelperDeclarations: TArray<THelperDeclaration>;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser, IAnalysisSnapshot,
@@ -81,7 +82,7 @@ type
 
 implementation
 
-uses Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
+uses Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalImports,
   SimpleParser.Lexer.Types;
@@ -274,6 +275,17 @@ end;
 function TDelphiASTSyntaxTree.GetProjectImports: TArray<TUnitSourceMapping>;
 begin
   Result := TDelphiSyntaxFacts.ProjectImports(FRoot);
+end;
+
+function TDelphiASTSyntaxTree.GetHelperDeclarations: TArray<THelperDeclaration>;
+var LExtractor: THelperFactExtractor;
+begin
+  LExtractor := THelperFactExtractor.Create(FFileName);
+  try
+    Result := LExtractor.Extract(FRoot);
+  finally
+    LExtractor.Free;
+  end;
 end;
 
 function TDelphiASTSyntaxTree.GetLifecycleSections: TArray<TLifecycleSection>;

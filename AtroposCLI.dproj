@@ -122,6 +122,7 @@
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ContextSyntaxBuilder.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SyntaxFacts.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>
