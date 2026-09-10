@@ -17,6 +17,7 @@ uses
   Atropos.Adapters.ProjectParser in 'src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas',
   Atropos.Adapters.DelphiSource in 'src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas',
   Atropos.Adapters.SourceIncludes in 'src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas',
+  Atropos.Adapters.SourceSnapshot in 'src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas',
   Atropos.Adapters.DelphiAST in 'src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas',
   Atropos.Adapters.FileSystem in 'src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas',
   Atropos.Adapters.FileTransaction in 'src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas',
@@ -24,6 +25,7 @@ uses
   Atropos.Adapters.ExternalUnitResolver in 'src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas',
   Atropos.Adapters.DelphiEnvironment in 'src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas',
   Atropos.Application.AppService in 'src\Application\Atropos.Application.AppService.pas',
+  Atropos.Application.AnalysisPlan in 'src\Application\Atropos.Application.AnalysisPlan.pas',
   Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
   Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
   Atropos.Adapters.BuildCapability in 'src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas';

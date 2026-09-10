@@ -6,6 +6,7 @@ uses
   Atropos.Core.Config,
   Atropos.Core.Domain,
   Atropos.Core.Modifier,
+  Atropos.Application.AnalysisPlan,
   System.Generics.Collections;
 
 type
@@ -34,6 +35,11 @@ type
     procedure LogBuildDiagnostics(const AMetrics: TBuildMetrics);
     function RunConfiguredBuilds(const AFullPath: string): TBuildMetrics;
     procedure ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
+    procedure CheckCancellation;
+    procedure AnalyzeUnit(const APath: string; AContext: TProjectContext;
+      AAnalyzer: TAnalyzeUnitUses; APlan: TUnitAnalysisPlan);
+    procedure ApplyPlannedUnit(const AChange: TPlannedUnitChange;
+      AModifier: TApplyUsesChanges; var ARemoved, AMoved: Integer);
     function RunFinalBuild(const AFullPath: string; ARemoved, AMoved: Integer): TBuildMetrics;
     function ProcessInlineHints(const AHints: TArray<TInlineHint>; LModifier: TApplyUsesChanges): Integer;
     procedure CommitChanges(const AMetricsBefore,
@@ -240,88 +246,114 @@ begin
     FReportGen.AddWarning(AUnitPath + ': preserved ' + LReason);
 end;
 
+procedure TProjectCleanerAppService.CheckCancellation;
+begin
+  if Assigned(FShouldCancel) and FShouldCancel() then
+    raise EAbort.Create('Operation cancelled by user.');
+end;
+
+procedure TProjectCleanerAppService.AnalyzeUnit(const APath: string;
+  AContext: TProjectContext; AAnalyzer: TAnalyzeUnitUses; APlan: TUnitAnalysisPlan);
+var
+  LTree: IUnitSyntaxTree;
+  LResult: TUnitAnalysisResult;
+begin
+  if not TFile.Exists(APath) then
+  begin
+    Log('Warning: File not found -> ' + APath);
+    FReportGen.AddWarning(APath + ': unknown analysis; source file not found.');
+    Exit;
+  end;
+  try
+    LTree := FASTParser.ParseFile(APath);
+    LResult := AAnalyzer.Execute(LTree, AContext);
+  except
+    on E: Exception do
+    begin
+      Log('Error processing ' + ExtractFileName(APath) + ': ' + E.Message);
+      FReportGen.AddWarning(APath + ': unknown analysis; imports preserved: ' + E.Message);
+      Exit;
+    end;
+  end;
+  ReportPreservationReasons(APath, LResult.PreservationReasons);
+  APlan.Add(APath, LResult);
+end;
+
+procedure TProjectCleanerAppService.ApplyPlannedUnit(
+  const AChange: TPlannedUnitChange; AModifier: TApplyUsesChanges;
+  var ARemoved, AMoved: Integer);
+var
+  LResult: TUnitAnalysisResult;
+  LHasConfiguredChanges, LHasAmbiguity: Boolean;
+begin
+  LResult := AChange.Analysis;
+  if FConfig.DryRun then
+  begin
+    if (Length(LResult.UnusedUnits) > 0) or
+      (Length(LResult.UnitsToMoveToImpl) > 0) or
+      (Length(LResult.PreservedAmbiguities) > 0) then
+      FReportGen.AddUnitProcessed(AChange.FilePath, LResult.UnusedUnits,
+        LResult.UnitsToMoveToImpl, LResult.PreservedAmbiguities);
+    Exit;
+  end;
+  LHasConfiguredChanges :=
+    (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
+    (FConfig.MoveToImplementation and (Length(LResult.UnitsToMoveToImpl) > 0));
+  LHasAmbiguity := Length(LResult.PreservedAmbiguities) > 0;
+  if LHasConfiguredChanges then
+  begin
+    AModifier.Execute(AChange.FilePath, LResult);
+    if FConfig.RemoveUnused then
+      Inc(ARemoved, Length(LResult.UnusedUnits));
+    if FConfig.MoveToImplementation then
+      Inc(AMoved, Length(LResult.UnitsToMoveToImpl));
+    Log('Cleaned: ' + ExtractFileName(AChange.FilePath));
+  end;
+  if LHasConfiguredChanges or LHasAmbiguity then
+    FReportGen.AddUnitProcessed(AChange.FilePath, LResult.UnusedUnits,
+      LResult.UnitsToMoveToImpl, LResult.PreservedAmbiguities);
+end;
+
 procedure TProjectCleanerAppService.ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
 var
   LUnits: TArray<string>;
-  LUnit: string;
-  LUnitPath: string;
-  i: Integer;
-  LResult: TUnitAnalysisResult;
-  LSyntaxTree: IUnitSyntaxTree;
-  LHasConfiguredChanges: Boolean;
-  LHasAmbiguity: Boolean;
+  LIndex: Integer;
+  LPlan: TUnitAnalysisPlan;
+  LChange: TPlannedUnitChange;
+  LSnapshot: IAnalysisSnapshot;
 begin
   ATotalRemoved := 0;
   ATotalMoved := 0;
   LUnits := FProjectParser.GetProjectUnits(ADprojPath);
   AUnitCount := Length(LUnits);
   Progress(AUnitCount, 0);
-  
   if AUnitCount = 0 then
   begin
     Log('No units found in project.');
     Exit;
   end;
-
-  Log(Format('Found %d units to process.', [AUnitCount]));
-  
-  for i := 0 to High(LUnits) do
-  begin
-    if Assigned(FShouldCancel) and FShouldCancel() then
-      raise EAbort.Create('Operation cancelled by user.');
-    LUnit := LUnits[i];
-    LUnitPath := ResolvePath(ABasePath, LUnit);
-    
-    if not TFile.Exists(LUnitPath) then
+  if Supports(FASTParser, IAnalysisSnapshot, LSnapshot) then
+    LSnapshot.BeginAnalysis;
+  LPlan := TUnitAnalysisPlan.Create;
+  try
+    Log(Format('Analyzing %d units before applying changes.', [AUnitCount]));
+    for LIndex := 0 to High(LUnits) do
     begin
-      Log('Warning: File not found -> ' + LUnitPath);
-      FReportGen.AddWarning(LUnitPath + ': unknown analysis; source file not found.');
-      Progress(AUnitCount, i + 1);
-      Continue;
+      CheckCancellation;
+      AnalyzeUnit(ResolvePath(ABasePath, LUnits[LIndex]), LContext, LAnalyzer, LPlan);
+      Progress(AUnitCount, LIndex + 1);
     end;
-    
-    try
-      LSyntaxTree := FASTParser.ParseFile(LUnitPath);
-      LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
-    except
-      on E: Exception do
-      begin
-        Log('Error processing ' + ExtractFileName(LUnitPath) + ': ' + E.Message);
-        FReportGen.AddWarning(LUnitPath + ': unknown analysis; imports preserved: ' + E.Message);
-        Progress(AUnitCount, i + 1);
-        Continue;
-      end;
-    end;
-
-    ReportPreservationReasons(LUnitPath, LResult.PreservationReasons);
-    if FConfig.DryRun and ((Length(LResult.UnusedUnits) > 0) or
-      (Length(LResult.UnitsToMoveToImpl) > 0) or
-      (Length(LResult.PreservedAmbiguities) > 0)) then
+    CheckCancellation;
+    if Assigned(LSnapshot) then
+      LSnapshot.ValidateAnalysis;
+    for LChange in LPlan do
     begin
-      FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits,
-        LResult.UnitsToMoveToImpl, LResult.PreservedAmbiguities);
-      Progress(AUnitCount, i + 1);
-      Continue;
+      CheckCancellation;
+      ApplyPlannedUnit(LChange, LModifier, ATotalRemoved, ATotalMoved);
     end;
-
-    LHasConfiguredChanges :=
-      (FConfig.RemoveUnused and (Length(LResult.UnusedUnits) > 0)) or
-      (FConfig.MoveToImplementation and
-        (Length(LResult.UnitsToMoveToImpl) > 0));
-    LHasAmbiguity := Length(LResult.PreservedAmbiguities) > 0;
-    if LHasConfiguredChanges then
-    begin
-      LModifier.Execute(LUnitPath, LResult);
-      Inc(ATotalRemoved, Length(LResult.UnusedUnits));
-      Inc(ATotalMoved, Length(LResult.UnitsToMoveToImpl));
-      Log('Cleaned: ' + ExtractFileName(LUnitPath));
-    end;
-
-    if LHasConfiguredChanges or LHasAmbiguity then
-      FReportGen.AddUnitProcessed(LUnitPath, LResult.UnusedUnits,
-        LResult.UnitsToMoveToImpl, LResult.PreservedAmbiguities);
-    
-    Progress(AUnitCount, i + 1);
+    CheckCancellation;
+  finally
+    LPlan.Free;
   end;
 end;
 

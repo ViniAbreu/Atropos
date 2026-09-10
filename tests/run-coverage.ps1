@@ -40,7 +40,7 @@ $units = @(
     'Atropos.Adapters.FileTransaction',
     'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ReportGenerator',
     'Atropos.Adapters.DelphiAST', 'Atropos.Adapters.DelphiSource',
-    'Atropos.Adapters.SourceIncludes'
+    'Atropos.Adapters.SourceIncludes', 'Atropos.Adapters.SourceSnapshot', 'Atropos.Application.AnalysisPlan'
 )
 $sourcePaths = @(
     'src\Core\Domain', 'src\Core\Services', 'src\Application', 'src\CLI',

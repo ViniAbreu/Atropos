@@ -5,6 +5,7 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   Atropos.Core.Ports,
+  Atropos.Adapters.SourceSnapshot,
   DelphiAST.Classes,
   DelphiAST.Consts, DelphiAST,
   System.Classes;
@@ -48,13 +49,17 @@ type
     function GetIncompleteAnalysisReasons: TArray<string>;
   end;
 
-  TDelphiASTAdapter = class(TInterfacedObject, IASTParser)
+  TDelphiASTAdapter = class(TInterfacedObject, IASTParser, IAnalysisSnapshot)
   private
     FIncludePaths: TArray<string>;
+    FSnapshot: TSourceSnapshot;
     function CreateSourceStream(const AFilePath: string): TStringStream;
   public
     constructor Create; overload;
     constructor Create(const AIncludePaths: TArray<string>); overload;
+    destructor Destroy; override;
+    procedure BeginAnalysis;
+    procedure ValidateAnalysis;
     function ParseFile(const AFilePath: string): IUnitSyntaxTree;
   end;
 
@@ -66,12 +71,30 @@ uses Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
 constructor TDelphiASTAdapter.Create;
 begin
   inherited Create;
+  FSnapshot := TSourceSnapshot.Create;
 end;
 
 constructor TDelphiASTAdapter.Create(const AIncludePaths: TArray<string>);
 begin
   inherited Create;
+  FSnapshot := TSourceSnapshot.Create;
   FIncludePaths := Copy(AIncludePaths);
+end;
+
+destructor TDelphiASTAdapter.Destroy;
+begin
+  FSnapshot.Free;
+  inherited;
+end;
+
+procedure TDelphiASTAdapter.BeginAnalysis;
+begin
+  FSnapshot.BeginAnalysis;
+end;
+
+procedure TDelphiASTAdapter.ValidateAnalysis;
+begin
+  FSnapshot.ValidateAnalysis;
 end;
 
 function TDelphiASTAdapter.CreateSourceStream(const AFilePath: string): TStringStream;
@@ -79,6 +102,7 @@ var
   LSource: TDelphiSourceContent;
 begin
   LSource := TDelphiSourceReader.Read(AFilePath);
+  FSnapshot.RecordSource(AFilePath, LSource.ContentHash);
   Result := TStringStream.Create(LSource.Text, TEncoding.UTF8);
 end;
 
@@ -98,7 +122,7 @@ begin
     try
       LBuilder := TPasSyntaxTreeBuilder.Create;
       try
-        LIncludes := TSourceIncludeResolver.Create(AFilePath, FIncludePaths);
+        LIncludes := TSourceIncludeResolver.Create(AFilePath, FIncludePaths, FSnapshot);
         LIncludeHandler := LIncludes;
         LBuilder.IncludeHandler := LIncludeHandler;
         LBuilder.InitDefinesDefinedByCompiler;

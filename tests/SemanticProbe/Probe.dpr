@@ -12,6 +12,7 @@ uses
   Atropos.Core.Modifier in '..\..\src\Core\Services\Atropos.Core.Modifier.pas',
   Atropos.Adapters.DelphiSource in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas',
   Atropos.Adapters.SourceIncludes in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas',
+  Atropos.Adapters.SourceSnapshot in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas',
   Atropos.Adapters.DelphiAST in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas',
   Atropos.Adapters.ExternalUnitResolver in '..\..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas',
   Probe.Json in 'src\Probe.Json.pas',
