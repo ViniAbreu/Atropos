@@ -58,6 +58,12 @@ uses clauses remain unknown; explicit System qualification can disambiguate a lo
 type unless System itself has appeared. This conservative boundary includes names
 introduced by includes. Tests cover target-specific sizes and local name shadowing.
 
+The Windows parser adapter accepts Unsafe as an identifier without changing its
+text or source positions. Compiler-checked fixtures cover constants, types, fields,
+routines, parameters and locals, alongside field/parameter/result Unsafe attributes.
+Parser fixtures use isolated temporary directories so separate checkouts cannot
+overwrite each other's sources during validation.
+
 The same adapter coverage exercises modern Delphi multiline string literals. Their contents are replaced with line-preserving placeholders for syntax analysis, preventing SQL or other embedded text from being interpreted as Delphi identifiers while keeping diagnostics aligned with the original source.
 
 Coverage only:
