@@ -15,7 +15,8 @@ type
   EASTParserException = class(Exception);
 
   TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
-    IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints)
+    IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints,
+    IProjectSourceImports)
   private
     FFileName: string;
     FUnitName: string;
@@ -53,6 +54,7 @@ type
     function GetSourceDependencies: TArray<TSourceDependency>;
     function GetIncompleteAnalysisReasons: TArray<string>;
     function GetPreservedImportNames: TArray<string>;
+    function GetProjectImports: TArray<TUnitSourceMapping>;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser, IAnalysisSnapshot,
@@ -266,6 +268,30 @@ end;
 function TDelphiASTSyntaxTree.GetUnitName: string;
 begin
   Result := FUnitName;
+end;
+
+function TDelphiASTSyntaxTree.GetProjectImports: TArray<TUnitSourceMapping>;
+var
+  LUses, LChild: TSyntaxNode;
+  LMapping: TUnitSourceMapping;
+  LMappings: TList<TUnitSourceMapping>;
+begin
+  LMappings := TList<TUnitSourceMapping>.Create;
+  try
+    LUses := FRoot.FindNode(ntUses);
+    if Assigned(LUses) then
+      for LChild in LUses.ChildNodes do
+      begin
+        if LChild.Typ <> ntUnit then
+          Continue;
+        LMapping.UnitName := LChild.GetAttribute(anName);
+        LMapping.FilePath := LChild.GetAttribute(anPath);
+        LMappings.Add(LMapping);
+      end;
+    Result := LMappings.ToArray;
+  finally
+    LMappings.Free;
+  end;
 end;
 
 procedure TDelphiASTSyntaxTree.FindAllUses(ANode: TSyntaxNode; AList: TList<string>);

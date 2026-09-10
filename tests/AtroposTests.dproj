@@ -124,6 +124,7 @@
         <DCCReference Include="..\src\Adapters\ProjectParser\Atropos.Adapters.ProjectContext.pas"/>
         <DCCReference Include="..\src\Adapters\ProjectParser\Atropos.Adapters.CompilerSymbols.pas"/>
         <DCCReference Include="..\src\Adapters\ProjectParser\Atropos.Adapters.TargetAnalysisFactory.pas"/>
+        <DCCReference Include="..\src\Adapters\ProjectParser\Atropos.Adapters.ProjectSourceMappings.pas"/>
         <DCCReference Include="..\src\Adapters\ProjectParser\Atropos.Adapters.ProjectEvaluationScript.pas"/>
         <DCCReference Include="src\Atropos.Tests.DprojParser.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas"/>

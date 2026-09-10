@@ -108,7 +108,20 @@ var
   LPath: string;
   LTree: IUnitSyntaxTree;
   LWarningCount: Integer;
+  LMapping: TUnitSourceMapping;
 begin
+  for LMapping in FContext.SourceMappings do
+  begin
+    if not SameText(LMapping.UnitName, AName) then
+      Continue;
+    LTree := FParser.ParseFile(LMapping.FilePath);
+    if not SameText(LTree.GetUnitName, AName) then
+      raise EInvalidOperation.Create('Mapped source declares a different unit: ' + LMapping.FilePath);
+    AExports := LTree.GetExportedIdentifiers;
+    AHasInit := LTree.HasInitializationSection;
+    AIsNative := False;
+    Exit(True);
+  end;
   for LPath in FContext.UnitPaths do
   begin
     if not SameText(TPath.GetFileNameWithoutExtension(LPath), AName) then

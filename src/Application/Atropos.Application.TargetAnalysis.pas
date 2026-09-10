@@ -21,11 +21,13 @@ type
     FSearchPaths: TList<string>;
     procedure CheckCancellation;
     procedure AnalyzeTarget(const AContext: TProjectCompilationContext;
-      const ADelphiPath: string; const AUnits: TArray<string>);
+      const AServices: TTargetAnalysisServices; const AUnits: TArray<string>);
     procedure AnalyzeUnit(const APath, ATarget: string; const AParser: IASTParser;
       AContext: TProjectContext; AAnalyzer: TAnalyzeUnitUses);
     function CollectContexts(const AProjectPath, ADelphiPath: string;
       const ATargets: TArray<TBuildTarget>): TArray<TProjectCompilationContext>;
+    function PrepareTargets(const AContexts: TArray<TProjectCompilationContext>;
+      const ADelphiPath: string): TArray<TTargetAnalysisServices>;
     function CreatePlan: TUnitAnalysisPlan;
   public
     constructor Create(const AProvider: IProjectContextProvider;
@@ -120,11 +122,8 @@ begin
 end;
 
 procedure TTargetAnalysisWorkflow.AnalyzeTarget(const AContext: TProjectCompilationContext;
-  const ADelphiPath: string; const AUnits: TArray<string>);
+  const AServices: TTargetAnalysisServices; const AUnits: TArray<string>);
 var
-  LServices: TTargetAnalysisServices;
-  LSnapshot: IAnalysisSnapshot;
-  LInputs: IProjectSnapshotInputs;
   LContext: TProjectContext;
   LAnalyzer: TAnalyzeUnitUses;
   LPath, LTarget, LWarning: string;
@@ -133,20 +132,12 @@ begin
   if Assigned(FLog) then
     FLog('Analyzing target ' + LTarget + '...');
   CheckCancellation;
-  LServices := FFactory.CreateForTarget(AContext, ADelphiPath);
-  if Supports(LServices.Parser, IAnalysisSnapshot, LSnapshot) then
-  begin
-    LSnapshot.BeginAnalysis;
-    FSnapshots.Add(LSnapshot);
-  end;
-  if Supports(LServices.Parser, IProjectSnapshotInputs, LInputs) then
-    LInputs.RegisterProjectInputs(AContext.ProjectFiles);
-  LContext := TProjectContext.Create(LServices.Resolver, FLogger);
+  LContext := TProjectContext.Create(AServices.Resolver, FLogger);
   LAnalyzer := TAnalyzeUnitUses.Create(FLogger);
   try
     for LPath in AUnits do
-      AnalyzeUnit(LPath, LTarget, LServices.Parser, LContext, LAnalyzer);
-    for LWarning in LServices.Resolver.GetWarnings do
+      AnalyzeUnit(LPath, LTarget, AServices.Parser, LContext, LAnalyzer);
+    for LWarning in AServices.Resolver.GetWarnings do
       FReport.AddWarning('[' + LTarget + '] ' + LWarning);
   finally
     LAnalyzer.Free;
@@ -154,6 +145,22 @@ begin
   end;
 end;
 
+function TTargetAnalysisWorkflow.PrepareTargets(
+  const AContexts: TArray<TProjectCompilationContext>;
+  const ADelphiPath: string): TArray<TTargetAnalysisServices>;
+var LIndex: Integer; LPath: string; LSnapshot: IAnalysisSnapshot;
+begin
+  SetLength(Result, Length(AContexts));
+  for LIndex := 0 to High(AContexts) do
+  begin
+    CheckCancellation;
+    Result[LIndex] := FFactory.CreateForTarget(AContexts[LIndex], ADelphiPath);
+    if Supports(Result[LIndex].Parser, IAnalysisSnapshot, LSnapshot) then
+      FSnapshots.Add(LSnapshot);
+    for LPath in Result[LIndex].UnitPaths do
+      FPaths.AddOrSetValue(TPath.GetFullPath(LPath).ToLowerInvariant, TPath.GetFullPath(LPath));
+  end;
+end;
 function TTargetAnalysisWorkflow.CreatePlan: TUnitAnalysisPlan;
 var
   LPair: TPair<string, TAnalysisIntersection>;
@@ -179,17 +186,19 @@ function TTargetAnalysisWorkflow.BuildPlan(const AProjectPath, ADelphiPath: stri
   const ATargets: TArray<TBuildTarget>; out AUnitCount, ASearchPathCount: Integer): TUnitAnalysisPlan;
 var
   LContexts: TArray<TProjectCompilationContext>;
-  LContext: TProjectCompilationContext;
+  LServices: TArray<TTargetAnalysisServices>;
+  LIndex: Integer;
   LUnits: TArray<string>;
   LSnapshot: IAnalysisSnapshot;
 begin
   LContexts := CollectContexts(AProjectPath, ADelphiPath, ATargets);
+  LServices := PrepareTargets(LContexts, ADelphiPath);
   LUnits := FPaths.Values.ToArray;
   TArray.Sort<string>(LUnits);
   AUnitCount := Length(LUnits);
   ASearchPathCount := FSearchPaths.Count;
-  for LContext in LContexts do
-    AnalyzeTarget(LContext, ADelphiPath, LUnits);
+  for LIndex := 0 to High(LContexts) do
+    AnalyzeTarget(LContexts[LIndex], LServices[LIndex], LUnits);
   CheckCancellation;
   for LSnapshot in FSnapshots do
     LSnapshot.ValidateAnalysis;

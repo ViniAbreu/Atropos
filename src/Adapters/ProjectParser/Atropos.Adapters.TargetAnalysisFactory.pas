@@ -19,7 +19,7 @@ type
 implementation
 
 uses Atropos.Adapters.CompilerSymbols, Atropos.Adapters.DelphiAST,
-  Atropos.Adapters.TargetResolver;
+  Atropos.Adapters.TargetResolver, Atropos.Adapters.ProjectSourceMappings;
 
 constructor TTargetAnalysisFactory.Create(const ARunner: IBuildProcessRunner;
   const ACancel: TCancellationCheck);
@@ -35,6 +35,8 @@ function TTargetAnalysisFactory.CreateForTarget(
 var
   LReader: TCompilerSymbolReader;
   LSymbols: TCompilerSymbols;
+  LParser: TDelphiASTAdapter;
+  LContext: TProjectCompilationContext;
 begin
   LReader := TCompilerSymbolReader.Create(FRunner, FCancel);
   try
@@ -42,8 +44,13 @@ begin
   finally
     LReader.Free;
   end;
-  Result.Parser := TDelphiASTAdapter.Create(AContext, LSymbols);
-  Result.Resolver := TTargetUnitResolver.Create(Result.Parser, AContext, ADelphiPath);
+  LParser := TDelphiASTAdapter.Create(AContext, LSymbols);
+  Result.Parser := LParser;
+  LParser.BeginAnalysis;
+  LParser.RegisterProjectInputs(AContext.ProjectFiles);
+  LContext := TProjectSourceMappings.Resolve(AContext, Result.Parser);
+  Result.UnitPaths := LContext.UnitPaths;
+  Result.Resolver := TTargetUnitResolver.Create(Result.Parser, LContext, ADelphiPath);
 end;
 
 end.

@@ -20,6 +20,7 @@ uses
   Atropos.Adapters.ProjectContext in 'src\Adapters\ProjectParser\Atropos.Adapters.ProjectContext.pas',
   Atropos.Adapters.CompilerSymbols in 'src\Adapters\ProjectParser\Atropos.Adapters.CompilerSymbols.pas',
   Atropos.Adapters.TargetAnalysisFactory in 'src\Adapters\ProjectParser\Atropos.Adapters.TargetAnalysisFactory.pas',
+  Atropos.Adapters.ProjectSourceMappings in 'src\Adapters\ProjectParser\Atropos.Adapters.ProjectSourceMappings.pas',
   Atropos.Adapters.ProjectEvaluationScript in 'src\Adapters\ProjectParser\Atropos.Adapters.ProjectEvaluationScript.pas',
   Atropos.Adapters.DelphiSource in 'src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas',
   Atropos.Adapters.SourceIncludes in 'src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas',

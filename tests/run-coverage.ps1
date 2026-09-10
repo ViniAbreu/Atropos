@@ -39,7 +39,7 @@ $units = @(
     'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.FileTransaction',
-    'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ProjectContext', 'Atropos.Adapters.CompilerSymbols', 'Atropos.Adapters.TargetAnalysisFactory', 'Atropos.Adapters.TargetResolver', 'Atropos.Adapters.ContextSyntaxBuilder', 'Atropos.Adapters.ConditionalImports', 'Atropos.Application.TargetAnalysis', 'Atropos.Application.Logger', 'Atropos.Adapters.ProjectEvaluationScript', 'Atropos.Adapters.ReportGenerator',
+    'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ProjectContext', 'Atropos.Adapters.CompilerSymbols', 'Atropos.Adapters.ProjectSourceMappings', 'Atropos.Adapters.TargetAnalysisFactory', 'Atropos.Adapters.TargetResolver', 'Atropos.Adapters.ContextSyntaxBuilder', 'Atropos.Adapters.ConditionalImports', 'Atropos.Application.TargetAnalysis', 'Atropos.Application.Logger', 'Atropos.Adapters.ProjectEvaluationScript', 'Atropos.Adapters.ReportGenerator',
     'Atropos.Adapters.DelphiAST', 'Atropos.Adapters.DelphiSource',
     'Atropos.Adapters.SourceIncludes', 'Atropos.Adapters.SourceSnapshot', 'Atropos.Application.AnalysisPlan'
 )
