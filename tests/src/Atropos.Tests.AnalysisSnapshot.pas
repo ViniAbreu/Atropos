@@ -28,6 +28,14 @@ type
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
     [Test] procedure UnchangedSourcesValidate;
+    [Test] procedure UnchangedSourceReusesTreeOnlyWithinAnalysis;
+    [TestCase('Root', 'Consumer.pas')]
+    [TestCase('Include', 'body.inc')]
+    [TestCase('NestedInclude', 'nested.inc')]
+    procedure ChangedInputRebuildsTree(const AName: string);
+    [Test] procedure IncludeResolutionChangeRebuildsTree;
+    [Test] procedure NewIncludeCandidateInvalidatesBeforeAnotherRead;
+    [Test] procedure ParserWithoutSnapshotDoesNotReuseTrees;
     [Test] [TestCase('Root', 'Consumer.pas')]
     [TestCase('Include', 'body.inc')]
     procedure ChangedSourceInvalidatesPlan(const AName: string);
@@ -96,6 +104,96 @@ end;
 
 procedure TAnalysisSnapshotTests.UnchangedSourcesValidate;
 begin
+  FParser.ParseFile(TPath.Combine(FRoot, 'Consumer.pas'));
+  FSnapshot.ValidateAnalysis;
+end;
+
+procedure TAnalysisSnapshotTests.UnchangedSourceReusesTreeOnlyWithinAnalysis;
+var LFirst, LSecond: IUnitSyntaxTree; LPath: string;
+begin
+  LPath := TPath.Combine(FRoot, 'Consumer.pas');
+  LFirst := FParser.ParseFile(LPath);
+  LSecond := FParser.ParseFile(LPath);
+  Assert.IsTrue(LFirst = LSecond);
+  FSnapshot.ValidateAnalysis;
+  FSnapshot.BeginAnalysis;
+  LSecond := FParser.ParseFile(LPath);
+  Assert.IsFalse(LFirst = LSecond);
+  Assert.Contains<string>(LFirst.GetExportedIdentifiers, 'TIncluded');
+end;
+
+procedure TAnalysisSnapshotTests.ChangedInputRebuildsTree(const AName: string);
+var LFirst, LSecond: IUnitSyntaxTree; LPath: string;
+begin
+  if AName = 'nested.inc' then
+  begin
+    WriteSource('nested.inc', 'type TIncluded = Integer;');
+    WriteSource('body.inc', '{$I nested.inc}');
+  end;
+  LPath := TPath.Combine(FRoot, 'Consumer.pas');
+  LFirst := FParser.ParseFile(LPath);
+  if AName = 'Consumer.pas' then
+    WriteSource(AName, 'unit Consumer; interface type TChanged = Integer; implementation end.');
+  if (AName = 'body.inc') or (AName = 'nested.inc') then
+    WriteSource(AName, 'type TChanged = Integer;');
+  LSecond := FParser.ParseFile(LPath);
+  Assert.IsFalse(LFirst = LSecond);
+  Assert.AreEqual('TChanged', string.Join(',', LSecond.GetExportedIdentifiers));
+  Assert.Contains<string>(LFirst.GetExportedIdentifiers, 'TIncluded');
+  Assert.WillRaise(procedure begin FSnapshot.ValidateAnalysis end, EInvalidOperation);
+end;
+
+procedure TAnalysisSnapshotTests.IncludeResolutionChangeRebuildsTree;
+var LFirst, LSecond: IUnitSyntaxTree; LPath, LDirectory: string;
+  LDependencies: IUnitSourceDependencies;
+begin
+  LDirectory := TPath.Combine(FRoot, 'fallback');
+  TDirectory.CreateDirectory(LDirectory);
+  TFile.Delete(TPath.Combine(FRoot, 'body.inc'));
+  WriteSource('fallback/body.inc', 'type TIncluded = Integer;');
+  FParser := TDelphiASTAdapter.Create([LDirectory]);
+  Assert.IsTrue(Supports(FParser, IAnalysisSnapshot, FSnapshot));
+  FSnapshot.BeginAnalysis;
+  LPath := TPath.Combine(FRoot, 'Consumer.pas');
+  LFirst := FParser.ParseFile(LPath);
+  WriteSource('body.inc', 'type TIncluded = Integer;');
+  LSecond := FParser.ParseFile(LPath);
+  Assert.IsFalse(LFirst = LSecond, 'Equal include bytes at a different resolved path need new provenance');
+  Assert.IsTrue(Supports(LSecond, IUnitSourceDependencies, LDependencies));
+  Assert.AreEqual(TPath.Combine(FRoot, 'body.inc'), LDependencies.GetSourceDependencies[0].FilePath);
+  Assert.WillRaise(procedure begin FSnapshot.ValidateAnalysis end, EInvalidOperation);
+  TFile.Delete(TPath.Combine(FRoot, 'body.inc'));
+  FParser.ParseFile(LPath);
+  Assert.WillRaise(procedure begin FSnapshot.ValidateAnalysis end, EInvalidOperation);
+end;
+
+procedure TAnalysisSnapshotTests.ParserWithoutSnapshotDoesNotReuseTrees;
+var LParser: IASTParser; LFirst, LSecond: IUnitSyntaxTree; LPath: string;
+begin
+  LParser := TDelphiASTAdapter.Create;
+  LPath := TPath.Combine(FRoot, 'Consumer.pas');
+  LFirst := LParser.ParseFile(LPath);
+  LSecond := LParser.ParseFile(LPath);
+  Assert.IsFalse(LFirst = LSecond);
+end;
+
+procedure TAnalysisSnapshotTests.NewIncludeCandidateInvalidatesBeforeAnotherRead;
+var LDirectory: string;
+begin
+  LDirectory := TPath.Combine(FRoot, 'fallback');
+  TDirectory.CreateDirectory(LDirectory);
+  TFile.Delete(TPath.Combine(FRoot, 'body.inc'));
+  WriteSource('fallback/body.inc', 'type TIncluded = Integer;');
+  FParser := TDelphiASTAdapter.Create([LDirectory]);
+  Assert.IsTrue(Supports(FParser, IAnalysisSnapshot, FSnapshot));
+  FSnapshot.BeginAnalysis;
+  FParser.ParseFile(TPath.Combine(FRoot, 'Consumer.pas'));
+  FSnapshot.ValidateAnalysis;
+  WriteSource('body.inc', 'type TIncluded = Integer;');
+  Assert.WillRaise(procedure begin FSnapshot.ValidateAnalysis end, EInvalidOperation);
+  TFile.Delete(TPath.Combine(FRoot, 'body.inc'));
+  Assert.WillRaise(procedure begin FSnapshot.ValidateAnalysis end, EInvalidOperation);
+  FSnapshot.BeginAnalysis;
   FParser.ParseFile(TPath.Combine(FRoot, 'Consumer.pas'));
   FSnapshot.ValidateAnalysis;
 end;

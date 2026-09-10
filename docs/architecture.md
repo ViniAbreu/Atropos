@@ -70,6 +70,17 @@ filenames. The real sources and hashes remain snapshot inputs. No transformed te
 is written back. Unsupported expressions stop parsing rather than selecting a false
 branch. The DelphiAST submodule remains pinned and unchanged.
 
+Within an explicit analysis lifetime, the parser can reuse a syntax tree after
+rereading and preparing the root and active includes. Its key includes the root
+hash and each include's parent, resolved path and hash; compiler context belongs
+to the parser instance. `BeginAnalysis` clears all retained trees. Calls outside
+an analysis lifetime do not reuse trees. Snapshot recording still observes every
+read, including changed bytes later restored. Include lookup also records missing
+higher-priority candidates: a candidate appearing before validation invalidates
+the plan even when no existing source bytes changed. Observed conflicts remain
+invalid until a new analysis begins. This retains ASTs in memory for one analysis;
+it does not persist them or share them across target contexts.
+
 `IUnitExportFacts` carries symbol kind and generic arity independently of legacy
 export names. Resolver caches and aliases forward these facts to the Core. Type
 lookups require matching arity; generic routine calls may infer their arguments.
