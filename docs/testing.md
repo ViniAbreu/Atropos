@@ -363,3 +363,13 @@ including errors inside include files. Unexpected EOF coordinates are normalized
 before the upstream parser wraps its exception. DelphiASTAdapter regressions verify
 root, include and EOF locations. Coordinates refer to the parser's normalized input;
 multiline-string normalization preserves lines but may change columns.
+
+CompilerTraceProcess tests exercise native compiler preparation on Win32/Win64,
+including local type shadowing, imported DECLARED names, repeated includes, and the
+installed Winapi.Windows and System.SysUtils sources. They require both discovery
+and validation compilations, verify source/include mutation rejection and check
+reuse without further compiler calls. Imports needed by compiler conditions remain
+constrained. Process tests cover cancellation, stale or missing artifacts, changed
+project/environment settings, and project hooks. The dependency reader is checked
+against generated lists as well as malformed and missing paths. These checks do not
+establish support for uncaptured regenerated dependencies or every Delphi version.

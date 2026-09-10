@@ -2,7 +2,7 @@ unit Atropos.Adapters.SourceSnapshot;
 
 interface
 
-uses System.Generics.Collections;
+uses System.Generics.Collections, Atropos.Core.Ports;
 
 type
   TSourceSnapshot = class
@@ -18,6 +18,9 @@ type
     procedure RecordSource(const APath, AHash: string);
     procedure RecordMissingSource(const APath: string);
     procedure ValidateAnalysis;
+    function ContainsSource(const APath: string): Boolean;
+    function Dependencies: TArray<TSourceDependency>;
+    function MissingPaths: TArray<string>;
   end;
 
 implementation
@@ -95,6 +98,29 @@ begin
     if THashSHA2.GetHashStringFromFile(LSource.Key) <> LSource.Value then
       raise EInvalidOperation.Create('Source changed before applying analysis: ' + LSource.Key);
   end;
+end;
+
+function TSourceSnapshot.ContainsSource(const APath: string): Boolean;
+begin
+  Result := FHashes.ContainsKey(TPath.GetFullPath(APath).ToLowerInvariant);
+end;
+
+function TSourceSnapshot.Dependencies: TArray<TSourceDependency>;
+var LPair: TPair<string, string>; LIndex: Integer;
+begin
+  SetLength(Result, FHashes.Count);
+  LIndex := 0;
+  for LPair in FHashes do
+  begin
+    Result[LIndex].FilePath := LPair.Key;
+    Result[LIndex].ContentHash := LPair.Value;
+    Inc(LIndex);
+  end;
+end;
+
+function TSourceSnapshot.MissingPaths: TArray<string>;
+begin
+  Result := FAbsentSources.Keys.ToArray;
 end;
 
 end.

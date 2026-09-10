@@ -5,6 +5,8 @@ interface
 uses System.SysUtils, System.Generics.Collections, Atropos.Core.Compilation;
 
 type
+  ECompilerConditionRequired = class(EInvalidOpException);
+
   TConditionalValue = record
     Number: Extended;
     IntegerValue: Int64;
@@ -77,7 +79,7 @@ begin
   for LOption in FNumbers do
     if SameText(LOption.Name, AName) then
       Exit(LOption.Value);
-  raise EInvalidOpException.Create('Unknown compiler numeric fact: ' + AName);
+  raise ECompilerConditionRequired.Create('Unknown compiler numeric fact: ' + AName);
 end;
 
 function TConditionalExpression.SizeValue: TConditionalValue;
@@ -100,11 +102,11 @@ begin
   if AName.StartsWith('SYSTEM.') then
   begin
     if FObservedNames.ContainsKey('SYSTEM') then
-      raise EInvalidOpException.Create('Numeric qualifier requires declaration resolution: SYSTEM');
+      raise ECompilerConditionRequired.Create('Numeric qualifier requires declaration resolution: SYSTEM');
     Exit(Copy(AName, 8, MaxInt));
   end;
   if FObservedNames.ContainsKey(AName) or FObservedNames.ContainsKey('USES') then
-    raise EInvalidOpException.Create('Numeric name requires declaration resolution: ' + AName);
+    raise ECompilerConditionRequired.Create('Numeric name requires declaration resolution: ' + AName);
   Result := AName;
 end;
 
@@ -170,6 +172,8 @@ begin
     if FToken = 'TRUE' then begin Next; Exit(TConditionalValue.BooleanValue(True)) end;
     if FToken = 'FALSE' then begin Next; Exit(TConditionalValue.BooleanValue(False)) end;
     if FToken = 'SIZEOF' then Exit(SizeValue);
+    if FToken = 'DECLARED' then
+      raise ECompilerConditionRequired.Create('DECLARED requires compiler declaration resolution.');
     LName := FToken;
     if LName = 'COMPILERVERSION' then LName := FCompilerVersion;
     if (LName = 'RTLVERSION') or (LName = 'SYSTEM.RTLVERSION') then

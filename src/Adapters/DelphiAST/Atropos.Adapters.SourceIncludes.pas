@@ -14,6 +14,7 @@ type
     FDependencies: TList<TSourceDependency>;
     FSnapshot: TSourceSnapshot;
     function ResolveInclude(const AParentFile, AIncludeName: string): string;
+    function FindInclude(const AParentFile, AIncludeName: string): string;
     procedure CheckCycle(const AParentFile, AFilePath: string);
     procedure RecordDependency(const AParentFile, AFilePath, AHash: string);
   public
@@ -23,6 +24,8 @@ type
     function GetIncludeFileContent(const ParentFileName, IncludeName: string;
       out Content, FileName: string): Boolean;
     function GetDependencies: TArray<TSourceDependency>;
+    function GetRawIncludeFileContent(const ParentFileName, IncludeName: string;
+      out Content, FileName: string): Boolean;
   end;
 
 implementation
@@ -48,7 +51,7 @@ begin
   inherited;
 end;
 
-function TSourceIncludeResolver.ResolveInclude(const AParentFile,
+function TSourceIncludeResolver.FindInclude(const AParentFile,
   AIncludeName: string): string;
 var
   LPath: string;
@@ -71,8 +74,31 @@ begin
     if Assigned(FSnapshot) then
       FSnapshot.RecordMissingSource(Result);
   end;
-  raise EIncludeError.CreateFmt('Include "%s" requested by "%s" was not found.',
-    [AIncludeName, AParentFile]);
+  Result := '';
+end;
+
+function TSourceIncludeResolver.ResolveInclude(const AParentFile, AIncludeName: string): string;
+begin
+  Result := FindInclude(AParentFile, AIncludeName);
+  if Result.IsEmpty then
+    raise EIncludeError.CreateFmt('Include "%s" requested by "%s" was not found.',
+      [AIncludeName, AParentFile]);
+end;
+
+function TSourceIncludeResolver.GetRawIncludeFileContent(const ParentFileName, IncludeName: string;
+  out Content, FileName: string): Boolean;
+var LParent: string; LSource: TDelphiSourceContent;
+begin
+  LParent := ParentFileName;
+  if LParent.IsEmpty then LParent := FRootFile;
+  FileName := FindInclude(LParent, IncludeName);
+  Content := '';
+  Result := not FileName.IsEmpty;
+  if not Result then Exit;
+  LSource := TDelphiSourceReader.ReadRaw(FileName);
+  if Assigned(FSnapshot) then FSnapshot.RecordSource(FileName, LSource.ContentHash);
+  RecordDependency(LParent, FileName, LSource.ContentHash);
+  Content := LSource.Text;
 end;
 
 procedure TSourceIncludeResolver.CheckCycle(const AParentFile,

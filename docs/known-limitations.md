@@ -13,8 +13,15 @@
   and name-based binding are still partial. Conditional expressions support Boolean
   operators, DEFINED, parentheses and numeric comparisons; IFOPT requires a known
   project or source switch. Unsupported operands/options fail explicitly and preserve
-  dependencies. Arithmetic, bitwise operations, Declared/SizeOf, RTLVersion and high
-  precision decimal comparisons are not inferred.
+  dependencies. Known numeric facts come from the selected compiler. Declaration-bound
+  DECLARED, SIZEOF and RTLVersion conditions can use isolated compiler preparation;
+  other unsupported arithmetic, bitwise and precision cases are not inferred.
+- Compiler-prepared units retain their imports, including imports referenced only
+  by conditional expressions. Their declarations can still inform other consumers.
+  This preparation requires precompiled dependencies; regenerated dependency units
+  without source snapshots are rejected. Relative resource/object paths, guarded
+  recursive includes and declaration-bound DPR conditions remain unsupported or
+  restricted. See [project contexts](project-context.md).
 - Unresolved dependencies are preserved conservatively.
 - The historical anonymous-parameter scenario uses an inline `reference to` variable
   declaration rejected by compiler 36.0 on Win32/Win64. Its original oracle remains

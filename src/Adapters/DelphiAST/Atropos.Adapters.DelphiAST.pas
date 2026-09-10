@@ -7,6 +7,7 @@ uses
   Atropos.Core.Ports,
   Atropos.Core.Compilation,
   Atropos.Adapters.SourceSnapshot,
+  Atropos.Adapters.CompilerPreparation,
   DelphiAST.Classes,
   DelphiAST.Consts, DelphiAST,
   System.Classes;
@@ -36,7 +37,7 @@ type
     constructor Create(const AFileName: string; ARoot: TSyntaxNode;
       const ADependencies: TArray<TSourceDependency>;
       const AReasons: TArray<string> = nil;
-      const AConstraints: TArray<string> = nil);
+      const AConstraints: TArray<string> = nil; APreserveImports: Boolean = False);
     destructor Destroy; override;
     
     function GetUnitName: string;
@@ -69,6 +70,9 @@ type
     FCompilerVersion: string;
     FOptions: TArray<TCompilerOption>;
     FNumbers: TArray<TCompilerOption>;
+    FCompilerPreparer: ICompilerSourcePreparer;
+    function ParseCompilerFile(const AFilePath, AHash: string;
+      const AConstraints: TArray<string>): IUnitSyntaxTree;
     function CreateSourceStream(const AFilePath: string;
       out AConstraints: TArray<string>; out AHash: string): TStringStream;
     function SyntaxKey(const AFilePath, AHash: string;
@@ -79,7 +83,8 @@ type
     constructor Create; overload;
     constructor Create(const AIncludePaths: TArray<string>); overload;
     constructor Create(const AContext: TProjectCompilationContext;
-      const ASymbols: TCompilerSymbols); overload;
+      const ASymbols: TCompilerSymbols;
+      const ACompilerPreparer: ICompilerSourcePreparer = nil); overload;
     destructor Destroy; override;
     procedure BeginAnalysis;
     procedure ValidateAnalysis;
@@ -94,6 +99,7 @@ uses Atropos.Core.Profiling, Atropos.Adapters.ExportFacts, Atropos.Adapters.Impl
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalSource,
   Atropos.Adapters.ConditionalImports,
+  Atropos.Adapters.ConditionalExpression, Atropos.Adapters.TracedIncludes,
   DelphiAST.SimpleParserEx, SimpleParser.Lexer, SimpleParser.Lexer.Types;
 
 constructor TDelphiASTAdapter.Create;
@@ -110,7 +116,7 @@ begin
 end;
 
 constructor TDelphiASTAdapter.Create(const AContext: TProjectCompilationContext;
-  const ASymbols: TCompilerSymbols);
+  const ASymbols: TCompilerSymbols; const ACompilerPreparer: ICompilerSourcePreparer);
 begin
   inherited Create;
   FSnapshot := TSourceSnapshot.Create;
@@ -120,6 +126,7 @@ begin
   FCompilerVersion := ASymbols.CompilerVersion;
   FOptions := ASymbols.DefaultSwitches + AContext.Options;
   FNumbers := Copy(ASymbols.NumericValues);
+  FCompilerPreparer := ACompilerPreparer;
   if Length(AContext.DeferredProperties) > 0 then
     FContextReasons := ['Build targets can change compiler settings: ' +
       string.Join(', ', AContext.DeferredProperties)];
@@ -202,6 +209,46 @@ begin
   end;
 end;
 
+function TDelphiASTAdapter.ParseCompilerFile(const AFilePath, AHash: string;
+  const AConstraints: TArray<string>): IUnitSyntaxTree;
+var LPrepared: TCompilerPreparedSource; LHandler: TTracedIncludes;
+  LPort: IIncludeHandler; LBuilder: TContextSyntaxBuilder; LStream: TStringStream;
+  LRoot: TSyntaxNode; LMissing, LKey: string;
+begin
+  LPrepared := FCompilerPreparer.Prepare(AFilePath, AHash);
+  if not SameText(LPrepared.SourceHash, AHash) then
+    raise EASTParserException.Create('Source changed during compiler preparation: ' + AFilePath);
+  RegisterProjectInputs(LPrepared.Dependencies);
+  for LMissing in LPrepared.MissingPaths do FSnapshot.RecordMissingSource(LMissing);
+  LKey := SyntaxKey(AFilePath, AHash, LPrepared.Dependencies);
+  if Assigned(FParsedTrees) then
+    if FParsedTrees.TryGetValue(LKey, Result) then Exit;
+  LHandler := TTracedIncludes.Create(AFilePath, LPrepared.Includes);
+  LPort := LHandler;
+  LBuilder := TContextSyntaxBuilder.Create;
+  try
+    LBuilder.IncludeHandler := LPort;
+    LStream := TStringStream.Create(LPrepared.Text, TEncoding.UTF8);
+    try
+      LRoot := BuildSyntax(LBuilder, LStream, AFilePath);
+      if not Assigned(LRoot) then raise EASTParserException.Create('Parser returned nil tree.');
+      try
+        LHandler.ValidateConsumed;
+      except
+        LRoot.Free;
+        raise;
+      end;
+      Result := TDelphiASTSyntaxTree.Create(AFilePath, LRoot, LPrepared.Dependencies,
+        FContextReasons + LBuilder.IncompleteReasons, AConstraints, True);
+      if Assigned(FParsedTrees) then FParsedTrees.AddOrSetValue(LKey, Result);
+    finally
+      LStream.Free;
+    end;
+  finally
+    LBuilder.Free;
+  end;
+end;
+
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
 var LProfileScope: IInterface;
   LBuilder: TPasSyntaxTreeBuilder;
@@ -244,7 +291,15 @@ begin
           begin Result := LLexer.IsDefined(AName) end, LVersion, FOptions, FNumbers);
         LIncludeHandler := LPrepared;
         LBuilder.IncludeHandler := LIncludeHandler;
-        LText := LPrepared.Prepare(LSourceStream.DataString, AFilePath);
+        try
+          LText := LPrepared.Prepare(LSourceStream.DataString, AFilePath);
+        except
+          on E: ECompilerConditionRequired do
+          begin
+            if not Assigned(FCompilerPreparer) then raise;
+            Exit(ParseCompilerFile(AFilePath, LHash, LConstraints));
+          end;
+        end;
         LKey := SyntaxKey(AFilePath, LHash, LPrepared.GetDependencies);
         if Assigned(FParsedTrees) then
           if FParsedTrees.TryGetValue(LKey, Result) then
@@ -270,6 +325,7 @@ begin
       LSourceStream.Free;
     end;
   except
+    on E: EAbort do raise;
     on E: Exception do
       raise EASTParserException.CreateFmt('Error parsing file "%s": %s', [AFilePath, E.Message]);
   end;
@@ -277,7 +333,7 @@ end;
 
 constructor TDelphiASTSyntaxTree.Create(const AFileName: string; ARoot: TSyntaxNode;
   const ADependencies: TArray<TSourceDependency>; const AReasons: TArray<string>;
-  const AConstraints: TArray<string>);
+  const AConstraints: TArray<string>; APreserveImports: Boolean);
 begin
   FFileName := AFileName;
   FRoot := ARoot;
@@ -290,6 +346,9 @@ begin
     if FRoot.HasAttribute(anName) then
       FUnitName := FRoot.GetAttribute(anName);
   end;
+  // Removing an import can change DECLARED/SIZEOF even when the final build succeeds.
+  if APreserveImports then
+    FPreservedImports := FPreservedImports + GetInterfaceUses + GetImplementationUses;
 end;
 
 destructor TDelphiASTSyntaxTree.Destroy;

@@ -19,7 +19,8 @@ type
 implementation
 
 uses Atropos.Core.Profiling, Atropos.Adapters.CompilerSymbols, Atropos.Adapters.DelphiAST,
-  Atropos.Adapters.TargetResolver, Atropos.Adapters.ProjectSourceMappings;
+  Atropos.Adapters.TargetResolver, Atropos.Adapters.ProjectSourceMappings,
+  Atropos.Adapters.NativeSourcePreparer;
 
 constructor TTargetAnalysisFactory.Create(const ARunner: IBuildProcessRunner;
   const ACancel: TCancellationCheck);
@@ -45,7 +46,8 @@ begin
   finally
     LReader.Free;
   end;
-  LParser := TDelphiASTAdapter.Create(AContext, LSymbols);
+  LParser := TDelphiASTAdapter.Create(AContext, LSymbols,
+    TNativeSourcePreparer.Create(AContext, ADelphiPath, FRunner, FCancel));
   Result.Parser := LParser;
   LParser.BeginAnalysis;
   LParser.RegisterProjectInputs(AContext.ProjectFiles);

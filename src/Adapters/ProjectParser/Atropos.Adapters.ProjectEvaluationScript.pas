@@ -10,7 +10,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.NetEncoding;
+uses System.SysUtils, System.NetEncoding, Atropos.Adapters.CompilerContextSignature;
 
 class function TProjectEvaluationScript.Build(const ARequest: string): string;
 begin
@@ -19,6 +19,7 @@ begin
     '[void][Reflection.Assembly]::Load(''Microsoft.Build, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'')' + sLineBreak +
     '$request = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($requestBase64)) | ConvertFrom-Json' + sLineBreak +
     '$collection = New-Object Microsoft.Build.Evaluation.ProjectCollection' + sLineBreak +
+    TCompilerContextSignature.Script + sLineBreak +
     'function Read-Hashes($project) {' + sLineBreak +
     ' $hashes = @{}' + sLineBreak +
     ' $paths = @($project.FullPath) + @($project.Imports | ForEach-Object { $_.ImportedProject.FullPath })' + sLineBreak +
@@ -73,6 +74,7 @@ begin
     '  applicationType = $project.GetPropertyValue(''AppType'')' + sLineBreak +
     '  compilerPath = $compilerPath' + sLineBreak +
     '  compilerFileVersion = $compilerVersion' + sLineBreak +
+    '  compilerContextHash = Read-CompilerContextHash $project' + sLineBreak +
     '  defines = @(Read-List ($project.GetPropertyValue(''DCC_Define'')))' + sLineBreak +
     '  unitPaths = @($project.GetItems(''DCCReference'') | Where-Object { [IO.Path]::GetExtension($_.EvaluatedInclude) -eq ''.pas'' } | ForEach-Object { $_.GetMetadataValue(''FullPath'') })' + sLineBreak +
     '  searchPaths = @(Read-Paths $search)' + sLineBreak +
