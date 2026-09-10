@@ -324,3 +324,12 @@ causes both include-resolution regression tests to fail. Reverting an observed
 change does not rehabilitate an already invalid snapshot. This reuses syntax, not
 filesystem observations; additional retained AST memory is a tradeoff, and reduced
 construction counts alone do not establish a wall-clock speedup.
+
+Executable-size metrics use the evaluated MSBuild `FinalOutput` for the selected
+configuration and platform after a successful build. ProjectContext regressions
+cover renamed output, Unicode paths, missing artifacts, target property groups,
+and task output properties. When output metadata is unavailable or can change
+inside a target, the metric remains unknown. Metadata lookup failures preserve
+build success; cancellation still propagates. A real RepresentativeConsole run
+with minimal MSBuild verbosity reproduces the old missing-size report and verifies
+the measured executable with the new adapter.

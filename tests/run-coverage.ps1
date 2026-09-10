@@ -35,6 +35,7 @@ $units = @(
     'Atropos.Application.Factory', 'Atropos.App.CLI',
     'Atropos.Adapters.Logger',
     'Atropos.Adapters.BuildService', 'Atropos.Adapters.BuildCapability',
+    'Atropos.Adapters.BuildArtifact',
     'Atropos.Adapters.ExecutionThread',
     'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.UnitDependencies', 'Atropos.Adapters.FileSystem',

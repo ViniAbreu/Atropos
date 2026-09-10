@@ -24,6 +24,7 @@ type
     ProjectPath: string;
     Target: TBuildTarget;
     MainSource: string;
+    ExecutablePath: string;
     ApplicationType: string;
     CompilerPath: string;
     CompilerFileVersion: string;

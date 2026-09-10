@@ -60,6 +60,7 @@ uses
   Atropos.Adapters.ExecutionThread in 'src\Adapters\Execution\Atropos.Adapters.ExecutionThread.pas',
   Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
   Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
+  Atropos.Adapters.BuildArtifact in 'src\Adapters\BuildService\Atropos.Adapters.BuildArtifact.pas',
   Atropos.Adapters.BuildCapability in 'src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas';
 
 {$R *.res}
