@@ -4,6 +4,7 @@ interface
 uses
   Atropos.Core.Ports,
   Atropos.Core.Config,
+  Atropos.Core.Compilation,
   Atropos.Core.Domain,
   Atropos.Core.Modifier,
   Atropos.Application.AnalysisPlan,
@@ -23,6 +24,10 @@ type
     FBuildService: IBuildService;
     FConfig: TToolConfig;
     FShouldCancel: TCancellationCheck;
+    FContextProvider: IProjectContextProvider;
+    FTargetFactory: ITargetAnalysisFactory;
+    FDelphiPath: string;
+    FContextSearchPathCount: Integer;
     
     FOnProgress: TProgressEvent;
     FOnLog: TLogEvent;
@@ -35,6 +40,8 @@ type
     procedure LogBuildDiagnostics(const AMetrics: TBuildMetrics);
     function RunConfiguredBuilds(const AFullPath: string): TBuildMetrics;
     procedure ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
+    procedure ProcessTargetUnits(const AProjectPath: string;
+      AModifier: TApplyUsesChanges; out ARemoved, AMoved, AUnitCount: Integer);
     procedure CheckCancellation;
     procedure AnalyzeUnit(const APath: string; AContext: TProjectContext;
       AAnalyzer: TAnalyzeUnitUses; APlan: TUnitAnalysisPlan);
@@ -64,7 +71,9 @@ type
       const AResolver: IExternalUnitResolver;
       const ABuildService: IBuildService;
       const AConfig: TToolConfig;
-      const AShouldCancel: TCancellationCheck = nil);
+      const AShouldCancel: TCancellationCheck = nil;
+      const AContextProvider: IProjectContextProvider = nil;
+      const ATargetFactory: ITargetAnalysisFactory = nil);
       
     property OnProgress: TProgressEvent read FOnProgress write FOnProgress;
     property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -74,16 +83,7 @@ type
 
 implementation
 uses System.Diagnostics, System.IOUtils, System.Threading,
-  System.SysUtils;
-
-type
-  TApplicationLogger = class(TInterfacedObject, ILogger)
-  private
-    FOnLog: TLogEvent;
-  public
-    constructor Create(const AOnLog: TLogEvent);
-    procedure Log(const AMsg: string);
-  end;
+  System.SysUtils, Atropos.Application.TargetAnalysis, Atropos.Application.Logger;
 
 procedure TProjectCleanerAppService.CollectProjectParserWarnings;
 var
@@ -107,17 +107,6 @@ begin
   end;
 end;
 
-constructor TApplicationLogger.Create(const AOnLog: TLogEvent);
-begin
-  FOnLog := AOnLog;
-end;
-
-procedure TApplicationLogger.Log(const AMsg: string);
-begin
-  if Assigned(FOnLog) then
-    FOnLog(AMsg);
-end;
-
 constructor TProjectCleanerAppService.Create(
   const AProjectParser: IProjectParser;
   const AASTParser: IASTParser;
@@ -127,7 +116,9 @@ constructor TProjectCleanerAppService.Create(
   const AResolver: IExternalUnitResolver;
   const ABuildService: IBuildService;
   const AConfig: TToolConfig;
-  const AShouldCancel: TCancellationCheck);
+  const AShouldCancel: TCancellationCheck;
+  const AContextProvider: IProjectContextProvider;
+  const ATargetFactory: ITargetAnalysisFactory);
 begin
   FProjectParser := AProjectParser;
   FASTParser := AASTParser;
@@ -138,6 +129,8 @@ begin
   FBuildService := ABuildService;
   FConfig := AConfig;
   FShouldCancel := AShouldCancel;
+  FContextProvider := AContextProvider;
+  FTargetFactory := ATargetFactory;
 end;
 
 procedure TProjectCleanerAppService.Log(const AMsg: string);
@@ -183,6 +176,9 @@ begin
   if LDelphiPath.IsEmpty then
     Log('WARNING: Delphi environment not found. Standard RTL/VCL units will not be resolved and will be ignored.');
 
+  FDelphiPath := LDelphiPath;
+  if Assigned(FContextProvider) then
+    Exit(0);
   LSearchPaths := FProjectParser.GetSearchPaths(AFullPath) + [ABasePath];
   
   FResolver.Initialize(LSearchPaths, LDelphiPath, ABasePath);
@@ -246,6 +242,36 @@ begin
     FReportGen.AddWarning(AUnitPath + ': preserved ' + LReason);
 end;
 
+procedure TProjectCleanerAppService.ProcessTargetUnits(const AProjectPath: string;
+  AModifier: TApplyUsesChanges; out ARemoved, AMoved, AUnitCount: Integer);
+var
+  LWorkflow: TTargetAnalysisWorkflow;
+  LPlan: TUnitAnalysisPlan;
+  LChange: TPlannedUnitChange;
+begin
+  ARemoved := 0;
+  AMoved := 0;
+  LWorkflow := TTargetAnalysisWorkflow.Create(FContextProvider, FTargetFactory,
+    FReportGen, FOnLog, FShouldCancel, CreateLogger);
+  try
+    LPlan := LWorkflow.BuildPlan(AProjectPath, FDelphiPath, FConfig.BuildTargets,
+      AUnitCount, FContextSearchPathCount);
+    try
+      Progress(AUnitCount, 0);
+      for LChange in LPlan do
+      begin
+        CheckCancellation;
+        ApplyPlannedUnit(LChange, AModifier, ARemoved, AMoved);
+      end;
+      CheckCancellation;
+      Progress(AUnitCount, AUnitCount);
+    finally
+      LPlan.Free;
+    end;
+  finally
+    LWorkflow.Free;
+  end;
+end;
 procedure TProjectCleanerAppService.CheckCancellation;
 begin
   if Assigned(FShouldCancel) and FShouldCancel() then
@@ -324,6 +350,11 @@ var
 begin
   ATotalRemoved := 0;
   ATotalMoved := 0;
+  if Assigned(FContextProvider) then
+  begin
+    ProcessTargetUnits(ADprojPath, LModifier, ATotalRemoved, ATotalMoved, AUnitCount);
+    Exit;
+  end;
   LUnits := FProjectParser.GetProjectUnits(ADprojPath);
   AUnitCount := Length(LUnits);
   Progress(AUnitCount, 0);
@@ -483,6 +514,8 @@ begin
     ProcessUnits(LBasePath, ADprojPath, LTotalRemoved, LTotalMoved, LUnitCount, LLogger, LContext, LAnalyzer, LModifier);
     CollectProjectParserWarnings;
     CollectResolverWarnings;
+    if Assigned(FContextProvider) then
+      LSearchPathCount := FContextSearchPathCount;
     if (LTotalRemoved = 0) and (LTotalMoved = 0) then
     begin
       Log('No modifications were necessary.');

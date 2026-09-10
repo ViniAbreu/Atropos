@@ -12,6 +12,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
 $rsvars = "C:\Program Files (x86)\Embarcadero\Studio\$BdsVersion\bin\rsvars.bat"
+$env:ATROPOS_TEST_BDS_PATH = Split-Path (Split-Path $rsvars -Parent) -Parent
 $msbuild = "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
 $testProject = Join-Path $PSScriptRoot 'AtroposTests.dproj'
 $testExecutable = Join-Path $PSScriptRoot 'Win32\Debug\AtroposTests.exe'
@@ -26,7 +27,7 @@ $buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config
 if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE" }
 
 $units = @(
-    'Atropos.Core.Domain', 'Atropos.Core.Analysis', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
+    'Atropos.Core.Domain', 'Atropos.Core.Analysis', 'Atropos.Core.AnalysisIntersection', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
     'Atropos.Application.ExecutionLifecycle',
     'Atropos.Application.ExecutionPresentation',
@@ -38,7 +39,7 @@ $units = @(
     'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.FileTransaction',
-    'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ProjectContext', 'Atropos.Adapters.ProjectEvaluationScript', 'Atropos.Adapters.ReportGenerator',
+    'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ProjectContext', 'Atropos.Adapters.CompilerSymbols', 'Atropos.Adapters.TargetAnalysisFactory', 'Atropos.Adapters.TargetResolver', 'Atropos.Adapters.ContextSyntaxBuilder', 'Atropos.Adapters.ConditionalImports', 'Atropos.Application.TargetAnalysis', 'Atropos.Application.Logger', 'Atropos.Adapters.ProjectEvaluationScript', 'Atropos.Adapters.ReportGenerator',
     'Atropos.Adapters.DelphiAST', 'Atropos.Adapters.DelphiSource',
     'Atropos.Adapters.SourceIncludes', 'Atropos.Adapters.SourceSnapshot', 'Atropos.Application.AnalysisPlan'
 )

@@ -75,6 +75,11 @@ type
     function GetIncompleteAnalysisReasons: TArray<string>;
   end;
 
+  IUnitImportConstraints = interface
+    ['{D543F9A5-7387-47A2-8A24-838DC037D5F0}']
+    function GetPreservedImportNames: TArray<string>;
+  end;
+
   IProjectParser = interface
     ['{EAC338C4-E143-41BE-8176-B8EA01A18FBA}']
     function TakeWarnings: TArray<string>;
