@@ -1,0 +1,8 @@
+unit Binary.Only;
+interface
+implementation
+initialization
+  Writeln('BinaryInit');
+finalization
+  Writeln('BinaryFinal');
+end.
