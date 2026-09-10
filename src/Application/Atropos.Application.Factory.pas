@@ -17,7 +17,8 @@ implementation
 uses Atropos.Adapters.BuildCapability, Atropos.Adapters.BuildService,
   Atropos.Adapters.DelphiEnvironment, Atropos.Adapters.ExternalUnitResolver,
   Atropos.Adapters.ReportGenerator, Atropos.Adapters.FileSystem,
-  Atropos.Adapters.DelphiAST, Atropos.Adapters.ProjectParser;
+  Atropos.Adapters.DelphiAST, Atropos.Adapters.ProjectParser,
+  Atropos.Adapters.ProjectContext, Atropos.Adapters.TargetAnalysisFactory;
 
 class function TAppServiceFactory.CreateDefault(const AConfig: TToolConfig;
   const AShouldCancel: TCancellationCheck): TProjectCleanerAppService;
@@ -41,7 +42,9 @@ begin
       AShouldCancel,
       TDelphiBuildCapabilityDetector.Create(LBuildProcessRunner)),
     AConfig,
-    AShouldCancel
+    AShouldCancel,
+    TMsBuildProjectContext.Create(LBuildProcessRunner, AShouldCancel),
+    TTargetAnalysisFactory.Create(LBuildProcessRunner, AShouldCancel)
   );
 end;
 

@@ -60,6 +60,8 @@ type
       ADecisions: TDependencyDecisions): Boolean;
     function PreserveIncomplete(const ASyntaxTree: IUnitSyntaxTree;
       ADecisions: TDependencyDecisions; var AResult: TUnitAnalysisResult): Boolean;
+    function PreserveConstrainedImport(const ATree: IUnitSyntaxTree;
+      const AName: string; ASection: TUsesSection; ADecisions: TDependencyDecisions): Boolean;
   public
     constructor Create(ALogger: ILogger = nil);
     function Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
@@ -404,6 +406,25 @@ begin
   Result := True;
 end;
 
+function TAnalyzeUnitUses.PreserveConstrainedImport(const ATree: IUnitSyntaxTree;
+  const AName: string; ASection: TUsesSection; ADecisions: TDependencyDecisions): Boolean;
+var
+  LConstraints: IUnitImportConstraints;
+  LName: string;
+begin
+  Result := False;
+  if not Supports(ATree, IUnitImportConstraints, LConstraints) then
+    Exit;
+  for LName in LConstraints.GetPreservedImportNames do
+  begin
+    if not SameText(LName, AName) then
+      Continue;
+    ADecisions.Add(TDependencyDecision.Create(AName, ASection, dsUnknown, daPreserve,
+      'Conditional import requires occurrence-aware editing.'));
+    Exit(True);
+  end;
+end;
+
 function TAnalyzeUnitUses.Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
 var
   LIntfUses: TArray<string>;
@@ -433,6 +454,8 @@ begin
 
     for LUnitName in LIntfUses do
     begin
+      if PreserveConstrainedImport(ASyntaxTree, LUnitName, usInterface, LDecisions) then
+        Continue;
       if MustPreserve(AContext, LUnitName, usInterface,
         LIntfUses, LIntfIdents, LDecisions) then
         Continue;
@@ -465,6 +488,8 @@ begin
 
     for LUnitName in LImplUses do
     begin
+      if PreserveConstrainedImport(ASyntaxTree, LUnitName, usImplementation, LDecisions) then
+        Continue;
       if MustPreserve(AContext, LUnitName, usImplementation,
         LIntfUses + LImplUses, LImplIdents, LDecisions) then
         Continue;

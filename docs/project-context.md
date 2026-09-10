@@ -1,11 +1,11 @@
 # Evaluated project context
 
-`IProjectContextProvider` and `TMsBuildProjectContext` provide the evaluation stage
-for the upcoming per-target analysis pipeline. They are compiled and tested but are
-not yet selected by `TAppServiceFactory`. The active application still uses the
-existing project parser and AST compiler defaults; this increment does not claim to
-correct conditional analysis in CLI or VCL.
-
+`TAppServiceFactory` now uses `IProjectContextProvider` for target-specific analysis.
+Every requested configuration/platform gets its own parser, source resolver and
+export cache. The workflow gathers the union of project units, analyzes that union
+under each selected context and intersects proposed actions before writing. A unit
+needed in any context is preserved; a parse failure vetoes edits for that file.
+With no explicit target, evaluation uses the project's defaults.
 The provider runs the installed .NET Framework MSBuild evaluation API in an isolated
 Windows PowerShell process under the selected Delphi `rsvars.bat` environment. It
 does not run build targets. Configuration and platform are MSBuild global properties,
@@ -18,7 +18,7 @@ The result records evaluated defines, ordered source/include paths, namespaces,
 aliases, compiler option property values, active PAS `DCCReference` items, main
 source, compiler path and executable file version. Imported property files and
 property functions are evaluated by MSBuild. Root/import hashes are checked across
-two evaluations to reject changed inputs; returned project-file hashes can later
+two evaluations to reject changed inputs; returned project-file hashes also
 extend the application snapshot. Each call starts a fresh process and evaluation.
 
 Missing imports, malformed output, process failure, timeout and cancellation fail
@@ -26,22 +26,37 @@ explicitly. There is no fallback that treats failed evaluation as an empty conte
 Temporary scripts are removed after the process finishes or is terminated. The
 existing process runner supplies cancellation, timeout and process-tree cleanup.
 
-## Boundaries before activation
+## Parser and resolution integration
 
 - Evaluated properties are not necessarily the final compiler invocation. Targets
   may change properties or items or produce task outputs during a build. Direct
   compiler-related property groups in targets are listed in `DeferredProperties`;
   that list is not exhaustive proof that no other deferred effects exist.
-- Empty option values remain unknown, rather than being converted to false.
-  Executable file version is not Delphi's `CompilerVersion` constant. Compiler
-  predefined symbols and effective switches still need explicit derivation.
-- The result contains ordered alias and namespace settings; binding and source
-  resolution do not consume them yet. DPR `uses ... in` mappings and generated units
-  require further extraction.
-- The application must analyze every selected target with its own parser/resolver
-  context, combine only compatible decisions, include target-exclusive units, and
-  validate project metadata before writing. Simply unioning search paths or defines
-  would lose target identity and is not an acceptable integration.
+- A temporary program queries a catalog of compiler predefined symbols through the
+  selected compiler. The compiler banner supplies its language version and VER
+  symbol; executable file version is not used as CompilerVersion. Console/GUI mode
+  is explicit. This probing currently supports Win32/Win64 Console and Application
+  projects; other application types fail explicitly. The generated executable is
+  never run, and temporary compiler products are removed.
+- Project defines and include paths reach both consumers and providers. IFDEF and
+  IFNDEF use the selected context. IF, ELSEIF and IFOPT remain incomplete and preserve
+  consumers or reject providers instead of trusting the legacy evaluator's host
+  compiler assumptions. Effective switch/expression evaluation remains follow-up work.
+- Ordered namespaces and single-step aliases are used for source lookup; project
+  PAS mappings take precedence over searched sources. Full scoped binding, DPR
+  `uses ... in` mappings, generated units and DCU/source equivalence remain incomplete.
+- A lexical scan of active and inactive source text protects names occurring in
+  conditional imports. Independent unconditional imports can still be removed.
+  Conditional qualified names that cannot be delimited fail conservatively. Uses
+  entries from includes still preserve the entire consumer until source-aware editing.
+- Action agreement is currently by name and section through the existing decision
+  model. The union is analyzed even in contexts where a file is absent from that
+  context's DCCReference list; this can preserve target-exclusive files unnecessarily.
+  Precise compilation reachability and occurrence identity remain follow-up work.
+- Project/import hashes and source/include hashes are validated after all target
+  analyses, before the first edit. Directory listings, task outputs, compiler CFG
+  settings outside evaluated properties and filesystem locking remain outside this
+  snapshot. Direct deferred compiler properties currently preserve affected analysis.
 - Windows PowerShell and .NET Framework MSBuild are required. PowerShell execution
   policy failures remain explicit; this adapter does not override machine policy.
 
@@ -51,3 +66,10 @@ imports, property functions, global-property precedence, Unicode paths, conditio
 items, changed imports and deferred property detection. It proves evaluation does
 not execute a target that would write a marker file. These tests do not yet promote
 the research end-to-end project-context scenarios.
+
+`Atropos.Tests.TargetAnalysis` covers isolated symbols, include defines, conditional
+import constraints, namespace/alias lookup, incomplete providers, selected Win32 and
+Win64 compilers, action disagreement, four evaluated targets, dry-run and project
+metadata mutation. Its matrix tests use the real evaluator/parser/resolver/filesystem
+with a build-service stub; the quality gate separately runs actual CLI builds and
+representative project smoke tests. This is not yet a runtime-semantic guarantee.

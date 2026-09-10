@@ -65,6 +65,7 @@ type
     SetInfoCallCount: Integer;
     WarningCallCount: Integer;
     LastWarning: string;
+    AllWarnings: string;
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses,
       AMovedUses, APreservedAmbiguities: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
@@ -343,6 +344,7 @@ end;
 procedure TReportGeneratorStub.AddWarning(const AWarning: string);
 begin
   LastWarning := AWarning;
+  AllWarnings := AllWarnings + AWarning + sLineBreak;
   Inc(WarningCallCount);
 end;
 

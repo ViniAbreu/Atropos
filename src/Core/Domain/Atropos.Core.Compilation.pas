@@ -14,6 +14,7 @@ type
     ProjectPath: string;
     Target: TBuildTarget;
     MainSource: string;
+    ApplicationType: string;
     CompilerPath: string;
     CompilerFileVersion: string;
     Defines: TArray<string>;
@@ -25,6 +26,27 @@ type
     Options: TArray<TCompilerOption>;
     ProjectFiles: TArray<TSourceDependency>;
     DeferredProperties: TArray<string>;
+  end;
+
+  TCompilerSymbols = record
+    Defines: TArray<string>;
+    CompilerVersion: string;
+  end;
+
+  TTargetAnalysisServices = record
+    Parser: IASTParser;
+    Resolver: IExternalUnitResolver;
+  end;
+
+  ITargetAnalysisFactory = interface
+    ['{87E2DBD9-532F-47D9-98E6-76F590EBF8A2}']
+    function CreateForTarget(const AContext: TProjectCompilationContext;
+      const ADelphiPath: string): TTargetAnalysisServices;
+  end;
+
+  IProjectSnapshotInputs = interface
+    ['{420633F7-EC82-4D15-A879-CF80EAF94A15}']
+    procedure RegisterProjectInputs(const AFiles: TArray<TSourceDependency>);
   end;
 
   IProjectContextProvider = interface

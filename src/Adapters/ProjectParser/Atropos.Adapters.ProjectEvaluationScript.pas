@@ -63,6 +63,7 @@ begin
     '  configuration = $project.GetPropertyValue(''Config'')' + sLineBreak +
     '  platform = $platform' + sLineBreak +
     '  mainSource = $main' + sLineBreak +
+    '  applicationType = $project.GetPropertyValue(''AppType'')' + sLineBreak +
     '  compilerPath = $compilerPath' + sLineBreak +
     '  compilerFileVersion = $compilerVersion' + sLineBreak +
     '  defines = @(Read-List ($project.GetPropertyValue(''DCC_Define'')))' + sLineBreak +

@@ -46,9 +46,10 @@ Dry-run consumes the same collected and validated plan. Cancellation is checked
 during collection, before application and between applications.
 
 This is a source consistency check, not filesystem locking. External changes after
-the pre-application check remain a concurrency limitation. Project properties,
-compiler context and source lookup directory listings are not yet captured in this
-snapshot. Custom parsers without the optional snapshot port still get analysis
+the pre-application check remain a concurrency limitation. The default target workflow
+also validates project/import file hashes and combines only actions supported by all
+analyzed contexts. Compiler settings produced by tasks and source lookup directory
+listings are not fully captured. Custom parsers without the optional snapshot port still get analysis
 before writing, but do not provide the production adapter's byte validation.
 
 Every transaction uses `.atropos-transaction.json` in the project directory. The manifest associates the original and backup paths with one transaction identifier and the SHA-256 hash of the original content. Recovery validates this relationship and the hash before restoring a file. A committed manifest only completes backup cleanup; it never rolls the accepted source changes back.

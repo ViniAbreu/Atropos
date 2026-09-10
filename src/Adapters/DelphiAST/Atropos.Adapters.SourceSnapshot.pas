@@ -50,10 +50,10 @@ begin
   LPath := TPath.GetFullPath(APath).ToLowerInvariant;
   if not FHashes.TryGetValue(LPath, LPrevious) then
   begin
-    FHashes.Add(LPath, AHash);
+    FHashes.Add(LPath, AHash.ToLowerInvariant);
     Exit;
   end;
-  if LPrevious <> AHash then
+  if LPrevious <> AHash.ToLowerInvariant then
     FConflict := LPath;
 end;
 

@@ -181,6 +181,7 @@ begin
     Result.Target := TBuildTarget.Create(LData.GetValue<string>('configuration'),
       LData.GetValue<string>('platform'));
     Result.MainSource := LData.GetValue<string>('mainSource');
+    Result.ApplicationType := LData.GetValue<string>('applicationType');
     Result.CompilerPath := LData.GetValue<string>('compilerPath');
     Result.CompilerFileVersion := LData.GetValue<string>('compilerFileVersion');
     Result.Defines := ReadStrings(LData, 'defines');

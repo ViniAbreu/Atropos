@@ -53,6 +53,8 @@
         <DCCReference Include="..\..\third_party\DelphiAST\Source\DelphiAST.Writer.pas"/>
         <DCCReference Include="..\..\src\Core\Ports\Atropos.Core.Ports.pas"/>
         <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Analysis.pas"/>
+        <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.AnalysisIntersection.pas"/>
+        <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Compilation.pas"/>
         <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Config.pas"/>
         <DCCReference Include="..\..\src\Core\Services\Atropos.Core.Modifier.pas"/>
@@ -60,7 +62,10 @@
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas"/>
+        <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.ContextSyntaxBuilder.pas"/>
+        <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas"/>
         <DCCReference Include="..\..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
+        <DCCReference Include="..\..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.TargetResolver.pas"/>
         <DCCReference Include="src\Probe.Json.pas"/>
         <DCCReference Include="src\Probe.MemoryFile.pas"/>
         <DCCReference Include="src\Probe.Engine.pas"/>
