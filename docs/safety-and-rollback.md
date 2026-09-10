@@ -1,5 +1,11 @@
 # Safety, backups, and rollback
 
+Each manifest save writes to a uniquely named temporary sibling file before atomic
+replacement. Saves do not reuse the legacy `.atropos-transaction.json.tmp` path,
+so a handle retained on that path cannot block creation of the next temporary
+manifest. Cleanup only targets the temporary file allocated by that save. This
+does not bypass a lock on the actual manifest or change transaction ownership.
+
 Each execution is handled as a transaction:
 
 1. build the original project;
