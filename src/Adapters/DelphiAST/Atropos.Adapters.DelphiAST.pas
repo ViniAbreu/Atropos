@@ -186,10 +186,20 @@ end;
 
 function TDelphiASTAdapter.BuildSyntax(ABuilder: TPasSyntaxTreeBuilder;
   AStream: TStream; const AFilePath: string): TSyntaxNode;
-var LScope: IInterface;
+var LScope: IInterface; LPath: string;
 begin
   LScope := TExecutionProfile.Measure('syntax-building', AFilePath);
-  Result := ABuilder.Run(AStream);
+  try
+    Result := ABuilder.Run(AStream);
+  except
+    on E: EParserException do
+    begin
+      LPath := E.FileName;
+      if LPath.IsEmpty then LPath := AFilePath;
+      raise EASTParserException.CreateFmt('Syntax error at "%s" (%d:%d): %s',
+        [LPath, E.Line, E.Col, E.Message]);
+    end;
+  end;
 end;
 
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;

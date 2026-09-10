@@ -12,6 +12,7 @@ type
   protected
     function GetTokenID: TptTokenKind; override;
     procedure Expected(Sym: TptTokenKind); override;
+    procedure ExpectedFatal(Sym: TptTokenKind); override;
     procedure RecordAlignValue; override;
     procedure InitializationSection; override;
     procedure FinalizationSection; override;
@@ -26,7 +27,17 @@ type
 
 implementation
 
-uses DelphiAST.Classes, Atropos.Core.TypeNames;
+uses DelphiAST.Classes, Atropos.Core.TypeNames, SimpleParser;
+
+procedure TAtroposSyntaxBuilder.ExpectedFatal(Sym: TptTokenKind);
+begin
+  try
+    inherited;
+  except
+    on E: ESyntaxError do
+      raise EParserException.Create(E.PosXY.Y, E.PosXY.X, Lexer.FileName, E.Message);
+  end;
+end;
 
 procedure TAtroposSyntaxBuilder.RecordAlignValue;
 var LRecord, LExpression: TSyntaxNode; LChildren: TArray<TSyntaxNode>;
