@@ -8,6 +8,7 @@ uses
   System.SysUtils,
   Atropos.App.CLI in 'src\CLI\Atropos.App.CLI.pas',
   Atropos.Application.CommandLine in 'src\Application\Atropos.Application.CommandLine.pas',
+  Atropos.Core.Profiling in 'src\Core\Services\Atropos.Core.Profiling.pas',
   Atropos.Core.Ports in 'src\Core\Ports\Atropos.Core.Ports.pas',
   Atropos.Core.Analysis in 'src\Core\Domain\Atropos.Core.Analysis.pas',
   Atropos.Core.AnalysisIntersection in 'src\Core\Domain\Atropos.Core.AnalysisIntersection.pas',

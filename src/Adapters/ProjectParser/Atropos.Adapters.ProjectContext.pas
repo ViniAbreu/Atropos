@@ -29,7 +29,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.Classes, System.IOUtils, System.NetEncoding,
+uses Atropos.Core.Profiling, System.SysUtils, System.Classes, System.IOUtils, System.NetEncoding,
   Atropos.Adapters.ProjectEvaluationScript;
 
 constructor TMsBuildProjectContext.Create(const ARunner: IBuildProcessRunner;
@@ -200,7 +200,9 @@ end;
 
 function TMsBuildProjectContext.EvaluateProject(const AProjectPath,
   ADelphiPath: string; const ATarget: TBuildTarget): TProjectCompilationContext;
+var LProfileScope: IInterface;
 begin
+  LProfileScope := TExecutionProfile.Measure('project-evaluation', AProjectPath);
   Result := Decode(RunEvaluation(TProjectEvaluationScript.Build(
     CreateRequest(AProjectPath, ATarget)), ADelphiPath));
 end;

@@ -27,7 +27,7 @@ $buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config
 if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE" }
 
 $units = @(
-    'Atropos.Core.Domain', 'Atropos.Core.Analysis', 'Atropos.Core.AnalysisIntersection', 'Atropos.Core.Effects', 'Atropos.Core.UnitSymbols', 'Atropos.Core.HelperBinding', 'Atropos.Core.LocalBinding', 'Atropos.Core.TypeNames', 'Atropos.Core.Config', 'Atropos.Core.Modifier', 'Atropos.Core.SourceTokens', 'Atropos.Core.UsesSyntax', 'Atropos.Core.UsesEditor', 'Atropos.Core.UsesEditPlan',
+    'Atropos.Core.Profiling', 'Atropos.Core.Domain', 'Atropos.Core.Analysis', 'Atropos.Core.AnalysisIntersection', 'Atropos.Core.Effects', 'Atropos.Core.UnitSymbols', 'Atropos.Core.HelperBinding', 'Atropos.Core.LocalBinding', 'Atropos.Core.TypeNames', 'Atropos.Core.Config', 'Atropos.Core.Modifier', 'Atropos.Core.SourceTokens', 'Atropos.Core.UsesSyntax', 'Atropos.Core.UsesEditor', 'Atropos.Core.UsesEditPlan',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
     'Atropos.Application.ExecutionLifecycle',
     'Atropos.Application.ExecutionPresentation',

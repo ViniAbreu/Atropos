@@ -39,7 +39,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.Classes, System.IOUtils,
+uses Atropos.Core.Profiling, System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Adapters.ExternalUnitResolver;
 
 constructor TCompleteProviderParser.Create(const AParser: IASTParser);
@@ -178,9 +178,10 @@ begin
 end;
 function TTargetUnitResolver.TryResolveUnit(const AUnitName: string;
   out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
-var
+var LProfileScope: IInterface;
   LName, LPrefix: string;
 begin
+  LProfileScope := TExecutionProfile.Measure('resolution', AUnitName);
   Result := False;
   AExports := [];
   AHasInit := False;

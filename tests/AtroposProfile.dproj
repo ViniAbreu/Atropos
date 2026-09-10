@@ -1,0 +1,24 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{E7B90B53-00C4-4FC0-A5C9-032410DE53E0}</ProjectGuid>
+    <MainSource>AtroposProfile.dpr</MainSource>
+    <Base>true</Base>
+    <Config Condition="'$(Config)'==''">Release</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <AppType>Console</AppType>
+    <FrameworkType>None</FrameworkType>
+    <ProjectVersion>20.1</ProjectVersion>
+    <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
+    <DCC_Optimize>true</DCC_Optimize>
+    <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+    <DCC_DcuOutput>profile-bin\$(Platform)</DCC_DcuOutput>
+    <DCC_ExeOutput>profile-bin\$(Platform)</DCC_ExeOutput>
+    <DCC_UnitSearchPath>..\third_party\DelphiAST\Source;..\third_party\DelphiAST\Source\SimpleParser</DCC_UnitSearchPath>
+    <DCC_Namespace>Winapi;System;System.Win;Xml;Xml.Win;Data;$(DCC_Namespace)</DCC_Namespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="AtroposProfile.dpr"><MainSource>MainSource</MainSource></DelphiCompile>
+    <BuildConfiguration Include="Release"><Key>Release</Key></BuildConfiguration>
+  </ItemGroup>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" />
+</Project>

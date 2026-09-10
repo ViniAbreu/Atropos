@@ -65,7 +65,7 @@ type
   end;
 
 implementation
-uses System.Generics.Collections, System.IOUtils, System.Math,
+uses Atropos.Core.Profiling, System.Generics.Collections, System.IOUtils, System.Math,
   System.RegularExpressions, System.StrUtils, System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
@@ -522,7 +522,7 @@ end;
 
 function TBuildServiceAdapter.BuildProjectForTarget(const AProjectPath: string;
   const ATarget: TBuildTarget): TBuildMetrics;
-var
+var LProfileScope: IInterface;
   LDelphiPath: string;
   LMSBuildPath: string;
   LCommandProcessorPath: string;
@@ -531,6 +531,7 @@ var
   LErrorFile: string;
   LCommand: string;
 begin
+  LProfileScope := TExecutionProfile.Measure('builds', AProjectPath);
   Result := Default(TBuildMetrics);
   if not Assigned(FEnvService) then
   begin

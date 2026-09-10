@@ -18,7 +18,7 @@ type
 
 implementation
 
-uses Atropos.Adapters.CompilerSymbols, Atropos.Adapters.DelphiAST,
+uses Atropos.Core.Profiling, Atropos.Adapters.CompilerSymbols, Atropos.Adapters.DelphiAST,
   Atropos.Adapters.TargetResolver, Atropos.Adapters.ProjectSourceMappings;
 
 constructor TTargetAnalysisFactory.Create(const ARunner: IBuildProcessRunner;
@@ -32,12 +32,13 @@ end;
 function TTargetAnalysisFactory.CreateForTarget(
   const AContext: TProjectCompilationContext;
   const ADelphiPath: string): TTargetAnalysisServices;
-var
+var LProfileScope: IInterface;
   LReader: TCompilerSymbolReader;
   LSymbols: TCompilerSymbols;
   LParser: TDelphiASTAdapter;
   LContext: TProjectCompilationContext;
 begin
+  LProfileScope := TExecutionProfile.Measure('target-preparation', AContext.ProjectPath);
   LReader := TCompilerSymbolReader.Create(FRunner, FCancel);
   try
     LSymbols := LReader.Read(AContext, ADelphiPath);
