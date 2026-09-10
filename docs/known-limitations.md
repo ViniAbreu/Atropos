@@ -16,6 +16,9 @@
   dependencies. Arithmetic, bitwise operations, Declared/SizeOf, RTLVersion and high
   precision decimal comparisons are not inferred.
 - Unresolved dependencies are preserved conservatively.
+- The historical anonymous-parameter scenario uses an inline `reference to` variable
+  declaration rejected by compiler 36.0 on Win32/Win64. Its original oracle remains
+  failing; named anonymous-method types have separate compiler/runtime coverage.
 - Active includes are resolved relative to their containing source, then through
   evaluated project include paths. Missing includes, cycles and excessive nesting fail
   explicitly; recursive includes are rejected even when guarded by defines.

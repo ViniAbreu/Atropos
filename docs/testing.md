@@ -115,6 +115,14 @@ switch precedence and explicit rejection of unsupported expressions. Compiler pr
 rejected PUSH/POP and the tested parenthesized IF-expression directive; these are not
 used as evidence of supported Delphi syntax.
 
+AnonymousConsole verifies compiler-valid named anonymous-method types, parameter
+shadowing, local/global captures and an outer reference that must retain its import.
+Both platforms must emit Parameter:2|Capture:11|Global:1|Outside:99 before and after
+optimization. The same gate requires compiler rejection of a temporary copy of the
+historical inline `reference to` variable declaration with E2003 for `reference`.
+That historical scenario keeps its original failing oracle; the valid supplementary
+tests do not promote it to PASS.
+
 Declaration provenance tests split routine/type headers across includes and the
 main source. The adapter retains the starting file even when DelphiAST assigns
 the compound node's ending file. The class-method fixture uses an explicit public
