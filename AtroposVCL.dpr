@@ -10,6 +10,8 @@ uses
   Atropos.Adapters.Logger in 'src\Adapters\Logger\Atropos.Adapters.Logger.pas',
   Atropos.Core.Modifier in 'src\Core\Services\Atropos.Core.Modifier.pas',
   Atropos.Adapters.ProjectParser in 'src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas',
+  Atropos.Adapters.DelphiSource in 'src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas',
+  Atropos.Adapters.SourceIncludes in 'src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas',
   Atropos.Adapters.DelphiAST in 'src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas',
   Atropos.Adapters.FileSystem in 'src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas',
   Atropos.Adapters.FileTransaction in 'src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas',

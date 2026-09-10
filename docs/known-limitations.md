@@ -7,6 +7,13 @@
 - The `.dproj` evaluator supports quoted `==`/`!=` comparisons, `and`, `or`, parentheses, and `Exists('path')`. Unsupported MSBuild functions or expressions are skipped conservatively and recorded as analysis warnings instead of being treated as ordinary false conditions without explanation.
 - Imported MSBuild project files and property functions are not evaluated by the project parser. Keep analysis-critical unit lists and search paths in the `.dproj`; unsupported conditions in those sections are reported.
 - Unresolved dependencies are preserved conservatively.
+- Active includes are resolved relative to their containing source, then through
+  explicitly supplied include paths. Project include-path evaluation is not yet
+  connected to the parser. Missing includes, cycles and excessive nesting fail
+  explicitly; recursive includes are rejected even when guarded by defines.
+- Include provenance records parent, path and content hash. Imports originating in
+  includes preserve the entire consumer with a diagnostic until source-aware editing
+  is available. Include loading does not establish correct project/compiler defines.
 - Dependency decisions record state, section, action and reason. Unknown sources,
   parse failures and adapter-reported incomplete analysis are preserved with report
   warnings. Name-based usage decisions remain heuristic until structured binding is
