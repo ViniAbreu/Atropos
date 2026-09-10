@@ -42,3 +42,11 @@ competing helper candidates; flat identifier matching excludes helper entries.
 The legacy direct lookup API retains its optional compatibility behavior.
 Aliases, class fields, inherited receiver types and full symbol identity still
 require further binding; uncertain supported references preserve the import.
+
+`IUnitSymbolFacts` separates declarations, references and lexical scopes. Facts
+carry expanded traversal order, normalized source positions, declaration kind
+and generic arity. Core local binding excludes proven local references from the
+import lookup projection. Routine/type/block scopes and interface visibility are
+independent; qualified names retain their unit/type prefix. With scopes and local
+overloads remain unknown and preserve matching imports. This is lexical binding,
+not complete overload resolution, inheritance or compiler-level type identity.

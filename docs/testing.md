@@ -79,3 +79,15 @@ shadowing, class fields, aliases, chains, bare calls, with blocks and lifecycle
 variables. Competing helper imports and absent member facts remain unknown.
 The lifecycle runtime fixture calls a string helper before and after optimization
 and requires its import to move to implementation without changing output.
+
+Lexical binding tests cover declaration order, inline initializers and blocks,
+independent routines, generic arity, type expressions in declarations, owner fields,
+qualified type members, overload uncertainty and include expansion order. The
+lifecycle runtime fixture exports a colliding name from the unused provider and
+shadows it locally; the optimizer must remove that import while preserving output.
+
+Declaration provenance tests split routine/type headers across includes and the
+main source. The adapter retains the starting file even when DelphiAST assigns
+the compound node's ending file. The class-method fixture uses an explicit public
+section; an include immediately following class still exposes a pinned-parser
+lookahead limitation and is not claimed as supported by this change.

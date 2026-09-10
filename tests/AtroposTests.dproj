@@ -113,6 +113,7 @@
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Effects.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.UnitSymbols.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.HelperBinding.pas"/>
+        <DCCReference Include="..\src\Core\Domain\Atropos.Core.LocalBinding.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Compilation.pas"/>
         <DCCReference Include="src\Atropos.Tests.AnalysisDecisions.pas"/>
         <DCCReference Include="src\Atropos.Tests.SourceIncludes.pas"/>
@@ -140,8 +141,10 @@
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.SyntaxFacts.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.MemberReferences.pas"/>
+        <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.SymbolFacts.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas"/>
         <DCCReference Include="src\Atropos.Tests.DelphiASTAdapter.pas"/>
+        <DCCReference Include="src\Atropos.Tests.SymbolBinding.pas"/>
         <DCCReference Include="src\Atropos.Tests.CompilerDirectives.pas"/>
         <DCCReference Include="..\src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas"/>
         <DCCReference Include="..\src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>

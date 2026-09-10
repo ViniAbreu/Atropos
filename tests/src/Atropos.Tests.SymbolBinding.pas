@@ -1,0 +1,187 @@
+unit Atropos.Tests.SymbolBinding;
+
+interface
+
+uses DUnitX.TestFramework, Atropos.Core.Ports, Atropos.Core.Domain;
+
+type
+  [TestFixture]
+  TSymbolBindingTests = class
+  private
+    FDirectory, FSource: string;
+    FParser: IASTParser;
+    function Analyze(const ABody: string): TUnitAnalysisResult;
+  public
+    [Setup] procedure Setup;
+    [TearDown] procedure TearDown;
+    [TestCase('LocalVariable', '0,0')]
+    [TestCase('OtherRoutineStillUsesImport', '1,1')]
+    [TestCase('InlineBlockDoesNotLeak', '2,1')]
+    [TestCase('ReferenceBeforeInlineDeclaration', '3,1')]
+    [TestCase('InitializerBeforeBinding', '4,1')]
+    [TestCase('ParameterDoesNotLeak', '5,1')]
+    [TestCase('GenericParameter', '6,0')]
+    [TestCase('GenericArityDoesNotHidePlainType', '7,1')]
+    [TestCase('ImplementationDoesNotHideInterface', '8,2')]
+    [TestCase('AliasSourceStillReferencesImport', '9,2')]
+    [TestCase('VariableNameDoesNotHideItsType', '10,2')]
+    [TestCase('ClassFieldInImplementationMethod', '11,0')]
+    [TestCase('ExternalFieldType', '12,2')]
+    [TestCase('StaticReceiverType', '13,1')]
+    [TestCase('QualifiedTypeMember', '14,1')]
+    [TestCase('ObjectMemberIsNotGlobalRoutine', '15,0')]
+    [TestCase('WithScopeIsUnknown', '16,3')]
+    [TestCase('LocalOverloadIsUnknown', '17,3')]
+    procedure LexicalDecisionsRespectScopes(AScenario, AAction: Integer);
+    [Test] procedure FactsRetainKindsLocationsAndIndependentReads;
+    [Test] procedure IncludeDeclarationsUseExpandedOrder;
+    [TestCase('ImplementationRoutine', '0')]
+    [TestCase('InterfaceRoutine', '1')]
+    [TestCase('TypeDeclaration', '2')]
+    [TestCase('ClassMethod', '3')]
+    procedure DeclarationStartInIncludeKeepsSource(AScenario: Integer);
+  end;
+
+implementation
+
+uses System.SysUtils, System.IOUtils, Atropos.Adapters.DelphiAST, Atropos.Core.Analysis;
+
+procedure TSymbolBindingTests.Setup;
+begin
+  FDirectory := TPath.Combine(TPath.GetTempPath, 'AtroposSymbols-' + TGUID.NewGuid.ToString);
+  TDirectory.CreateDirectory(FDirectory);
+  FSource := TPath.Combine(FDirectory, 'Consumer.pas');
+  FParser := TDelphiASTAdapter.Create;
+end;
+
+procedure TSymbolBindingTests.TearDown;
+begin
+  FParser := nil;
+  TDirectory.Delete(FDirectory, True);
+end;
+
+function TSymbolBindingTests.Analyze(const ABody: string): TUnitAnalysisResult;
+var LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LTree: IUnitSyntaxTree;
+begin
+  TFile.WriteAllText(FSource, 'unit Consumer; interface uses Dependency; ' + ABody + ' end.', TEncoding.UTF8);
+  LContext := TProjectContext.Create;
+  LAnalyzer := TAnalyzeUnitUses.Create;
+  try
+    LContext.RegisterUnitExports('Dependency', ['Clash', 'CallMe', 'TItem', 'TBase', 'Limit']);
+    LContext.RegisterUnitDependencies('Dependency', []);
+    LTree := FParser.ParseFile(FSource);
+    Result := LAnalyzer.Execute(LTree, LContext);
+  finally
+    LAnalyzer.Free;
+    LContext.Free;
+  end;
+end;
+
+procedure TSymbolBindingTests.LexicalDecisionsRespectScopes(AScenario, AAction: Integer);
+const Sources: array[0..17] of string = (
+  'implementation procedure Run; var Clash: Integer; begin Clash := 1; end;',
+  'implementation procedure A; var Clash: Integer; begin Clash := 1; end; ' +
+    'procedure B; begin Clash := 2; end;',
+  'implementation procedure Run; begin begin var Clash := 1; Inc(Clash); end; Inc(Clash); end;',
+  'implementation procedure Run; begin Inc(Clash); var Clash := 1; Inc(Clash); end;',
+  'implementation procedure Run; begin var Clash := Clash; Inc(Clash); end;',
+  'implementation procedure A(Clash: Integer); begin Inc(Clash); end; procedure B; begin Inc(Clash); end;',
+  'type TLocal<TItem> = class Value: TItem; end; implementation',
+  'implementation type TItem<T> = class end; var Value: TItem;',
+  'const Saved = Limit; implementation const Limit = 2;',
+  'type TItem = TItem; implementation',
+  'var TItem: TItem; implementation',
+  'type TLocal = class Clash: Integer; procedure Run; end; ' +
+    'implementation procedure TLocal.Run; begin Inc(Clash); end;',
+  'type TLocal = class Value: TItem; end; implementation',
+  'implementation procedure Run; begin TBase.Create; end;',
+  'implementation procedure Run; begin Dependency.TBase.Create; end;',
+  'type TLocal = class procedure CallMe; end; implementation ' +
+    'procedure Run(Value: TLocal); begin Value.CallMe; end;',
+  'implementation procedure Run(Value: TObject); var Clash: Integer; begin with Value do Inc(Clash); end;',
+  'procedure CallMe; overload; implementation procedure CallMe; begin end; ' +
+    'procedure Run; begin CallMe(1); end;');
+var LResult: TUnitAnalysisResult;
+begin
+  LResult := Analyze(Sources[AScenario]);
+  Assert.AreEqual<NativeInt>(1, Length(LResult.Decisions));
+  case AAction of
+    0: Assert.AreEqual(Ord(daRemove), Ord(LResult.Decisions[0].Action));
+    1: Assert.AreEqual(Ord(daMoveToImplementation), Ord(LResult.Decisions[0].Action));
+    2: Assert.AreEqual(Ord(daPreserve), Ord(LResult.Decisions[0].Action));
+    3: begin
+      Assert.AreEqual(Ord(daPreserve), Ord(LResult.Decisions[0].Action));
+      Assert.AreEqual(Ord(dsUnknown), Ord(LResult.Decisions[0].State));
+    end;
+  end;
+end;
+
+procedure TSymbolBindingTests.FactsRetainKindsLocationsAndIndependentReads;
+var LTree: IUnitSyntaxTree; LPort: IUnitSymbolFacts; LFacts: TUnitSymbolFacts;
+  LDeclaration: TSymbolDeclaration; LFound: Boolean;
+begin
+  TFile.WriteAllText(FSource, 'unit Consumer; interface' + sLineBreak +
+    'procedure Run(Value: Integer); implementation procedure Run(Value: Integer); ' +
+    'begin Inc(Value); end; end.', TEncoding.UTF8);
+  LTree := FParser.ParseFile(FSource);
+  Assert.IsTrue(Supports(LTree, IUnitSymbolFacts, LPort));
+  LFacts := LPort.GetSymbolFacts;
+  LFound := False;
+  for LDeclaration in LFacts.Declarations do
+    if LDeclaration.Name = 'Value' then
+    begin
+      Assert.AreEqual(Ord(skParameter), Ord(LDeclaration.Kind));
+      Assert.AreEqual(FSource, LDeclaration.SourcePath);
+      Assert.AreEqual(2, LDeclaration.NormalizedLine);
+      Assert.IsTrue(LDeclaration.NormalizedColumn > 0);
+      LFound := True;
+    end;
+  Assert.IsTrue(LFound);
+  Assert.IsTrue(Length(LFacts.References) > 0);
+  LFacts.Declarations[0].Name := 'changed';
+  Assert.AreEqual('Run', LPort.GetSymbolFacts.Declarations[0].Name);
+end;
+
+procedure TSymbolBindingTests.IncludeDeclarationsUseExpandedOrder;
+var LResult: TUnitAnalysisResult;
+begin
+  TFile.WriteAllText(TPath.Combine(FDirectory, 'Local.inc'), 'var Clash: Integer;', TEncoding.UTF8);
+  LResult := Analyze('implementation procedure Run; {$I Local.inc} begin Inc(Clash); end;');
+  Assert.AreEqual<NativeInt>(1, Length(LResult.UnusedUnits));
+  Assert.AreEqual('Dependency', LResult.UnusedUnits[0]);
+end;
+
+procedure TSymbolBindingTests.DeclarationStartInIncludeKeepsSource(AScenario: Integer);
+const
+  Prefixes: array[0..3] of string = (
+    'unit Consumer; interface implementation ', 'unit Consumer; interface ',
+    'unit Consumer; interface ', 'unit Consumer; interface type TLocal = class public ');
+  Includes: array[0..3] of string = ('procedure Run;', 'procedure Run',
+    'type TLocal = class', 'procedure Run');
+  Suffixes: array[0..3] of string = (' begin end; end.', '; implementation end.',
+    ' end; implementation end.', '; end; implementation end.');
+var LInclude, LExpectedName: string; LTree: IUnitSyntaxTree; LPort: IUnitSymbolFacts;
+  LDeclaration: TSymbolDeclaration; LFound: Boolean;
+begin
+  LInclude := TPath.Combine(FDirectory, 'Start.inc');
+  TFile.WriteAllText(LInclude, Includes[AScenario], TEncoding.UTF8);
+  TFile.WriteAllText(FSource, Prefixes[AScenario] + '{$I Start.inc}' + Suffixes[AScenario], TEncoding.UTF8);
+  LTree := FParser.ParseFile(FSource);
+  Assert.IsTrue(Supports(LTree, IUnitSymbolFacts, LPort));
+  LExpectedName := 'Run';
+  if AScenario = 2 then
+    LExpectedName := 'TLocal';
+  LFound := False;
+  for LDeclaration in LPort.GetSymbolFacts.Declarations do
+    if LDeclaration.Name = LExpectedName then
+    begin
+      Assert.AreEqual(LInclude, LDeclaration.SourcePath);
+      Assert.AreEqual(1, LDeclaration.NormalizedLine);
+      LFound := True;
+    end;
+  Assert.IsTrue(LFound);
+end;
+
+initialization
+  TDUnitX.RegisterTestFixture(TSymbolBindingTests);
+end.

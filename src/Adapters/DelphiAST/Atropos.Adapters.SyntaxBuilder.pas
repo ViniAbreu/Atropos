@@ -8,15 +8,65 @@ type
   TAtroposSyntaxBuilder = class(TPasSyntaxTreeBuilder)
   private
     procedure RestoreSectionSource(AType: TSyntaxNodeType; const APath: string);
+    procedure RestoreDeclarationSource(AType: TSyntaxNodeType; const APath: string);
   protected
     procedure InitializationSection; override;
     procedure FinalizationSection; override;
     procedure CompoundStatement; override;
+    procedure ClassMethodHeading; override;
+    procedure ExportedHeading; override;
+    procedure ProcedureDeclarationSection; override;
+    procedure TypeDeclaration; override;
   end;
 
 implementation
 
 uses DelphiAST.Classes;
+
+procedure TAtroposSyntaxBuilder.RestoreDeclarationSource(AType: TSyntaxNodeType;
+  const APath: string);
+var LChildren: TArray<TSyntaxNode>; I: Integer;
+begin
+  LChildren := FStack.Peek.ChildNodes;
+  for I := High(LChildren) downto 0 do
+    if LChildren[I].Typ = AType then
+    begin
+      LChildren[I].FileName := APath;
+      Exit;
+    end;
+end;
+
+procedure TAtroposSyntaxBuilder.ClassMethodHeading;
+var LPath: string;
+begin
+  LPath := Lexer.FileName;
+  inherited;
+  RestoreDeclarationSource(ntMethod, LPath);
+end;
+
+procedure TAtroposSyntaxBuilder.ExportedHeading;
+var LPath: string;
+begin
+  LPath := Lexer.FileName;
+  inherited;
+  RestoreDeclarationSource(ntMethod, LPath);
+end;
+
+procedure TAtroposSyntaxBuilder.ProcedureDeclarationSection;
+var LPath: string;
+begin
+  LPath := Lexer.FileName;
+  inherited;
+  RestoreDeclarationSource(ntMethod, LPath);
+end;
+
+procedure TAtroposSyntaxBuilder.TypeDeclaration;
+var LPath: string;
+begin
+  LPath := Lexer.FileName;
+  inherited;
+  RestoreDeclarationSource(ntTypeDecl, LPath);
+end;
 
 procedure TAtroposSyntaxBuilder.RestoreSectionSource(AType: TSyntaxNodeType;
   const APath: string);

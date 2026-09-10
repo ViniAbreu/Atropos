@@ -16,7 +16,8 @@ type
 
   TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
     IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints,
-    IProjectSourceImports, IUnitLifecycleFacts, IUnitHelperFacts, IUnitMemberReferences)
+    IProjectSourceImports, IUnitLifecycleFacts, IUnitHelperFacts, IUnitMemberReferences,
+    IUnitSymbolFacts)
   private
     FFileName: string;
     FUnitName: string;
@@ -27,10 +28,9 @@ type
     function HasIncludedUses(ANode: TSyntaxNode; AInsideUses: Boolean): Boolean;
     
     function GetUsesList(ANodeType: TSyntaxNodeType): TArray<string>;
-    function GetIdentifiersList(ANodeType: TSyntaxNodeType): TArray<string>;
+    function GetReferencedIdentifiers(AInterface: Boolean): TArray<string>;
     
     procedure FindAllUses(ANode: TSyntaxNode; AList: TList<string>);
-    procedure FindAllIdentifiers(ANode: TSyntaxNode; AList: TList<string>);
     
     function ExtractNodeName(ANode: TSyntaxNode): string;
     function CanExportNode(ANode: TSyntaxNode; AInsideTypeDecl, AInsideHelper: Boolean): Boolean;
@@ -58,6 +58,7 @@ type
     function GetLifecycleSections: TArray<TLifecycleSection>;
     function GetHelperDeclarations: TArray<THelperDeclaration>;
     function GetMemberReferences: TArray<TMemberReference>;
+    function GetSymbolFacts: TUnitSymbolFacts;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser, IAnalysisSnapshot,
@@ -83,7 +84,8 @@ type
 
 implementation
 
-uses Atropos.Adapters.MemberReferences, Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
+uses Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
+  Atropos.Adapters.MemberReferences, Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalImports,
   SimpleParser.Lexer.Types;
@@ -327,31 +329,6 @@ begin
   end;
 end;
 
-procedure TDelphiASTSyntaxTree.FindAllIdentifiers(ANode: TSyntaxNode; AList: TList<string>);
-var
-  LChild: TSyntaxNode;
-  LName: string;
-begin
-  if not Assigned(ANode) then
-    Exit;
-
-  if ANode.Typ = ntUses then
-    Exit;
-    
-  LName := ExtractNodeName(ANode);
-  
-  if not LName.IsEmpty and not (ANode.Typ in [ntUnit, ntUses, ntLiteral]) then
-  begin
-    AList.Add(LName);
-    if Assigned(ANode.ParentNode) and (ANode.ParentNode.Typ = ntGeneric) and
-       (Length(ANode.ParentNode.ChildNodes) > 0) and (ANode.ParentNode.ChildNodes[0] = ANode) then
-      AList[AList.Count - 1] := AList[AList.Count - 1] + '<T>';
-  end;
-  
-  for LChild in ANode.ChildNodes do
-    FindAllIdentifiers(LChild, AList);
-end;
-
 function TDelphiASTSyntaxTree.ExtractNodeName(ANode: TSyntaxNode): string;
 var
   LChild: TSyntaxNode;
@@ -496,28 +473,27 @@ begin
   end;
 end;
 
-function TDelphiASTSyntaxTree.GetIdentifiersList(ANodeType: TSyntaxNodeType): TArray<string>;
-var
-  LNode: TSyntaxNode;
-  LList: TList<string>;
+function TDelphiASTSyntaxTree.GetSymbolFacts: TUnitSymbolFacts;
+var LExtractor: TSymbolFactExtractor;
 begin
-  Result := [];
-  if not Assigned(FRoot) then
-    Exit;
-  
-  LNode := FRoot.FindNode(ANodeType);
-  if Assigned(LNode) then
-  begin
-    LList := TList<string>.Create;
-    try
-      FindAllIdentifiers(LNode, LList);
-      Result := LList.ToArray;
-    finally
-      LList.Free;
-    end;
+  LExtractor := TSymbolFactExtractor.Create(FFileName);
+  try
+    Result := LExtractor.Extract(FRoot);
+  finally
+    LExtractor.Free;
   end;
 end;
 
+function TDelphiASTSyntaxTree.GetReferencedIdentifiers(AInterface: Boolean): TArray<string>;
+var LBinding: TLocalSymbolBinding;
+begin
+  LBinding := TLocalSymbolBinding.Create(GetSymbolFacts);
+  try
+    Result := LBinding.Identifiers(AInterface);
+  finally
+    LBinding.Free;
+  end;
+end;
 function TDelphiASTSyntaxTree.GetInterfaceUses: TArray<string>;
 begin
   Result := GetUsesList(ntInterface);
@@ -530,13 +506,12 @@ end;
 
 function TDelphiASTSyntaxTree.GetIdentifiersUsedInInterface: TArray<string>;
 begin
-  Result := GetIdentifiersList(ntInterface);
+  Result := GetReferencedIdentifiers(True);
 end;
 
 function TDelphiASTSyntaxTree.GetIdentifiersUsedInImplementation: TArray<string>;
 begin
-  Result := GetIdentifiersList(ntImplementation) + GetIdentifiersList(ntInitialization) +
-    GetIdentifiersList(ntFinalization) + GetIdentifiersList(ntStatements);
+  Result := GetReferencedIdentifiers(False);
 end;
 
 function TDelphiASTSyntaxTree.GetExportedIdentifiers: TArray<string>;

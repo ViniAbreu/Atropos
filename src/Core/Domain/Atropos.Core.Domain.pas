@@ -3,7 +3,7 @@ unit Atropos.Core.Domain;
 interface
 uses
   System.Generics.Collections,
-  Atropos.Core.UnitSymbols, Atropos.Core.HelperBinding, Atropos.Core.Ports, Atropos.Core.Analysis, Atropos.Core.Effects, System.SysUtils;
+  Atropos.Core.LocalBinding, Atropos.Core.UnitSymbols, Atropos.Core.HelperBinding, Atropos.Core.Ports, Atropos.Core.Analysis, Atropos.Core.Effects, System.SysUtils;
 
 type
   
@@ -56,6 +56,8 @@ type
     FReferences: TArray<TMemberReference>;
     FReferencesKnown, FReferenceInterface: Boolean;
     FHelperUse: THelperUse;
+    FUnknownReferences: array[Boolean] of TArray<string>;
+    procedure InitializeFacts(const ATree: IUnitSyntaxTree);
     function IsUnitUsed(AContext: TProjectContext; const AUnitName: string;
       const AUsedIdentifiers, AVisibleIdentifiers: TArray<string>): Boolean;
     function MustPreserve(AContext: TProjectContext; const AUnitName: string;
@@ -204,9 +206,6 @@ var
   LExports: TUnitExports;
   LBaseIdent: string;
   LPos: Integer;
-  LTargetTypes: TList<string>;
-  LTarget: string;
-  LUsedLower: string;
   LQualifiedUnit: string;
   LQualifiedBaseIdentifier: string;
 begin
@@ -221,6 +220,9 @@ begin
       if not SameText(LQualifiedUnit, AUnitName) then
         Exit;
       LBaseIdent := LowerCase(LQualifiedBaseIdentifier);
+      LPos := Pos('.', LBaseIdent);
+      if LPos > 0 then
+        LBaseIdent := Copy(LBaseIdent, 1, LPos - 1);
     end;
     
     // Remover argumentos genéricos (ex: TArray<string> -> tarray)
@@ -236,22 +238,7 @@ begin
     Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
     
     if not Result and AIncludeHelpers then
-    begin
-      if LExports.ExportedHelpers.TryGetValue(LBaseIdent, LTargetTypes) then
-      begin
-        for LTarget in LTargetTypes do
-        begin
-          if (LTarget = 'string') or (LTarget = 'integer') or (LTarget = 'tobject') then
-            Exit(True);
-            
-          for LUsedLower in AAllUsedIdents do
-          begin
-            if LowerCase(LUsedLower) = LTarget then
-              Exit(True);
-          end;
-        end;
-      end;
-    end;
+      Result := LExports.MatchesLegacyHelper(LBaseIdent, AAllUsedIdents);
   end;
 end;
 
@@ -366,6 +353,27 @@ begin
   FLogger := ALogger;
 end;
 
+procedure TAnalyzeUnitUses.InitializeFacts(const ATree: IUnitSyntaxTree);
+var LMembers: IUnitMemberReferences; LSymbols: IUnitSymbolFacts;
+  LBinding: TLocalSymbolBinding;
+begin
+  FReferences := nil;
+  FUnknownReferences[False] := nil;
+  FUnknownReferences[True] := nil;
+  FReferencesKnown := Supports(ATree, IUnitMemberReferences, LMembers);
+  if FReferencesKnown then
+    FReferences := LMembers.GetMemberReferences;
+  if not Supports(ATree, IUnitSymbolFacts, LSymbols) then
+    Exit;
+  LBinding := TLocalSymbolBinding.Create(LSymbols.GetSymbolFacts);
+  try
+    FUnknownReferences[False] := LBinding.Identifiers(False, True);
+    FUnknownReferences[True] := LBinding.Identifiers(True, True);
+  finally
+    LBinding.Free;
+  end;
+end;
+
 function TAnalyzeUnitUses.IsUnitUsed(AContext: TProjectContext;
   const AUnitName: string; const AUsedIdentifiers,
   AVisibleIdentifiers: TArray<string>): Boolean;
@@ -392,7 +400,7 @@ function TAnalyzeUnitUses.MustPreserve(AContext: TProjectContext;
   const AVisibleUnits, AIdentifiers: TArray<string>;
   ADecisions: TDependencyDecisions): Boolean;
 var
-  LReason: string;
+  LReason, LReference: string;
   LEffects: TEffectAssessment;
 begin
   Result := True;
@@ -422,6 +430,13 @@ begin
       daPreserve, LReason));
     Exit;
   end;
+  for LReference in FUnknownReferences[FReferenceInterface] do
+    if AContext.UnitExportsIdentifier(AUnitName, LReference, [], False) then
+    begin
+      ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsUnknown,
+        daPreserve, 'Unresolved lexical binding for ' + LReference + '.'));
+      Exit;
+    end;
   FHelperUse := AContext.AssessHelpers(AUnitName, AVisibleUnits, FReferences,
     FReferencesKnown, FReferenceInterface);
   if FHelperUse = huUnknown then
@@ -489,14 +504,12 @@ var
   LUnitName: string;
   LUsedInIntf: Boolean;
   LUsedInImpl: Boolean;
-  LMembers: IUnitMemberReferences;
+  LTree: IUnitSyntaxTree;
 begin
+  LTree := ASyntaxTree;
   Result := Default(TUnitAnalysisResult);
   Result.UnitName := ASyntaxTree.GetUnitName;
-  FReferences := nil;
-  FReferencesKnown := Supports(ASyntaxTree, IUnitMemberReferences, LMembers);
-  if FReferencesKnown then
-    FReferences := LMembers.GetMemberReferences;
+  InitializeFacts(LTree);
   LDecisions := TDependencyDecisions.Create;
   LAmbiguities := TList<string>.Create;
   try
