@@ -1,4 +1,4 @@
-﻿unit Atropos.Tests.TargetAnalysis;
+unit Atropos.Tests.TargetAnalysis;
 
 interface
 
@@ -291,7 +291,7 @@ begin
   finally
     LReader.Free;
   end;
-  Assert.AreEqual(6, Length(LSymbols.DefaultSwitches));
+  Assert.AreEqual<NativeInt>(6, Length(LSymbols.DefaultSwitches));
   LSource := 'unit Consumer; interface ';
   for LOption in LSymbols.DefaultSwitches do
   begin
