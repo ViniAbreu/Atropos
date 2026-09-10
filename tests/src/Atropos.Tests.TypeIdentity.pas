@@ -33,6 +33,9 @@ type
     [TestCase('LocalUnscopedEnumShadows', '15,0')]
     [TestCase('LocalScopedEnumDoesNotShadow', '16,2')]
     procedure DependencyIdentity(AScenario, AAction: Integer);
+    [Test] procedure ExportIndexMatchesLinearContract;
+    [Test] procedure ReplacingExportFactsDropsOldCandidates;
+    [Test] procedure ExportIndexKeepsLegacyFallbackSeparate;
     [Test] procedure ExportsRetainKindArityAndEnumVisibility;
     [Test] procedure FactsSurviveResolverAliasesAndReset;
     [Test] procedure QualifiedNamesRespectNestedArguments;
@@ -44,7 +47,8 @@ implementation
 
 uses System.SysUtils, System.IOUtils, Atropos.Adapters.DelphiAST,
   Atropos.Adapters.TargetResolver, Atropos.Adapters.UnitDependencies,
-  Atropos.Core.Compilation, Atropos.Core.Analysis, Atropos.Core.TypeNames;
+  Atropos.Core.Compilation, Atropos.Core.Analysis, Atropos.Core.TypeNames,
+  Atropos.Core.UnitSymbols;
 
 procedure TTypeIdentityTests.Setup;
 begin
@@ -255,6 +259,84 @@ begin
   end;
   Assert.IsTrue(LGeneric);
   Assert.IsTrue(LAttribute);
+end;
+
+procedure TTypeIdentityTests.ExportIndexMatchesLinearContract;
+var LExports: TUnitExports; LFacts: TArray<TExportedSymbol>; LFact: TExportedSymbol;
+  LNames: TArray<string>; LName, LQuery: string; LParsed: TTypeName;
+  I, LArity: Integer; LExpected: Boolean;
+begin
+  LNames := ['TBag', 'TBAG', 'Owner.Item', 'Other.Item', 'Run',
+    'Type' + Char($00C7), 'Type' + Char($00E7)];
+  SetLength(LFacts, Length(LNames));
+  for I := 0 to High(LFacts) do
+  begin
+    LFacts[I].Name := LNames[I];
+    LFacts[I].Kind := ekType;
+    LFacts[I].GenericArity := I mod 3;
+  end;
+  LFacts[4].Kind := ekRoutine;
+  LExports := TUnitExports.Create('Dependency');
+  try
+    LExports.SetExportFacts(LFacts + LFacts);
+    for LName in LNames + ['Missing', 'Item'] do
+      for LArity := 0 to 4 do
+      begin
+        LQuery := LName + TTypeName.Parameters(LArity);
+        LParsed := TTypeName.Read(LQuery);
+        LExpected := False;
+        for LFact in LFacts do
+          if SameText(LFact.Name, LParsed.Name) then
+            if (LFact.GenericArity = LParsed.Arity) or
+              ((LFact.Kind = ekRoutine) and (LParsed.Arity = 0)) then
+              LExpected := True;
+        Assert.AreEqual(LExpected, LExports.MatchesIdentifier(LQuery, True), LQuery);
+      end;
+  finally
+    LExports.Free;
+  end;
+end;
+
+procedure TTypeIdentityTests.ReplacingExportFactsDropsOldCandidates;
+var LExports: TUnitExports; LFacts: TArray<TExportedSymbol>;
+begin
+  LExports := TUnitExports.Create('Dependency');
+  try
+    SetLength(LFacts, 1);
+    LFacts[0].Name := 'Before';
+    LFacts[0].Kind := ekRoutine;
+    LFacts[0].GenericArity := 2;
+    LExports.SetExportFacts(LFacts);
+    LFacts[0].Name := 'After';
+    LFacts[0].Kind := ekType;
+    LFacts[0].GenericArity := 1;
+    Assert.IsTrue(LExports.MatchesIdentifier('Before', True));
+    Assert.IsFalse(LExports.MatchesIdentifier('After<T>', True));
+    LExports.SetExportFacts(LFacts);
+    Assert.IsFalse(LExports.MatchesIdentifier('Before', True));
+    Assert.IsFalse(LExports.MatchesIdentifier('Before<T,U>', True));
+    Assert.IsTrue(LExports.MatchesIdentifier('After<T>', True));
+    Assert.IsFalse(LExports.MatchesIdentifier('After', True));
+    LExports.SetExportFacts(nil);
+    Assert.IsFalse(LExports.MatchesIdentifier('After<T>', True));
+  finally
+    LExports.Free;
+  end;
+end;
+
+procedure TTypeIdentityTests.ExportIndexKeepsLegacyFallbackSeparate;
+var LExports: TUnitExports;
+begin
+  LExports := TUnitExports.Create('Dependency');
+  try
+    LExports.AddIdentifiers(['Legacy']);
+    Assert.IsTrue(LExports.MatchesIdentifier('LEGACY<T>', True));
+    LExports.SetExportFacts(nil);
+    Assert.IsFalse(LExports.MatchesIdentifier('Legacy', True));
+    Assert.IsTrue(LExports.MatchesIdentifier('Legacy', False));
+  finally
+    LExports.Free;
+  end;
 end;
 
 initialization
