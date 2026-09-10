@@ -91,3 +91,14 @@ main source. The adapter retains the starting file even when DelphiAST assigns
 the compound node's ending file. The class-method fixture uses an explicit public
 section; an include immediately following class still exposes a pinned-parser
 lookahead limitation and is not claimed as supported by this change.
+
+Implicit-effect tests cover managed record storage, aliases/nested records, pure
+records/scalars, managed/foreign storage, class constructors, class storage and
+resolver cache propagation. A direct compiler experiment on Win32/Win64 emitted
+RecordInit/Main/RecordFinal for an imported unit containing an unused global managed
+record; adding a class-method call also emitted ClassInit before RecordInit and
+Touch after Main. The same class constructor was silent without that reference.
+These observations justify definite record effects and unknown class activation,
+not a general proof of constructor scheduling. The lifecycle runtime gate now
+requires RecordInit and RecordFinal before/after optimization while preserving the
+managed provider in its original interface section.

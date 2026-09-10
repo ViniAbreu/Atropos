@@ -36,6 +36,7 @@ uses
   Atropos.Adapters.HelperFacts in 'src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas',
   Atropos.Adapters.MemberReferences in 'src\Adapters\DelphiAST\Atropos.Adapters.MemberReferences.pas',
   Atropos.Adapters.SymbolFacts in 'src\Adapters\DelphiAST\Atropos.Adapters.SymbolFacts.pas',
+  Atropos.Adapters.ImplicitEffects in 'src\Adapters\DelphiAST\Atropos.Adapters.ImplicitEffects.pas',
   Atropos.Adapters.SyntaxBuilder in 'src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas',
   Atropos.Adapters.FileSystem in 'src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas',
   Atropos.Adapters.FileTransaction in 'src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas',

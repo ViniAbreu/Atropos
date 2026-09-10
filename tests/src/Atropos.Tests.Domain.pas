@@ -6,7 +6,7 @@ uses
 
 type
   { Mock AST }
-  TMockSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree, IUnitMemberReferences)
+  TMockSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree, IUnitMemberReferences, IUnitImplicitEffects)
   public
     UnitName: string;
     IntfUses: TArray<string>;
@@ -15,6 +15,7 @@ type
     ImplIdents: TArray<string>;
     Members: TArray<TMemberReference>;
     function GetMemberReferences: TArray<TMemberReference>;
+    function GetImplicitEffects: TArray<TImplicitEffect>;
     
     function GetUnitName: string;
     function GetInterfaceUses: TArray<string>;
@@ -55,6 +56,11 @@ type
   end;
 
 implementation
+
+function TMockSyntaxTree.GetImplicitEffects: TArray<TImplicitEffect>;
+begin
+  Result := [];
+end;
 
 procedure TDomainTests.MissingMemberFactsCannotProveHelperUnused;
 begin

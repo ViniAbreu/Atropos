@@ -128,6 +128,23 @@ type
     function GetSymbolFacts: TUnitSymbolFacts;
   end;
 
+  TImplicitEffectKind = (ieRecordStorage, ieUnresolvedStorage, ieClassConstructor);
+  TImplicitEffect = record
+    Kind: TImplicitEffectKind;
+    Name, Reason, SourcePath: string;
+    Definite: Boolean;
+    NormalizedLine, NormalizedColumn: Integer;
+  end;
+  IUnitImplicitEffects = interface
+    ['{597B811A-5698-4B12-AD9D-4A53B0093833}']
+    function GetImplicitEffects: TArray<TImplicitEffect>;
+  end;
+  IUnitImplicitEffectResolver = interface
+    ['{E39ADBB5-C5A8-4096-B0CA-65C28A4C6A27}']
+    function TryGetImplicitEffects(const AUnitName: string;
+      out AEffects: TArray<TImplicitEffect>): Boolean;
+  end;
+
   IUnitSourceDependencies = interface
     ['{7EBA76D2-050F-48CD-82F7-955CBAB1DCC5}']
     function GetSourceDependencies: TArray<TSourceDependency>;

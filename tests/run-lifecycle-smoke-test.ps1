@@ -49,7 +49,7 @@ try {
     }
     $program = Join-Path $working ".artifacts\$Platform\Debug\LifecycleConsole.exe"
     $before = Invoke-CheckedProcess $program @() 'before'
-    if ($before -ne 'TransitiveInit|Boot|Main|Shutdown|TransitiveFinal') { throw "Unexpected original lifecycle: $before" }
+    if ($before -ne 'TransitiveInit|RecordInit|Boot|Main|Shutdown|RecordFinal|TransitiveFinal') { throw "Unexpected original lifecycle: $before" }
     Invoke-CheckedProcess $resolvedCli $arguments 'apply' | Out-Null
     $after = Invoke-CheckedProcess $program @() 'after'
     if ($after -ne $before) { throw "Lifecycle changed: $before -> $after" }
@@ -76,6 +76,9 @@ finally {
     if ($resolved.StartsWith($temp, [StringComparison]::OrdinalIgnoreCase) -and
         (Split-Path $resolved -Leaf).StartsWith('AtroposLifecycle-', [StringComparison]::Ordinal)) {
         Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    if (-not $sections[0].Contains('Lifecycle.Managed')) {
+        throw 'Implicit managed-record effects were not preserved in their original section.'
     }
     if ($sections[0].Contains('Lifecycle.Helpers') -or
         -not $sections[1].Contains('Lifecycle.Helpers')) {

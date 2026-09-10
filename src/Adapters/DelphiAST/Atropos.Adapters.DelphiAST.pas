@@ -17,7 +17,7 @@ type
   TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
     IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints,
     IProjectSourceImports, IUnitLifecycleFacts, IUnitHelperFacts, IUnitMemberReferences,
-    IUnitSymbolFacts)
+    IUnitSymbolFacts, IUnitImplicitEffects)
   private
     FFileName: string;
     FUnitName: string;
@@ -59,6 +59,7 @@ type
     function GetHelperDeclarations: TArray<THelperDeclaration>;
     function GetMemberReferences: TArray<TMemberReference>;
     function GetSymbolFacts: TUnitSymbolFacts;
+    function GetImplicitEffects: TArray<TImplicitEffect>;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser, IAnalysisSnapshot,
@@ -84,7 +85,7 @@ type
 
 implementation
 
-uses Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
+uses Atropos.Adapters.ImplicitEffects, Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
   Atropos.Adapters.MemberReferences, Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalImports,
@@ -541,8 +542,25 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.HasInitializationSection: Boolean;
+var LEffect: TImplicitEffect;
 begin
   Result := Length(GetLifecycleSections) > 0;
+  if Result then
+    Exit;
+  for LEffect in GetImplicitEffects do
+    if LEffect.Definite then
+      Exit(True);
+end;
+
+function TDelphiASTSyntaxTree.GetImplicitEffects: TArray<TImplicitEffect>;
+var LExtractor: TImplicitEffectExtractor;
+begin
+  LExtractor := TImplicitEffectExtractor.Create(FFileName);
+  try
+    Result := LExtractor.Extract(FRoot);
+  finally
+    LExtractor.Free;
+  end;
 end;
 
 end.

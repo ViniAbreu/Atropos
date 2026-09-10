@@ -21,6 +21,7 @@
     <DCC_Optimize>false</DCC_Optimize>
   </PropertyGroup>
   <ItemGroup>
+    <DCCReference Include="Lifecycle.Managed.pas" />
     <DCCReference Include="Lifecycle.Helpers.pas" />
     <DCCReference Include="Lifecycle.Bridge.pas" />
     <DCCReference Include="Lifecycle.Effect.pas" />

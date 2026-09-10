@@ -1,6 +1,6 @@
 unit Lifecycle.Consumer;
 interface
-uses Lifecycle.Provider, Lifecycle.Unused, Lifecycle.Bridge, Lifecycle.Helpers;
+uses Lifecycle.Provider, Lifecycle.Unused, Lifecycle.Bridge, Lifecycle.Helpers, Lifecycle.Managed;
 procedure PrintMain;
 implementation
 procedure PrintMain;

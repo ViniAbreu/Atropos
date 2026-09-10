@@ -50,3 +50,18 @@ import lookup projection. Routine/type/block scopes and interface visibility are
 independent; qualified names retain their unit/type prefix. With scopes and local
 overloads remain unknown and preserve matching imports. This is lexical binding,
 not complete overload resolution, inheritance or compiler-level type identity.
+
+Implicit lifecycle facts are separate from import completeness. Known managed-record
+global storage sets the compatibility lifecycle flag; unresolved global/typed/class
+storage and class-constructor activation produce unknown effect metadata. Resolver
+caches copy this metadata with aliases/namespaces and clear it per context. The
+effect graph propagates uncertainty without discarding known import edges; a known
+effect elsewhere still takes precedence. Resolvers without implicit-effect metadata
+cannot prove absence. Manual contexts backed by real syntax trees must forward
+`RegisterImplicitEffects`; synthetic fixtures explicitly declare their facts.
+
+Local aliases and record fields are inspected without treating ordinary Initialize
+methods or routine-local record variables as unit startup effects. Foreign types,
+managed built-ins, arrays, typed constants and class storage remain conservative.
+Class constructors require reachability evidence; merely declaring one is not
+reported as a proven executed effect.

@@ -26,6 +26,7 @@ uses
   Atropos.Adapters.HelperFacts in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas',
   Atropos.Adapters.MemberReferences in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.MemberReferences.pas',
   Atropos.Adapters.SymbolFacts in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SymbolFacts.pas',
+  Atropos.Adapters.ImplicitEffects in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.ImplicitEffects.pas',
   Atropos.Adapters.SyntaxBuilder in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas',
   Atropos.Adapters.ExternalUnitResolver in '..\..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas',
   Atropos.Adapters.UnitDependencies in '..\..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.UnitDependencies.pas',
