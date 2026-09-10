@@ -69,6 +69,7 @@ uses
   Atropos.Tests.CompilerDirectives in 'src\Atropos.Tests.CompilerDirectives.pas',
   Atropos.Tests.ConditionalEvaluation in 'src\Atropos.Tests.ConditionalEvaluation.pas',
   Atropos.Adapters.FileSystem in '..\src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas',
+  Atropos.Adapters.SourceEncoding in '..\src\Adapters\FileSystem\Atropos.Adapters.SourceEncoding.pas',
   Atropos.Adapters.FileTransaction in '..\src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas',
   Atropos.Tests.FileSystem in 'src\Atropos.Tests.FileSystem.pas',
   Atropos.Core.Modifier in '..\src\Core\Services\Atropos.Core.Modifier.pas',

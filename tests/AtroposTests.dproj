@@ -160,6 +160,7 @@
         <DCCReference Include="src\Atropos.Tests.CompilerDirectives.pas"/>
         <DCCReference Include="src\Atropos.Tests.ConditionalEvaluation.pas"/>
         <DCCReference Include="..\src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas"/>
+        <DCCReference Include="..\src\Adapters\FileSystem\Atropos.Adapters.SourceEncoding.pas"/>
         <DCCReference Include="..\src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>
         <DCCReference Include="src\Atropos.Tests.FileSystem.pas"/>
         <DCCReference Include="..\src\Core\Services\Atropos.Core.Modifier.pas"/>

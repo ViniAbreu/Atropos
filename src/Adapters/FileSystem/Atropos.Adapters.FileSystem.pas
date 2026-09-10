@@ -14,8 +14,6 @@ type
     FTransactionRoot: string;
     FTransactionLock: TFileStream;
     FLockPath: string;
-    function DetectEncoding(const ABytes: TBytes): TEncoding;
-    function IsValidUTF8(const ABytes: TBytes): Boolean;
     function CreateBackupPath(const AFilePath: string): string;
     function GetManifestPath: string;
     function IsExpectedBackupPath(const AOriginalPath, ABackupPath,
@@ -43,7 +41,7 @@ type
   end;
 
 implementation
-uses System.IOUtils;
+uses System.IOUtils, Atropos.Adapters.SourceEncoding;
 
 constructor TFileSystemAdapter.Create;
 begin
@@ -255,71 +253,12 @@ begin
   end;
 end;
 
-function TFileSystemAdapter.DetectEncoding(const ABytes: TBytes): TEncoding;
-var
-  LDetectedEncoding: TEncoding;
-begin
-  LDetectedEncoding := nil;
-  if TEncoding.GetBufferEncoding(ABytes, LDetectedEncoding) > 0 then
-    Exit(LDetectedEncoding);
-
-  Result := TEncoding.Default;
-  if IsValidUTF8(ABytes) then
-    Result := TEncoding.UTF8;
-end;
-
-function TFileSystemAdapter.IsValidUTF8(const ABytes: TBytes): Boolean;
-var
-  LIndex: Integer;
-  LContinuationCount: Integer;
-  LContinuationIndex: Integer;
-begin
-  Result := False;
-  LIndex := 0;
-  while LIndex < Length(ABytes) do
-  begin
-    if ABytes[LIndex] <= $7F then
-    begin
-      Inc(LIndex);
-      Continue;
-    end;
-
-    LContinuationCount := 0;
-    if (ABytes[LIndex] >= $C2) and (ABytes[LIndex] <= $DF) then
-      LContinuationCount := 1;
-    if (ABytes[LIndex] >= $E0) and (ABytes[LIndex] <= $EF) then
-      LContinuationCount := 2;
-    if (ABytes[LIndex] >= $F0) and (ABytes[LIndex] <= $F4) then
-      LContinuationCount := 3;
-    if LContinuationCount = 0 then
-      Exit;
-    if LIndex + LContinuationCount >= Length(ABytes) then
-      Exit;
-
-    for LContinuationIndex := 1 to LContinuationCount do
-      if (ABytes[LIndex + LContinuationIndex] < $80) or (ABytes[LIndex + LContinuationIndex] > $BF) then
-        Exit;
-
-    if (ABytes[LIndex] = $E0) and (ABytes[LIndex + 1] < $A0) then
-      Exit;
-    if (ABytes[LIndex] = $ED) and (ABytes[LIndex + 1] > $9F) then
-      Exit;
-    if (ABytes[LIndex] = $F0) and (ABytes[LIndex + 1] < $90) then
-      Exit;
-    if (ABytes[LIndex] = $F4) and (ABytes[LIndex + 1] > $8F) then
-      Exit;
-
-    Inc(LIndex, LContinuationCount + 1);
-  end;
-  Result := True;
-end;
-
 function TFileSystemAdapter.ReadFileContent(const AFilePath: string): string;
 begin
   if not TFile.Exists(AFilePath) then
     raise Exception.CreateFmt('Cannot read. File does not exist: %s', [AFilePath]);
 
-  Result := TFile.ReadAllText(AFilePath, DetectEncoding(TFile.ReadAllBytes(AFilePath)));
+  Result := TFile.ReadAllText(AFilePath, TSourceEncoding.Detect(TFile.ReadAllBytes(AFilePath)));
 end;
 
 procedure TFileSystemAdapter.WriteFileContent(const AFilePath, AContent: string);
@@ -341,7 +280,7 @@ begin
     Exit;
   end;
 
-  if IsValidUTF8(LBytes) then
+  if TSourceEncoding.IsValidUTF8(LBytes) then
   begin
     TFile.WriteAllBytes(AFilePath, TEncoding.UTF8.GetBytes(AContent));
     Exit;

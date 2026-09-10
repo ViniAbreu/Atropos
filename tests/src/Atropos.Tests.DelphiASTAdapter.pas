@@ -55,9 +55,41 @@ type
     [TestCase('ClassFieldShadowsGlobal', '9,2')]
     procedure HelperDecisionsUseReceiverScopes(AScenario, AAction: Integer);
     [Test] procedure CompetingHelpersPreserveBothImports;
+    [TestCase('SystemCodePage', '0')]
+    [TestCase('Utf8NoBom', '1')]
+    [TestCase('Utf8Bom', '2')]
+    [TestCase('Utf16Bom', '3')]
+    procedure SourceEncodingPreservesTextAndFacts(AEncoding: Integer);
   end;
 
 implementation
+
+uses Atropos.Adapters.DelphiSource;
+
+procedure TDelphiASTAdapterTests.SourceEncodingPreservesTextAndFacts(AEncoding: Integer);
+var LSource: string; LEncoding: TEncoding; LBytes, LAfter: TBytes;
+  LTree: IUnitSyntaxTree; LContent: TDelphiSourceContent;
+begin
+  LSource := 'unit MockUnit; interface {a' + Char($E7) + Char($E3) + 'o} ' +
+    'type TKept = class end; implementation end.';
+  LEncoding := TEncoding.Default;
+  if AEncoding in [1, 2] then
+    LEncoding := TEncoding.UTF8;
+  if AEncoding = 3 then
+    LEncoding := TEncoding.Unicode;
+  LBytes := LEncoding.GetBytes(LSource);
+  if AEncoding in [2, 3] then
+    LBytes := LEncoding.GetPreamble + LBytes;
+  TFile.WriteAllBytes(FTestFile, LBytes);
+  LContent := TDelphiSourceReader.Read(FTestFile);
+  Assert.AreEqual(LSource, LContent.Text);
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsTrue(Length(LTree.GetExportedIdentifiers) > 0);
+  Assert.AreEqual('TKept', LTree.GetExportedIdentifiers[0]);
+  LAfter := TFile.ReadAllBytes(FTestFile);
+  Assert.AreEqual(Length(LBytes), Length(LAfter));
+  Assert.IsTrue(CompareMem(@LBytes[0], @LAfter[0], Length(LBytes)));
+end;
 
 procedure TDelphiASTAdapterTests.CreateMockPasFile;
 var

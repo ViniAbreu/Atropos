@@ -23,6 +23,7 @@ uses
   Atropos.Core.UsesEditor in '..\..\src\Core\Services\Atropos.Core.UsesEditor.pas',
   Atropos.Core.UsesEditPlan in '..\..\src\Core\Services\Atropos.Core.UsesEditPlan.pas',
   Atropos.Adapters.DelphiSource in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas',
+  Atropos.Adapters.SourceEncoding in '..\..\src\Adapters\FileSystem\Atropos.Adapters.SourceEncoding.pas',
   Atropos.Adapters.SourceIncludes in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas',
   Atropos.Adapters.SourceSnapshot in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas',
   Atropos.Adapters.DelphiAST in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas',
