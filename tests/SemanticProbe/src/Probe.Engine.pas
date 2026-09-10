@@ -41,6 +41,7 @@ procedure TProbeEngine.RegisterDependency(Context: TProjectContext; Dependency: 
 var Tree: IUnitSyntaxTree; Data: TJSONObject; All: TJSONArray;
   Diagnostics: IUnitAnalysisDiagnostics; Complete: Boolean;
   Implicit: IUnitImplicitEffects; Effects: TArray<TImplicitEffect>;
+  ExportFacts: IUnitExportFacts;
 begin
   FStage := 'dependency';
   Tree := FParser.ParseFile(TProbeJson.Text(Dependency, 'path'));
@@ -55,6 +56,8 @@ begin
   if Complete then
     Effects := Implicit.GetImplicitEffects;
   Context.RegisterImplicitEffects(Tree.GetUnitName, Effects, Complete);
+  if Supports(Tree, IUnitExportFacts, ExportFacts) then
+    Context.RegisterExportFacts(Tree.GetUnitName, ExportFacts.GetExportFacts);
   Data := TJSONObject.Create;
   Data.AddPair('unit', Tree.GetUnitName);
   TProbeJson.Put(Data, 'exports', Tree.GetExportedIdentifiers);

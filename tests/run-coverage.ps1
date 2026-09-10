@@ -27,7 +27,7 @@ $buildCommand = "`"$rsvars`" && `"$msbuild`" `"$testProject`" /t:Build /p:Config
 if ($LASTEXITCODE -ne 0) { throw "Test build failed with exit code $LASTEXITCODE" }
 
 $units = @(
-    'Atropos.Core.Domain', 'Atropos.Core.Analysis', 'Atropos.Core.AnalysisIntersection', 'Atropos.Core.Effects', 'Atropos.Core.UnitSymbols', 'Atropos.Core.HelperBinding', 'Atropos.Core.LocalBinding', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
+    'Atropos.Core.Domain', 'Atropos.Core.Analysis', 'Atropos.Core.AnalysisIntersection', 'Atropos.Core.Effects', 'Atropos.Core.UnitSymbols', 'Atropos.Core.HelperBinding', 'Atropos.Core.LocalBinding', 'Atropos.Core.TypeNames', 'Atropos.Core.Config', 'Atropos.Core.Modifier',
     'Atropos.Application.AppService', 'Atropos.Application.ExecutionConfig',
     'Atropos.Application.ExecutionLifecycle',
     'Atropos.Application.ExecutionPresentation',
@@ -39,7 +39,7 @@ $units = @(
     'Atropos.Adapters.DelphiEnvironment',
     'Atropos.Adapters.ExternalUnitResolver', 'Atropos.Adapters.UnitDependencies', 'Atropos.Adapters.FileSystem',
     'Atropos.Adapters.FileTransaction',
-    'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ProjectContext', 'Atropos.Adapters.CompilerSymbols', 'Atropos.Adapters.ProjectSourceMappings', 'Atropos.Adapters.TargetAnalysisFactory', 'Atropos.Adapters.TargetResolver', 'Atropos.Adapters.ContextSyntaxBuilder', 'Atropos.Adapters.ConditionalImports', 'Atropos.Adapters.SyntaxFacts', 'Atropos.Adapters.HelperFacts', 'Atropos.Adapters.MemberReferences', 'Atropos.Adapters.SymbolFacts', 'Atropos.Adapters.ImplicitEffects', 'Atropos.Adapters.SyntaxBuilder', 'Atropos.Application.TargetAnalysis', 'Atropos.Application.Logger', 'Atropos.Adapters.ProjectEvaluationScript', 'Atropos.Adapters.ReportGenerator',
+    'Atropos.Adapters.ProjectParser', 'Atropos.Adapters.ProjectContext', 'Atropos.Adapters.CompilerSymbols', 'Atropos.Adapters.ProjectSourceMappings', 'Atropos.Adapters.TargetAnalysisFactory', 'Atropos.Adapters.TargetResolver', 'Atropos.Adapters.ContextSyntaxBuilder', 'Atropos.Adapters.ConditionalImports', 'Atropos.Adapters.SyntaxFacts', 'Atropos.Adapters.HelperFacts', 'Atropos.Adapters.MemberReferences', 'Atropos.Adapters.SymbolFacts', 'Atropos.Adapters.ExportFacts', 'Atropos.Adapters.ImplicitEffects', 'Atropos.Adapters.SyntaxBuilder', 'Atropos.Application.TargetAnalysis', 'Atropos.Application.Logger', 'Atropos.Adapters.ProjectEvaluationScript', 'Atropos.Adapters.ReportGenerator',
     'Atropos.Adapters.DelphiAST', 'Atropos.Adapters.DelphiSource',
     'Atropos.Adapters.SourceIncludes', 'Atropos.Adapters.SourceSnapshot', 'Atropos.Application.AnalysisPlan'
 )

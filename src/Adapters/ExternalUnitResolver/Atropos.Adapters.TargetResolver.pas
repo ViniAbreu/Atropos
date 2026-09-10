@@ -13,7 +13,7 @@ type
     function ParseFile(const AFilePath: string): IUnitSyntaxTree;
   end;
 
-  TTargetUnitResolver = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver, IUnitImplicitEffectResolver)
+  TTargetUnitResolver = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver, IUnitImplicitEffectResolver, IUnitExportFactResolver)
   private
     FParser: IASTParser;
     FExternal: IExternalUnitResolver;
@@ -31,6 +31,7 @@ type
       const ADelphiPath, ABasePath: string);
     function TryGetUnitImports(const AUnitName: string; out AImports: TArray<string>): Boolean;
     function TryGetImplicitEffects(const AUnitName: string; out AEffects: TArray<TImplicitEffect>): Boolean;
+    function TryGetExportFacts(const AUnitName: string; out AFacts: TArray<TExportedSymbol>): Boolean;
     function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>;
       out AHasInit, AIsNative: Boolean): Boolean;
@@ -117,6 +118,7 @@ var
   LMapping: TUnitSourceMapping;
   LDependencies: IUnitDependencyResolver;
   LEffectResolver: IUnitImplicitEffectResolver; LEffects: TArray<TImplicitEffect>;
+  LExportResolver: IUnitExportFactResolver; LFacts: TArray<TExportedSymbol>;
   LImports: TArray<string>;
 begin
   for LMapping in FContext.SourceMappings do
@@ -151,10 +153,18 @@ begin
   if Result and Supports(FExternal, IUnitImplicitEffectResolver, LEffectResolver) then
     if LEffectResolver.TryGetImplicitEffects(AName, LEffects) then
       FDependencies.RegisterEffects(AName, LEffects);
+  if Result and Supports(FExternal, IUnitExportFactResolver, LExportResolver) then
+    if LExportResolver.TryGetExportFacts(AName, LFacts) then
+      FDependencies.RegisterExports(AName, LFacts);
   if not Result and (Length(FExternal.GetWarnings) > LWarningCount) then
     raise EInvalidOperation.Create('Source lookup is incomplete for ' + AName);
 end;
 
+function TTargetUnitResolver.TryGetExportFacts(const AUnitName: string;
+  out AFacts: TArray<TExportedSymbol>): Boolean;
+begin
+  Result := FDependencies.TryGetExports(AUnitName, AFacts);
+end;
 function TTargetUnitResolver.TryGetImplicitEffects(const AUnitName: string;
   out AEffects: TArray<TImplicitEffect>): Boolean;
 begin

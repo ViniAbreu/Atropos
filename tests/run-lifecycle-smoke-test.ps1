@@ -63,6 +63,19 @@ try {
     if (-not $sections[0].Contains('Lifecycle.Bridge')) {
         throw 'Transitive effect bridge was not preserved in its original section.'
     }
+    if (-not $sections[0].Contains('Lifecycle.Managed')) {
+        throw 'Implicit managed-record effects were not preserved in their original section.'
+    }
+    if ($sections[0].Contains('Lifecycle.Helpers') -or
+        -not $sections[1].Contains('Lifecycle.Helpers')) {
+        throw 'String helper import was not moved to implementation.'
+    }
+    $typeSource = Get-Content -Raw -LiteralPath (Join-Path $working 'Lifecycle.TypeChecks.pas')
+    if ($typeSource.Contains('Lifecycle.Plain')) { throw 'Plain type collision was not removed.' }
+    $typeSections = [regex]::new('(?i)\bimplementation\b').Split($typeSource, 2)
+    foreach ($required in @('Lifecycle.Generic', 'Lifecycle.Attributes')) {
+        if (-not $typeSections[0].Contains($required)) { throw "Type dependency was not preserved: $required" }
+    }
     foreach ($path in $fixtureHashes.Keys) {
         if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $fixtureHashes[$path]) {
             throw "Repository lifecycle fixture changed: $path"
@@ -76,12 +89,5 @@ finally {
     if ($resolved.StartsWith($temp, [StringComparison]::OrdinalIgnoreCase) -and
         (Split-Path $resolved -Leaf).StartsWith('AtroposLifecycle-', [StringComparison]::Ordinal)) {
         Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    if (-not $sections[0].Contains('Lifecycle.Managed')) {
-        throw 'Implicit managed-record effects were not preserved in their original section.'
-    }
-    if ($sections[0].Contains('Lifecycle.Helpers') -or
-        -not $sections[1].Contains('Lifecycle.Helpers')) {
-        throw 'String helper import was not moved to implementation.'
     }
 }

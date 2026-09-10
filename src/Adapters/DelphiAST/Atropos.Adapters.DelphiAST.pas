@@ -17,7 +17,7 @@ type
   TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
     IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints,
     IProjectSourceImports, IUnitLifecycleFacts, IUnitHelperFacts, IUnitMemberReferences,
-    IUnitSymbolFacts, IUnitImplicitEffects)
+    IUnitSymbolFacts, IUnitImplicitEffects, IUnitExportFacts)
   private
     FFileName: string;
     FUnitName: string;
@@ -32,11 +32,6 @@ type
     
     procedure FindAllUses(ANode: TSyntaxNode; AList: TList<string>);
     
-    function ExtractNodeName(ANode: TSyntaxNode): string;
-    function CanExportNode(ANode: TSyntaxNode; AInsideTypeDecl, AInsideHelper: Boolean): Boolean;
-    function IsHelperNode(ANode: TSyntaxNode): Boolean;
-    
-    procedure FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; ATypeDeclDepth: Integer = 0; AInsideHelper: Boolean = False);
   public
     constructor Create(const AFileName: string; ARoot: TSyntaxNode;
       const ADependencies: TArray<TSourceDependency>;
@@ -50,6 +45,7 @@ type
     function GetIdentifiersUsedInInterface: TArray<string>;
     function GetIdentifiersUsedInImplementation: TArray<string>;
     function GetExportedIdentifiers: TArray<string>;
+    function GetExportFacts: TArray<TExportedSymbol>;
     function HasInitializationSection: Boolean;
     function GetSourceDependencies: TArray<TSourceDependency>;
     function GetIncompleteAnalysisReasons: TArray<string>;
@@ -85,7 +81,7 @@ type
 
 implementation
 
-uses Atropos.Adapters.ImplicitEffects, Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
+uses Atropos.Adapters.ExportFacts, Atropos.Adapters.ImplicitEffects, Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
   Atropos.Adapters.MemberReferences, Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalImports,
@@ -330,128 +326,6 @@ begin
   end;
 end;
 
-function TDelphiASTSyntaxTree.ExtractNodeName(ANode: TSyntaxNode): string;
-var
-  LChild: TSyntaxNode;
-  i: Integer;
-begin
-  if not Assigned(ANode) then
-  begin
-    Result := EmptyStr;
-    Exit;
-  end;
-
-  Result := ANode.GetAttribute(anName);
-  if not Result.IsEmpty then
-    Exit;
-
-  if ANode is TValuedSyntaxNode then
-  begin
-    Result := TValuedSyntaxNode(ANode).Value;
-    if not Result.IsEmpty then
-      Exit;
-  end;
-
-  // Pass 1: ntName
-  for i := 0 to Length(ANode.ChildNodes) - 1 do
-  begin
-    LChild := ANode.ChildNodes[i];
-    if LChild.Typ = ntName then
-    begin
-      Result := ExtractNodeName(LChild);
-      if not Result.IsEmpty then
-        Exit;
-    end;
-  end;
-
-  // Pass 2: Fallback to ntIdentifier
-  for i := 0 to Length(ANode.ChildNodes) - 1 do
-  begin
-    LChild := ANode.ChildNodes[i];
-    if LChild.Typ = ntIdentifier then
-    begin
-      Result := ExtractNodeName(LChild);
-      if not Result.IsEmpty then
-        Exit;
-    end;
-  end;
-end;
-
-function TDelphiASTSyntaxTree.CanExportNode(ANode: TSyntaxNode; AInsideTypeDecl, AInsideHelper: Boolean): Boolean;
-begin
-  Result := False;
-  
-  if AInsideTypeDecl then
-  begin
-    if ANode.Typ = ntElement then
-      Exit(True);
-      
-    if (ANode.Typ = ntIdentifier) and Assigned(ANode.ParentNode) and 
-       (ANode.ParentNode.Typ = ntType) and (ANode.ParentNode.GetAttribute(anName).Equals('enum')) then
-      Exit(True);
-      
-    Exit;
-  end;
-  
-  if ANode.Typ in [ntTypeDecl, ntVariable, ntConstant, ntMethod, ntResourceString] then
-    Result := True;
-end;
-
-function TDelphiASTSyntaxTree.IsHelperNode(ANode: TSyntaxNode): Boolean;
-begin
-  Result := Assigned(ANode.FindNode(ntHelper));
-  if not Result and (ANode.Typ = ntTypeDecl) then
-    Result := Assigned(ANode.FindNode([ntType, ntHelper]));
-end;
-
-procedure TDelphiASTSyntaxTree.FindExportedIdentifiers(ANode: TSyntaxNode; AList: TList<string>; ATypeDeclDepth: Integer = 0; AInsideHelper: Boolean = False);
-var
-  LChild: TSyntaxNode;
-  LTypeDeclDepth: Integer;
-  LIsHelper: Boolean;
-  LName: string;
-  I: Integer;
-begin
-  if not Assigned(ANode) then
-    Exit;
-  
-  if ANode.Typ = ntUses then
-    Exit;
-    
-  if ANode.Typ = ntHelper then
-    Exit;
-    
-  // Se encontrarmos um ntTypeDecl estando já dentro de um (Depth > 0), é um Nested Type!
-  // Tipos aninhados (e seus enums) pertencem à classe, não ao escopo global.
-  if (ATypeDeclDepth > 0) and (ANode.Typ = ntTypeDecl) then
-    Exit;
-
-  LName := ExtractNodeName(ANode);
-  
-  if not LName.IsEmpty and CanExportNode(ANode, ATypeDeclDepth > 0, AInsideHelper) then
-    AList.Add(LName);
-    
-  // NADA dentro de um método (parâmetros, variáveis locais, except blocks) é exportado globalmente.
-  // Devemos sair DEPOIS de extrair o nome do próprio método.
-  if ANode.Typ = ntMethod then
-    Exit;
-    
-  LTypeDeclDepth := ATypeDeclDepth;
-  if ANode.Typ = ntTypeDecl then
-    Inc(LTypeDeclDepth);
-    
-  LIsHelper := AInsideHelper or (ANode.Typ = ntHelper);
-  
-  if (ANode.Typ in [ntTypeDecl, ntType]) and not LIsHelper then
-    LIsHelper := IsHelperNode(ANode);
-  
-  for I := 0 to Length(ANode.ChildNodes) - 1 do
-  begin
-    LChild := ANode.ChildNodes[I];
-    FindExportedIdentifiers(LChild, AList, LTypeDeclDepth, LIsHelper);
-  end;
-end;
-
 function TDelphiASTSyntaxTree.GetUsesList(ANodeType: TSyntaxNodeType): TArray<string>;
 var
   LNode: TSyntaxNode;
@@ -515,32 +389,33 @@ begin
   Result := GetReferencedIdentifiers(False);
 end;
 
-function TDelphiASTSyntaxTree.GetExportedIdentifiers: TArray<string>;
-var
-  LHelper: THelperDeclaration;
-  LNode: TSyntaxNode;
-  LList: TList<string>;
+function TDelphiASTSyntaxTree.GetExportFacts: TArray<TExportedSymbol>;
+var LExtractor: TExportFactExtractor;
 begin
-  Result := [];
-  if not Assigned(FRoot) then
-    Exit;
-  
-  LNode := FRoot.FindNode(ntInterface);
-  if Assigned(LNode) then
-  begin
-    LList := TList<string>.Create;
-    try
-      FindExportedIdentifiers(LNode, LList);
-      for LHelper in GetHelperDeclarations do
-        if LHelper.Visibility <> 'private' then
-          LList.Add('!HELPER:' + LHelper.MemberName + ':' + LHelper.ReceiverType);
-      Result := LList.ToArray;
-    finally
-      LList.Free;
-    end;
+  LExtractor := TExportFactExtractor.Create;
+  try
+    Result := LExtractor.Extract(FRoot);
+  finally
+    LExtractor.Free;
   end;
 end;
 
+function TDelphiASTSyntaxTree.GetExportedIdentifiers: TArray<string>;
+var LHelper: THelperDeclaration; LFact: TExportedSymbol; LList: TList<string>;
+begin
+  LList := TList<string>.Create;
+  try
+    for LFact in GetExportFacts do
+      if not LList.Contains(LFact.Name) then
+        LList.Add(LFact.Name);
+    for LHelper in GetHelperDeclarations do
+      if LHelper.Visibility <> 'private' then
+        LList.Add('!HELPER:' + LHelper.MemberName + ':' + LHelper.ReceiverType);
+    Result := LList.ToArray;
+  finally
+    LList.Free;
+  end;
+end;
 function TDelphiASTSyntaxTree.HasInitializationSection: Boolean;
 var LEffect: TImplicitEffect;
 begin

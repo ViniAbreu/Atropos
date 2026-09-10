@@ -23,6 +23,8 @@ type
     procedure AddNamedDeclarations(ANode: TSyntaxNode; AScope: Integer;
       AKind: TLocalSymbolKind);
     procedure DelayDeclarations(AFirst: Integer);
+    function IsEnumLabel(ANode: TSyntaxNode): Boolean;
+    procedure EnumDeclaration(ANode: TSyntaxNode; AScope: Integer);
     procedure AddReference(ANode: TSyntaxNode; const AName: string;
       const AVisit: TSymbolVisit; AArity: Integer = 0);
     function QualifiedName(ANode: TSyntaxNode): string;
@@ -39,7 +41,7 @@ type
 
 implementation
 
-uses DelphiAST.Consts, System.SysUtils;
+uses DelphiAST.Consts, System.SysUtils, Atropos.Core.TypeNames;
 
 constructor TSymbolFactExtractor.Create(const ASource: string);
 begin
@@ -136,6 +138,7 @@ begin
   LItem.GenericArity := AArity;
   LItem.InInterface := AVisit.InInterface;
   LItem.Uncertain := AVisit.Uncertain;
+  LItem.IsAttribute := ANode.Typ = ntAttribute;
   LItem.SourcePath := ANode.FileName;
   if LItem.SourcePath.IsEmpty then
     LItem.SourcePath := FSource;
@@ -150,6 +153,8 @@ begin
   Result := '';
   if ANode.Typ = ntIdentifier then
     Exit(ANode.GetAttribute(anName));
+  if (ANode.Typ = ntGeneric) and (Length(ANode.ChildNodes) > 0) then
+    Exit(QualifiedName(ANode.ChildNodes[0]) + TTypeName.Parameters(GenericArity(ANode)));
   if (ANode.Typ <> ntDot) or (Length(ANode.ChildNodes) <> 2) then
     Exit;
   LLeft := QualifiedName(ANode.ChildNodes[0]);
@@ -172,7 +177,7 @@ begin
 end;
 
 procedure TSymbolFactExtractor.References(ANode: TSyntaxNode; const AVisit: TSymbolVisit);
-var LName: string; LParent: TSyntaxNode; LArity: Integer;
+var LName: string; LParent, LNameNode: TSyntaxNode; LArity: Integer;
 begin
   LParent := ANode.ParentNode;
   if ANode.Typ = ntDot then
@@ -180,12 +185,20 @@ begin
     if Assigned(LParent) and (LParent.Typ = ntDot) then
       Exit;
     LName := QualifiedName(ANode);
-    AddReference(ANode, LName, AVisit);
+    LArity := 0;
+    if Assigned(LParent) and (LParent.Typ = ntGeneric) then
+    begin
+      LArity := GenericArity(LParent);
+      LName := LName + TTypeName.Parameters(LArity);
+    end;
+    AddReference(ANode, LName, AVisit, LArity);
     if not LName.IsEmpty then
       AddReference(ANode, Copy(LName, 1, Pos('.', LName) - 1), AVisit);
     Exit;
   end;
   if not (ANode.Typ in [ntIdentifier, ntType, ntAttribute]) then
+    Exit;
+  if IsEnumLabel(ANode) then
     Exit;
   if Assigned(LParent) and (LParent.Typ = ntTypeParam) then
     Exit;
@@ -193,14 +206,40 @@ begin
     (LParent.ChildNodes[0] <> ANode) then
     Exit;
   LName := ANode.GetAttribute(anName);
-  LArity := 0;
+  if ANode.Typ = ntAttribute then
+  begin
+    LNameNode := ANode.FindNode(ntName);
+    if LNameNode is TValuedSyntaxNode then
+      LName := TValuedSyntaxNode(LNameNode).Value;
+  end;
+  LArity := GenericArity(ANode);
   if Assigned(LParent) and (LParent.Typ = ntGeneric) and
     (LParent.ChildNodes[0] = ANode) then
-  begin
     LArity := GenericArity(LParent);
-    LName := LName + '<T>';
-  end;
+  if not LName.Contains('<') then
+    LName := LName + TTypeName.Parameters(LArity);
   AddReference(ANode, LName, AVisit, LArity);
+end;
+
+function TSymbolFactExtractor.IsEnumLabel(ANode: TSyntaxNode): Boolean;
+var LParent: TSyntaxNode;
+begin
+  LParent := ANode.ParentNode;
+  Result := (ANode.Typ in [ntIdentifier, ntElement]) and Assigned(LParent) and
+    (LParent.Typ = ntType) and (LParent.GetAttribute(anName) = 'enum');
+end;
+
+procedure TSymbolFactExtractor.EnumDeclaration(ANode: TSyntaxNode; AScope: Integer);
+var LType, LOwner: TSyntaxNode;
+begin
+  if not IsEnumLabel(ANode) then
+    Exit;
+  LType := ANode.ParentNode;
+  LOwner := LType.ParentNode;
+  if Assigned(LOwner) and (LOwner.Typ = ntTypeDecl) and
+    (LType.GetAttribute(anVisibility) <> 'scoped') then
+    AScope := FScopes[AScope].ParentId;
+  AddNamedDeclarations(ANode, AScope, skConstant);
 end;
 
 function TSymbolFactExtractor.EnterScope(ANode: TSyntaxNode;
@@ -241,6 +280,7 @@ begin
     Exit;
   Inc(FPosition);
   LFirst := FDeclarations.Count;
+  EnumDeclaration(ANode, AVisit.ScopeId);
   LDelay := ANode.Typ in [ntVariable, ntParameter, ntField, ntConstant, ntResourceString];
   if ANode.Typ = ntVariable then
     AddNamedDeclarations(ANode, AVisit.ScopeId, skVariable);
