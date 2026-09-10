@@ -117,7 +117,7 @@ begin
   FIncludePaths := Copy(AContext.IncludePaths);
   FDefines := ASymbols.Defines + AContext.Defines;
   FCompilerVersion := ASymbols.CompilerVersion;
-  FOptions := Copy(AContext.Options);
+  FOptions := ASymbols.DefaultSwitches + AContext.Options;
   if Length(AContext.DeferredProperties) > 0 then
     FContextReasons := ['Build targets can change compiler settings: ' +
       string.Join(', ', AContext.DeferredProperties)];

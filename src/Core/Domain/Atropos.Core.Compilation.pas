@@ -42,6 +42,7 @@ type
   TCompilerSymbols = record
     Defines: TArray<string>;
     CompilerVersion: string;
+    DefaultSwitches: TArray<TCompilerOption>;
   end;
 
   TTargetAnalysisServices = record

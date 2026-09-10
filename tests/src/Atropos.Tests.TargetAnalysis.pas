@@ -41,6 +41,9 @@ type
     [Test] [TestCase('Compiler32', 'Win32')]
     [TestCase('Compiler64', 'Win64')]
     procedure CompilerSymbolsComeFromSelectedCompiler(const APlatform: string);
+    [TestCase('Default32', 'Win32')]
+    [TestCase('Default64', 'Win64')]
+    procedure CompilerSwitchDefaultsReachParser(const APlatform: string);
     [Test] procedure ExplicitGuiOptionDoesNotLeakConsoleSymbol;
     [Test] procedure TargetDisagreementPreservesImport;
     [Test] procedure CommonActionsSurviveIntersection;
@@ -276,6 +279,32 @@ begin
   end;
 end;
 
+procedure TTargetAnalysisTests.CompilerSwitchDefaultsReachParser(const APlatform: string);
+var LReader: TCompilerSymbolReader; LSymbols: TCompilerSymbols;
+  LContext: TProjectCompilationContext; LParser: IASTParser;
+  LTree: IUnitSyntaxTree; LSource: string; LOption: TCompilerOption;
+begin
+  LContext := Context(APlatform);
+  LReader := TCompilerSymbolReader.Create(TWin32BuildProcessRunner.Create, nil);
+  try
+    LSymbols := LReader.Read(LContext, FDelphiPath);
+  finally
+    LReader.Free;
+  end;
+  Assert.AreEqual(6, Length(LSymbols.DefaultSwitches));
+  LSource := 'unit Consumer; interface ';
+  for LOption in LSymbols.DefaultSwitches do
+  begin
+    Assert.IsTrue((LOption.Value = 'ON') or (LOption.Value = 'OFF'));
+    LSource := LSource + '{$IFOPT ' + LOption.Name + '+}type TOn' +
+      LOption.Name + ' = Integer;{$ELSE}type TOff' + LOption.Name + ' = Integer;{$ENDIF}';
+  end;
+  LParser := TDelphiASTAdapter.Create(LContext, LSymbols);
+  LTree := LParser.ParseFile(WriteSource('Consumer.pas', LSource + ' implementation end.'));
+  for LOption in LSymbols.DefaultSwitches do
+    Assert.Contains<string>(LTree.GetExportedIdentifiers,
+      'T' + LOption.Value.Substring(0, 1) + LOption.Value.Substring(1).ToLower + LOption.Name);
+end;
 procedure TTargetAnalysisTests.ExplicitGuiOptionDoesNotLeakConsoleSymbol;
 var
   LReader: TCompilerSymbolReader;
