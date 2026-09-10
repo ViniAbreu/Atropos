@@ -39,6 +39,8 @@ foreach ($platform in @('Win32', 'Win64')) {
         -CliPath (Join-Path $repositoryRoot "$platform\Release\AtroposCLI.exe") -Platform $platform
     & (Join-Path $PSScriptRoot 'run-representative-smoke-tests.ps1') `
         -CliPath (Join-Path $repositoryRoot "$platform\Release\AtroposCLI.exe") -Platform $platform
+    & (Join-Path $PSScriptRoot 'run-lifecycle-smoke-test.ps1') `
+        -CliPath (Join-Path $repositoryRoot "$platform\Release\AtroposCLI.exe") -Platform $platform
 }
 
 & (Join-Path $PSScriptRoot 'run-coverage.ps1') -CodeCoveragePath $CodeCoveragePath `

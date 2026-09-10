@@ -1,0 +1,56 @@
+unit Atropos.Adapters.SyntaxBuilder;
+
+interface
+
+uses DelphiAST, DelphiAST.Consts;
+
+type
+  TAtroposSyntaxBuilder = class(TPasSyntaxTreeBuilder)
+  private
+    procedure RestoreSectionSource(AType: TSyntaxNodeType; const APath: string);
+  protected
+    procedure InitializationSection; override;
+    procedure FinalizationSection; override;
+    procedure CompoundStatement; override;
+  end;
+
+implementation
+
+uses DelphiAST.Classes;
+
+procedure TAtroposSyntaxBuilder.RestoreSectionSource(AType: TSyntaxNodeType;
+  const APath: string);
+var LNode: TSyntaxNode;
+begin
+  LNode := FStack.Peek.FindNode(AType);
+  if Assigned(LNode) then
+    LNode.FileName := APath;
+end;
+
+procedure TAtroposSyntaxBuilder.InitializationSection;
+var LPath: string;
+begin
+  LPath := Lexer.FileName;
+  inherited;
+  RestoreSectionSource(ntInitialization, LPath);
+end;
+
+procedure TAtroposSyntaxBuilder.FinalizationSection;
+var LPath: string;
+begin
+  LPath := Lexer.FileName;
+  inherited;
+  RestoreSectionSource(ntFinalization, LPath);
+end;
+
+procedure TAtroposSyntaxBuilder.CompoundStatement;
+var LPath: string; LUnitBody: Boolean;
+begin
+  LUnitBody := Assigned(FStack.Peek.FindNode(ntInterface));
+  LPath := Lexer.FileName;
+  inherited;
+  if LUnitBody then
+    RestoreSectionSource(ntStatements, LPath);
+end;
+
+end.

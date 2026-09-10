@@ -18,6 +18,8 @@ uses
   Atropos.Adapters.DelphiAST in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas',
   Atropos.Adapters.ContextSyntaxBuilder in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.ContextSyntaxBuilder.pas',
   Atropos.Adapters.ConditionalImports in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas',
+  Atropos.Adapters.SyntaxFacts in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SyntaxFacts.pas',
+  Atropos.Adapters.SyntaxBuilder in '..\..\src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas',
   Atropos.Adapters.ExternalUnitResolver in '..\..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas',
   Atropos.Adapters.TargetResolver in '..\..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.TargetResolver.pas',
   Probe.Json in 'src\Probe.Json.pas',
