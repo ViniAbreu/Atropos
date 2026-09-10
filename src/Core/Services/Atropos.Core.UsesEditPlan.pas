@@ -84,7 +84,8 @@ var LOther: TDependencyDecision;
 begin
   for LOther in ADecisions do
     if SameText(LOther.UnitName, ADecision.UnitName) and (LOther.Section = ADecision.Section) and
-      ((LOther.Action <> ADecision.Action) or (LOther.State in [dsUnknown, dsAmbiguous])) then
+      ((LOther.Action <> ADecision.Action) or
+       ((ADecision.Action <> daPreserve) and (LOther.State in [dsUnknown, dsAmbiguous]))) then
       Exit(True);
   Result := False;
 end;

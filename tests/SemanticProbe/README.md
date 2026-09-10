@@ -129,6 +129,19 @@ before and after optimization. SymbolBinding tests also cover sibling closures a
 anonymous-function result types. These additional contracts do not change historical
 case IDs, input hashes, expected outcomes or PASS/FAIL totals.
 
+### Supplementary runtime contracts
+
+The full quality gate now executes SemanticRuntime on Win32/Win64 for the contracts
+`dfm-streaming-registration`, `rtti-string-registration` and `compiler-overload-binding`.
+The runtime checks actual streaming, an event loaded from DFM, string class lookup
+and selected overload returns before/after an edit. Negative controls still compile
+but respectively fail streaming or choose different overloads. Evidence and input/
+binary hashes are written under `artifacts/integration/<platform>/semantic-runtime.json`.
+Only status PASS proves that complete run; RUNNING, FAIL or missing evidence does not.
+These are integration results with the original case IDs, not an invented AST-only
+PASS. The historical catalog continues to report those cases as BLOCKED because
+this Probe does not perform their project/runtime contract.
+
 ## Source include increment
 
 Source-relative and nested includes now load through the production adapter. Probe
