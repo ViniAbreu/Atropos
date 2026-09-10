@@ -124,20 +124,22 @@ That historical scenario keeps its original failing oracle; the valid supplement
 tests do not promote it to PASS.
 
 SemanticRuntime exercises real VCL DFM streaming, OnCreate binding, class lookup by
-registered string name and overload selection across two units. Both platforms must
-emit DFM:42|Registry:TStreamProbe|Integer|String before and after cleanup. It also
-builds two deliberately broken copies: removing the registration import must still
+registered string name, overload selection across two units and competing string helpers. Both platforms must
+emit DFM:42|Registry:TStreamProbe|Integer|String|Second:value before and after cleanup. It also
+builds three deliberately changed copies: removing the registration import must still
 compile but fail during streaming; removing the exact overload provider must still
-compile/run but select Variant for both calls. Thus successful compilation alone
+compile/run but select Variant for both calls; reversing the helper imports must
+compile/run but select First:value. Both helper imports and their order must survive
+cleanup, while an unused import in their consumer must be removed. Successful compilation alone
 cannot satisfy these contracts.
 
 `run-semantic-runtime-tests.ps1` writes `artifacts/integration/<platform>/semantic-runtime.json`
-and captured process logs. PASS is recorded only after positive behavior, both
+and captured process logs. PASS is recorded only after positive behavior, all
 negative controls, actual removals, preserved imports and original fixture hashes
 have been checked. The evidence identifies the CLI binary hash, target, research
 catalog hash and fixture hashes. An interrupted run remains RUNNING; a caught failure
 records FAIL. These supplementary results cover `dfm-streaming-registration`,
-`rtti-string-registration` and `compiler-overload-binding` in their integration layer.
+`rtti-string-registration`, `compiler-overload-binding` and `compiler-helper-precedence` in their integration layer.
 They do not modify the historical Probe catalog or its BLOCKED totals and do not
 prove arbitrary dynamic registration or complete compiler overload resolution.
 
