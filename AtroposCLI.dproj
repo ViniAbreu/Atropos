@@ -103,6 +103,7 @@
         <DCCReference Include="src\Core\Ports\Atropos.Core.Ports.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Analysis.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.AnalysisIntersection.pas"/>
+        <DCCReference Include="src\Core\Domain\Atropos.Core.Effects.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Compilation.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Config.pas"/>
@@ -126,6 +127,7 @@
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>
         <DCCReference Include="src\Adapters\ReportGenerator\Atropos.Adapters.ReportGenerator.pas"/>
         <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
+        <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.UnitDependencies.pas"/>
         <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.TargetResolver.pas"/>
         <DCCReference Include="src\Adapters\DelphiEnvironment\Atropos.Adapters.DelphiEnvironment.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.AppService.pas"/>

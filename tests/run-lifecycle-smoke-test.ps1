@@ -49,7 +49,7 @@ try {
     }
     $program = Join-Path $working ".artifacts\$Platform\Debug\LifecycleConsole.exe"
     $before = Invoke-CheckedProcess $program @() 'before'
-    if ($before -ne 'Boot|Main|Shutdown') { throw "Unexpected original lifecycle: $before" }
+    if ($before -ne 'TransitiveInit|Boot|Main|Shutdown|TransitiveFinal') { throw "Unexpected original lifecycle: $before" }
     Invoke-CheckedProcess $resolvedCli $arguments 'apply' | Out-Null
     $after = Invoke-CheckedProcess $program @() 'after'
     if ($after -ne $before) { throw "Lifecycle changed: $before -> $after" }
@@ -59,6 +59,9 @@ try {
     if ($sections.Count -ne 2 -or $sections[0].Contains('Lifecycle.Provider') -or
         -not $sections[1].Contains('Lifecycle.Provider')) {
         throw 'Lifecycle provider was not moved to implementation.'
+    }
+    if (-not $sections[0].Contains('Lifecycle.Bridge')) {
+        throw 'Transitive effect bridge was not preserved in its original section.'
     }
     foreach ($path in $fixtureHashes.Keys) {
         if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $fixtureHashes[$path]) {

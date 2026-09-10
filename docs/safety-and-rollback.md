@@ -26,9 +26,11 @@ The analyzer records decisions per import section. Unknown providers and ambiguo
 candidates are retained with reasons in the report. A parser exception preserves
 the consumer and is reported as unknown analysis. Adapters can explicitly signal
 incomplete analysis through a separate diagnostics port, which vetoes changes for
-that consumer. Known initialization effects retain an import even when its source
-belongs to the Delphi installation. These safeguards do not yet provide complete
-symbol binding, project-context evaluation or transitive effect analysis.
+that consumer. Known direct lifecycle effects retain an import even when its source
+belongs to the Delphi installation. Explicit import graphs propagate these effects
+through dependencies and cycles. Unknown dependency metadata also preserves imports,
+and diagnostics identify a dependency path. These safeguards do not yet provide
+complete symbol binding, final compiler-context equivalence or all implicit effects.
 
 Active includes are loaded with source provenance and SHA-256 hashes. A missing
 include or an include cycle raises a parser error, preserving the consumer through

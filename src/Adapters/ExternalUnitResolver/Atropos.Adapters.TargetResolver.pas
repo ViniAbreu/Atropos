@@ -2,7 +2,7 @@ unit Atropos.Adapters.TargetResolver;
 
 interface
 
-uses System.Generics.Collections, Atropos.Core.Ports, Atropos.Core.Compilation;
+uses System.Generics.Collections, Atropos.Core.Ports, Atropos.Core.Compilation, Atropos.Adapters.UnitDependencies;
 
 type
   TCompleteProviderParser = class(TInterfacedObject, IASTParser)
@@ -13,10 +13,11 @@ type
     function ParseFile(const AFilePath: string): IUnitSyntaxTree;
   end;
 
-  TTargetUnitResolver = class(TInterfacedObject, IExternalUnitResolver)
+  TTargetUnitResolver = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver)
   private
     FParser: IASTParser;
     FExternal: IExternalUnitResolver;
+    FDependencies: TUnitDependencyCache;
     FContext: TProjectCompilationContext;
     FWarnings: TList<string>;
     function AliasFor(const AName: string): string;
@@ -28,6 +29,7 @@ type
     destructor Destroy; override;
     procedure Initialize(const ASearchPaths: TArray<string>;
       const ADelphiPath, ABasePath: string);
+    function TryGetUnitImports(const AUnitName: string; out AImports: TArray<string>): Boolean;
     function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>;
       out AHasInit, AIsNative: Boolean): Boolean;
@@ -62,6 +64,7 @@ constructor TTargetUnitResolver.Create(const AParser: IASTParser;
 begin
   inherited Create;
   FWarnings := TList<string>.Create;
+  FDependencies := TUnitDependencyCache.Create;
   FContext := AContext;
   FParser := TCompleteProviderParser.Create(AParser);
   FExternal := TExternalUnitResolverAdapter.Create(FParser);
@@ -70,6 +73,7 @@ end;
 
 destructor TTargetUnitResolver.Destroy;
 begin
+  FDependencies.Free;
   FWarnings.Free;
   inherited;
 end;
@@ -78,6 +82,7 @@ procedure TTargetUnitResolver.Initialize(const ASearchPaths: TArray<string>;
   const ADelphiPath, ABasePath: string);
 begin
   FExternal.Initialize([ABasePath] + ASearchPaths, ADelphiPath, ABasePath);
+  FDependencies.Clear;
   FWarnings.Clear;
 end;
 
@@ -109,6 +114,8 @@ var
   LTree: IUnitSyntaxTree;
   LWarningCount: Integer;
   LMapping: TUnitSourceMapping;
+  LDependencies: IUnitDependencyResolver;
+  LImports: TArray<string>;
 begin
   for LMapping in FContext.SourceMappings do
   begin
@@ -117,6 +124,7 @@ begin
     LTree := FParser.ParseFile(LMapping.FilePath);
     if not SameText(LTree.GetUnitName, AName) then
       raise EInvalidOperation.Create('Mapped source declares a different unit: ' + LMapping.FilePath);
+    FDependencies.Capture(AName, LTree);
     AExports := LTree.GetExportedIdentifiers;
     AHasInit := LTree.HasInitializationSection;
     AIsNative := False;
@@ -127,6 +135,7 @@ begin
     if not SameText(TPath.GetFileNameWithoutExtension(LPath), AName) then
       Continue;
     LTree := FParser.ParseFile(LPath);
+    FDependencies.Capture(AName, LTree);
     AExports := LTree.GetExportedIdentifiers;
     AHasInit := LTree.HasInitializationSection;
     AIsNative := False;
@@ -134,10 +143,18 @@ begin
   end;
   LWarningCount := Length(FExternal.GetWarnings);
   Result := FExternal.TryResolveUnit(AName, AExports, AHasInit, AIsNative);
+  if Result and Supports(FExternal, IUnitDependencyResolver, LDependencies) then
+    if LDependencies.TryGetUnitImports(AName, LImports) then
+      FDependencies.RegisterImports(AName, LImports);
   if not Result and (Length(FExternal.GetWarnings) > LWarningCount) then
     raise EInvalidOperation.Create('Source lookup is incomplete for ' + AName);
 end;
 
+function TTargetUnitResolver.TryGetUnitImports(const AUnitName: string;
+  out AImports: TArray<string>): Boolean;
+begin
+  Result := FDependencies.TryGet(AUnitName, AImports);
+end;
 function TTargetUnitResolver.TryResolveUnit(const AUnitName: string;
   out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
 var
@@ -150,12 +167,18 @@ begin
   try
     LName := AliasFor(AUnitName);
     if ResolveName(LName, AExports, AHasInit, AIsNative) then
+    begin
+      FDependencies.CopyName(LName, AUnitName);
       Exit(True);
+    end;
     if LName.Contains('.') then
       Exit;
     for LPrefix in FContext.Namespaces do
       if ResolveName(LPrefix + '.' + LName, AExports, AHasInit, AIsNative) then
+      begin
+        FDependencies.CopyName(LPrefix + '.' + LName, AUnitName);
         Exit(True);
+      end;
   except
     on E: Exception do
       FWarnings.Add(AUnitName + ': unknown provider: ' + E.Message);

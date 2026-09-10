@@ -27,7 +27,9 @@
 - Implementation ambiguity checks include interface imports. Ambiguous candidates
   remain in their original sections; unrelated imports can still be analyzed.
 - Direct initialization, finalization and legacy unit-body effects are preserved
-  for native and project units alike. Transitive effects, managed global storage
+  for native and project units alike. Explicit import graphs carry these effects
+  transitively, including cycles; missing dependency facts preserve imports as unknown.
+  Managed global storage
   and class constructors still require further analysis.
 - Initialization sections and conditional references may prevent changes.
 - Dynamic RTTI, name-based loading, side effects, and generated code may escape static analysis.

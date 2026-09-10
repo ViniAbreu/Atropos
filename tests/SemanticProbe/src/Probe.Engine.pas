@@ -39,11 +39,17 @@ end;
 
 procedure TProbeEngine.RegisterDependency(Context: TProjectContext; Dependency: TJSONObject);
 var Tree: IUnitSyntaxTree; Data: TJSONObject; All: TJSONArray;
+  Diagnostics: IUnitAnalysisDiagnostics; Complete: Boolean;
 begin
   FStage := 'dependency';
   Tree := FParser.ParseFile(TProbeJson.Text(Dependency, 'path'));
   Context.RegisterUnitExports(Tree.GetUnitName, Tree.GetExportedIdentifiers,
     Tree.HasInitializationSection, TProbeJson.Flag(Dependency, 'native'));
+  Complete := True;
+  if Supports(Tree, IUnitAnalysisDiagnostics, Diagnostics) then
+    Complete := Length(Diagnostics.GetIncompleteAnalysisReasons) = 0;
+  Context.RegisterUnitDependencies(Tree.GetUnitName,
+    Tree.GetInterfaceUses + Tree.GetImplementationUses, Complete);
   Data := TJSONObject.Create;
   Data.AddPair('unit', Tree.GetUnitName);
   TProbeJson.Put(Data, 'exports', Tree.GetExportedIdentifiers);

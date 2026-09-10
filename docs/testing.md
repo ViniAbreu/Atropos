@@ -45,8 +45,10 @@ The `.github\workflows\delphi-quality.yml` workflow requires a self-hosted Windo
 The lifecycle runtime smoke builds the original project via CLI dry-run, runs it,
 then removes an unused import and moves the provider used only in initialization
 and finalization to implementation. The rebuilt executable must retain exactly
-`Boot|Main|Shutdown` on both platforms. This tests direct calls across the two phases;
-it does not yet prove transitive initialization order or all movement semantics.
+`TransitiveInit|Boot|Main|Shutdown|TransitiveFinal` on both platforms. A bridge
+import must remain in its original section because it activates the otherwise
+unreferenced effect unit. This tests direct calls and one transitive chain;
+it does not yet prove arbitrary initialization order or all movement semantics.
 
 Parser lifecycle tests distinguish initialization, finalization and the legacy unit
 body from ordinary procedure bodies and program bodies. The optional
@@ -55,3 +57,15 @@ These are parser facts, not original byte ranges for editing. The adapter preser
 the start-file provenance when a section begins in an include and ends in its parent.
 The legacy `HasInitializationSection` flag is a compatibility summary of any direct
 unit lifecycle section; callers needing the phase should consume the facts port.
+
+Effect graph tests exercise imports in both sections, pure cycles, cycles reaching
+an effect, absent transitive sources, incomplete metadata and aliases/namespaces.
+The traversal visits each name once per assessment and does not cache an unfinished
+cycle as effect-free. Known effects take precedence over uncertainty elsewhere in
+the graph; otherwise any missing facts produce an unknown preservation decision.
+Resolver metadata is derived from the same parsed tree and kept per target/context.
+Custom resolvers without `IUnitDependencyResolver` cannot prove absence of effects.
+Manual `RegisterUnitExports` alone also leaves dependency metadata unknown;
+callers must supply `RegisterUnitDependencies`, including an explicit empty list
+when appropriate. SemanticProbe forwards imports from each parsed provider, and
+synthetic unit tests declare their dependency-free fixtures explicitly.

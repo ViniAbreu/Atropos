@@ -125,7 +125,9 @@ begin
   try
     // Act
     LContext.RegisterUnitExports('System.SysUtils', ['Exception', 'IntToStr']);
+    LContext.RegisterUnitDependencies('System.SysUtils', []);
     LContext.RegisterUnitExports('System.Classes', ['TStringList', 'TComponent']);
+    LContext.RegisterUnitDependencies('System.Classes', []);
     
     // In an integration test, we simulate what CLI does
     LUnits := LProjectParser.GetProjectUnits(FDummyProjPath);

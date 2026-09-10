@@ -110,12 +110,14 @@
         <DCCReference Include="src\Atropos.Tests.Domain.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Analysis.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.AnalysisIntersection.pas"/>
+        <DCCReference Include="..\src\Core\Domain\Atropos.Core.Effects.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Compilation.pas"/>
         <DCCReference Include="src\Atropos.Tests.AnalysisDecisions.pas"/>
         <DCCReference Include="src\Atropos.Tests.SourceIncludes.pas"/>
         <DCCReference Include="src\Atropos.Tests.AnalysisSnapshot.pas"/>
         <DCCReference Include="src\Atropos.Tests.ProjectContext.pas"/>
         <DCCReference Include="src\Atropos.Tests.TargetAnalysis.pas"/>
+        <DCCReference Include="src\Atropos.Tests.EffectGraph.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Config.pas"/>
         <DCCReference Include="..\src\Adapters\Logger\Atropos.Adapters.Logger.pas"/>
@@ -145,6 +147,7 @@
         <DCCReference Include="..\src\Adapters\ReportGenerator\Atropos.Adapters.ReportGenerator.pas"/>
         <DCCReference Include="src\Atropos.Tests.ReportGenerator.pas"/>
         <DCCReference Include="..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>
+        <DCCReference Include="..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.UnitDependencies.pas"/>
         <DCCReference Include="..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.TargetResolver.pas"/>
         <DCCReference Include="src\Atropos.Tests.ExternalResolver.pas"/>
         <DCCReference Include="src\Atropos.Tests.Integration.pas"/>

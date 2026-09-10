@@ -141,6 +141,12 @@ type
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
 
+  IUnitDependencyResolver = interface
+    ['{EFC3E0B3-8CC1-42DE-A366-FAE8758AD96F}']
+    function TryGetUnitImports(const AUnitName: string;
+      out AImports: TArray<string>): Boolean;
+  end;
+
   IDelphiEnvironmentService = interface
     ['{F4E5A5A7-1F4F-4C8E-9218-49A322C68A64}']
     function ResolveDelphiPath(const ADprojPath: string): string;
