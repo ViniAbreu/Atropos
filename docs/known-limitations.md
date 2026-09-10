@@ -7,7 +7,15 @@
 - The `.dproj` evaluator supports quoted `==`/`!=` comparisons, `and`, `or`, parentheses, and `Exists('path')`. Unsupported MSBuild functions or expressions are skipped conservatively and recorded as analysis warnings instead of being treated as ordinary false conditions without explanation.
 - Imported MSBuild project files and property functions are not evaluated by the project parser. Keep analysis-critical unit lists and search paths in the `.dproj`; unsupported conditions in those sections are reported.
 - Unresolved dependencies are preserved conservatively.
+- Dependency decisions record state, section, action and reason. Unknown sources,
+  parse failures and adapter-reported incomplete analysis are preserved with report
+  warnings. Name-based usage decisions remain heuristic until structured binding is
+  implemented; an absent diagnostic is not proof of complete semantic analysis.
 - Unqualified identifiers exported by multiple units are preserved and reported to prevent semantically ambiguous changes.
+- Implementation ambiguity checks include interface imports. Ambiguous candidates
+  remain in their original sections; unrelated imports can still be analyzed.
+- Known initialization effects are preserved for native and project units alike.
+  Transitive effects and legacy lifecycle forms still require further analysis.
 - Initialization sections and conditional references may prevent changes.
 - Dynamic RTTI, name-based loading, side effects, and generated code may escape static analysis.
 - Library Paths and globally installed components may differ between machines.

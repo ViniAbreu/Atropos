@@ -93,6 +93,7 @@ begin
     TProbeJson.Put(FObservation, 'unused', Analysis.UnusedUnits);
     TProbeJson.Put(FObservation, 'moved', Analysis.UnitsToMoveToImpl);
     TProbeJson.Put(FObservation, 'ambiguities', Analysis.PreservedAmbiguities);
+    TProbeJson.Put(FObservation, 'preservationReasons', Analysis.PreservationReasons);
     Rewrite(Analysis);
   finally
     Analyzer.Free;

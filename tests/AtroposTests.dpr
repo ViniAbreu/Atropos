@@ -17,6 +17,8 @@ uses
   Atropos.App.CLI in '..\src\CLI\Atropos.App.CLI.pas',
   Atropos.Application.Factory in '..\src\Application\Atropos.Application.Factory.pas',
   Atropos.Tests.Domain in 'src\Atropos.Tests.Domain.pas',
+  Atropos.Core.Analysis in '..\src\Core\Domain\Atropos.Core.Analysis.pas',
+  Atropos.Tests.AnalysisDecisions in 'src\Atropos.Tests.AnalysisDecisions.pas',
   Atropos.Core.Domain in '..\src\Core\Domain\Atropos.Core.Domain.pas',
   Atropos.Core.Config in '..\src\Core\Domain\Atropos.Core.Config.pas',
   Atropos.Adapters.Logger in '..\src\Adapters\Logger\Atropos.Adapters.Logger.pas',

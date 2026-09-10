@@ -64,6 +64,7 @@ type
     AddMetricsCallCount: Integer;
     SetInfoCallCount: Integer;
     WarningCallCount: Integer;
+    LastWarning: string;
     procedure AddUnitProcessed(const AUnitName: string; const ARemovedUses,
       AMovedUses, APreservedAmbiguities: TArray<string>);
     procedure AddMetrics(const ABefore, AAfter: TBuildMetrics);
@@ -341,6 +342,7 @@ end;
 
 procedure TReportGeneratorStub.AddWarning(const AWarning: string);
 begin
+  LastWarning := AWarning;
   Inc(WarningCallCount);
 end;
 
@@ -804,6 +806,7 @@ var
   LConfig: TToolConfig;
   LTempFile: string;
   LProgressPosition: Integer;
+  LReports: TReportGeneratorStub;
 begin
   LTempFile := TPath.GetTempFileName;
   try
@@ -814,8 +817,9 @@ begin
     LFiles := TFileServiceSpy.Create;
     LBuild := TSuccessfulBuildService.Create;
     LConfig := TToolConfig.Default;
+    LReports := TReportGeneratorStub.Create;
     LService := TProjectCleanerAppService.Create(LParser, LAST, LFiles,
-      TReportGeneratorStub.Create, TDelphiEnvironmentStub.Create,
+      LReports, TDelphiEnvironmentStub.Create,
       TExternalResolverStub.Create, LBuild, LConfig);
     try
       LProgressPosition := -1;
@@ -828,6 +832,8 @@ begin
       Assert.AreEqual(1, LProgressPosition);
       Assert.AreEqual(1, LBuild.CallCount);
       Assert.AreEqual(0, LFiles.WriteCallCount);
+      Assert.IsTrue(LReports.LastWarning.Contains('unknown analysis'));
+      Assert.IsTrue(LReports.LastWarning.Contains('imports preserved'));
     finally
       LService.Free;
     end;

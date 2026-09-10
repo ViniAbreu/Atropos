@@ -106,9 +106,9 @@ its different coverage does not negate these research failures.
   metadata, so it cannot prove this pipeline works.
 - `qualified-call` tests real extraction of a qualified call. The existing domain
   qualification test supplies an already joined qualified identifier.
-- `keep-native-effects` deliberately differs from the existing native-initialization
-  domain test. This stage records the conflict without changing either engine policy
-  or the research expectation.
+- `keep-native-effects` recorded a conflict with the former native-initialization
+  domain test. The conservative policy now protects known native initialization
+  effects too; the historical baseline remains unchanged.
 
 Every future correction must name affected case IDs, preserve unrelated regressions
 and justify any policy/oracle revision. Do not derive expectations from current output.

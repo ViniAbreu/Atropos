@@ -43,6 +43,8 @@ type
     procedure GenerateReports(const AOutputDirectory: string);
     procedure CollectProjectParserWarnings;
     procedure CollectResolverWarnings;
+    procedure ReportPreservationReasons(const AUnitPath: string;
+      const AReasons: TArray<string>);
     function SetupEnvironment(const AFullPath, ABasePath: string): Integer;
     function CreateLogger: ILogger;
     function ExecuteSafely(const ADprojPath: string): Boolean;
@@ -229,6 +231,15 @@ begin
   end;
 end;
 
+procedure TProjectCleanerAppService.ReportPreservationReasons(
+  const AUnitPath: string; const AReasons: TArray<string>);
+var
+  LReason: string;
+begin
+  for LReason in AReasons do
+    FReportGen.AddWarning(AUnitPath + ': preserved ' + LReason);
+end;
+
 procedure TProjectCleanerAppService.ProcessUnits(const ABasePath, ADprojPath: string; out ATotalRemoved, ATotalMoved, AUnitCount: Integer; LLogger: ILogger; LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LModifier: TApplyUsesChanges);
 var
   LUnits: TArray<string>;
@@ -264,22 +275,25 @@ begin
     if not TFile.Exists(LUnitPath) then
     begin
       Log('Warning: File not found -> ' + LUnitPath);
+      FReportGen.AddWarning(LUnitPath + ': unknown analysis; source file not found.');
       Progress(AUnitCount, i + 1);
       Continue;
     end;
     
     try
       LSyntaxTree := FASTParser.ParseFile(LUnitPath);
-    LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
+      LResult := LAnalyzer.Execute(LSyntaxTree, LContext);
     except
       on E: Exception do
       begin
         Log('Error processing ' + ExtractFileName(LUnitPath) + ': ' + E.Message);
+        FReportGen.AddWarning(LUnitPath + ': unknown analysis; imports preserved: ' + E.Message);
         Progress(AUnitCount, i + 1);
         Continue;
       end;
     end;
 
+    ReportPreservationReasons(LUnitPath, LResult.PreservationReasons);
     if FConfig.DryRun and ((Length(LResult.UnusedUnits) > 0) or
       (Length(LResult.UnitsToMoveToImpl) > 0) or
       (Length(LResult.PreservedAmbiguities) > 0)) then

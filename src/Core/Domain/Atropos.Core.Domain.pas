@@ -3,7 +3,7 @@ unit Atropos.Core.Domain;
 interface
 uses
   System.Generics.Collections,
-  Atropos.Core.Ports, System.SysUtils;
+  Atropos.Core.Ports, Atropos.Core.Analysis, System.SysUtils;
 
 type
   
@@ -35,6 +35,8 @@ type
     function UnitExportsIdentifier(const AUnitName, AIdentifier: string; const AAllUsedIdents: TArray<string>): Boolean;
     function FindAmbiguities(const AVisibleUnits,
       AIdentifiers: TArray<string>): TArray<string>;
+    function FindUnitAmbiguity(const AUnitName: string;
+      const AVisibleUnits, AIdentifiers: TArray<string>): string;
     function HasUnit(const AUnitName: string): Boolean;
     function UnitHasInitialization(const AUnitName: string): Boolean;
   end;
@@ -44,6 +46,8 @@ type
     UnusedUnits: TArray<string>;
     UnitsToMoveToImpl: TArray<string>;
     PreservedAmbiguities: TArray<string>;
+    Decisions: TArray<TDependencyDecision>;
+    PreservationReasons: TArray<string>;
   end;
   
   TAnalyzeUnitUses = class
@@ -51,6 +55,11 @@ type
     FLogger: ILogger;
     function IsUnitUsed(AContext: TProjectContext; const AUnitName: string;
       const AUsedIdentifiers, AVisibleIdentifiers: TArray<string>): Boolean;
+    function MustPreserve(AContext: TProjectContext; const AUnitName: string;
+      ASection: TUsesSection; const AVisibleUnits, AIdentifiers: TArray<string>;
+      ADecisions: TDependencyDecisions): Boolean;
+    function PreserveIncomplete(const ASyntaxTree: IUnitSyntaxTree;
+      ADecisions: TDependencyDecisions; var AResult: TUnitAnalysisResult): Boolean;
   public
     constructor Create(ALogger: ILogger = nil);
     function Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
@@ -149,8 +158,6 @@ var
 begin
   Result := False;
   if not FUnitExports.TryGetValue(AUnitName.ToLower, LExports) then
-    Exit;
-  if LExports.IsNative then
     Exit;
   Result := LExports.HasInitialization;
 end;
@@ -291,6 +298,32 @@ begin
   end;
 end;
 
+function TProjectContext.FindUnitAmbiguity(const AUnitName: string;
+  const AVisibleUnits, AIdentifiers: TArray<string>): string;
+var
+  LIdentifier: string;
+  LCandidate: string;
+  LCandidates: TArray<string>;
+  LQualifiedUnit: string;
+  LBaseIdentifier: string;
+begin
+  Result := EmptyStr;
+  for LIdentifier in AIdentifiers do
+  begin
+    if TryResolveQualifiedUnit(LIdentifier, LQualifiedUnit, LBaseIdentifier) then
+      Continue;
+    LCandidates := FindExportingUnits(LIdentifier, AVisibleUnits);
+    if Length(LCandidates) < 2 then
+      Continue;
+    for LCandidate in LCandidates do
+    begin
+      if SameText(LCandidate, AUnitName) then
+        Exit(Format('%s is exported by %s', [LIdentifier,
+          string.Join(', ', LCandidates)]));
+    end;
+  end;
+end;
+
 constructor TAnalyzeUnitUses.Create(ALogger: ILogger = nil);
 begin
   FLogger := ALogger;
@@ -315,79 +348,148 @@ begin
   end;
 end;
 
+function TAnalyzeUnitUses.MustPreserve(AContext: TProjectContext;
+  const AUnitName: string; ASection: TUsesSection;
+  const AVisibleUnits, AIdentifiers: TArray<string>;
+  ADecisions: TDependencyDecisions): Boolean;
+var
+  LReason: string;
+begin
+  Result := True;
+  if not AContext.HasUnit(AUnitName) then
+  begin
+    ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsUnknown,
+      daPreserve, 'Source or exports could not be resolved.'));
+    Exit;
+  end;
+  if AContext.UnitHasInitialization(AUnitName) then
+  begin
+    ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsUsed,
+      daPreserve, 'Known initialization effects require this import.'));
+    Exit;
+  end;
+  LReason := AContext.FindUnitAmbiguity(AUnitName, AVisibleUnits, AIdentifiers);
+  if not LReason.IsEmpty then
+  begin
+    ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsAmbiguous,
+      daPreserve, LReason));
+    Exit;
+  end;
+  Result := False;
+end;
+
+function TAnalyzeUnitUses.PreserveIncomplete(const ASyntaxTree: IUnitSyntaxTree;
+  ADecisions: TDependencyDecisions; var AResult: TUnitAnalysisResult): Boolean;
+var
+  LDiagnostics: IUnitAnalysisDiagnostics;
+  LReasons: TArray<string>;
+  LReason: string;
+  LUnitName: string;
+begin
+  Result := False;
+  if not Supports(ASyntaxTree, IUnitAnalysisDiagnostics, LDiagnostics) then
+    Exit;
+  LReasons := LDiagnostics.GetIncompleteAnalysisReasons;
+  if Length(LReasons) = 0 then
+    Exit;
+  LReason := string.Join('; ', LReasons);
+  for LUnitName in ASyntaxTree.GetInterfaceUses do
+    ADecisions.Add(TDependencyDecision.Create(LUnitName, usInterface,
+      dsUnknown, daPreserve, LReason));
+  for LUnitName in ASyntaxTree.GetImplementationUses do
+    ADecisions.Add(TDependencyDecision.Create(LUnitName, usImplementation,
+      dsUnknown, daPreserve, LReason));
+  AResult.Decisions := ADecisions.ToArray;
+  AResult.PreservationReasons := ['unknown analysis: ' + LReason];
+  Result := True;
+end;
+
 function TAnalyzeUnitUses.Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
 var
   LIntfUses: TArray<string>;
   LImplUses: TArray<string>;
   LIntfIdents: TArray<string>;
   LImplIdents: TArray<string>;
-  LUnused: TList<string>;
-  LMoved: TList<string>;
+  LDecisions: TDependencyDecisions;
   LAmbiguities: TList<string>;
   LUnitName: string;
   LUsedInIntf: Boolean;
   LUsedInImpl: Boolean;
 begin
+  Result := Default(TUnitAnalysisResult);
   Result.UnitName := ASyntaxTree.GetUnitName;
-  LUnused := TList<string>.Create;
-  LMoved := TList<string>.Create;
+  LDecisions := TDependencyDecisions.Create;
   LAmbiguities := TList<string>.Create;
   try
+    if PreserveIncomplete(ASyntaxTree, LDecisions, Result) then
+      Exit;
     LIntfUses := ASyntaxTree.GetInterfaceUses;
     LImplUses := ASyntaxTree.GetImplementationUses;
     LIntfIdents := ASyntaxTree.GetIdentifiersUsedInInterface;
     LImplIdents := ASyntaxTree.GetIdentifiersUsedInImplementation;
 
     LAmbiguities.AddRange(AContext.FindAmbiguities(LIntfUses, LIntfIdents));
-    LAmbiguities.AddRange(AContext.FindAmbiguities(LImplUses, LImplIdents));
+    LAmbiguities.AddRange(AContext.FindAmbiguities(LIntfUses + LImplUses, LImplIdents));
 
     for LUnitName in LIntfUses do
     begin
-      if not AContext.HasUnit(LUnitName) then
-        Continue;
-
-      if AContext.UnitHasInitialization(LUnitName) then
+      if MustPreserve(AContext, LUnitName, usInterface,
+        LIntfUses, LIntfIdents, LDecisions) then
         Continue;
 
       LUsedInIntf := IsUnitUsed(AContext, LUnitName, LIntfIdents,
         LIntfIdents);
       if LUsedInIntf then
+      begin
+        LDecisions.Add(TDependencyDecision.Create(LUnitName, usInterface,
+          dsUsed, daPreserve, 'Matching identifier in the interface.'));
         Continue;
+      end;
 
+      if MustPreserve(AContext, LUnitName, usInterface,
+        LIntfUses + LImplUses, LImplIdents, LDecisions) then
+        Continue;
       LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents,
         LIntfIdents + LImplIdents);
       
       if LUsedInImpl then
       begin
-        LMoved.Add(LUnitName);
+        LDecisions.Add(TDependencyDecision.Create(LUnitName, usInterface,
+          dsUsed, daMoveToImplementation, 'Matching identifier only in the implementation.'));
         Continue;
       end;
       
-      LUnused.Add(LUnitName);
+      LDecisions.Add(TDependencyDecision.Create(LUnitName, usInterface,
+        dsUnused, daRemove, 'No matching identifier in the current syntax analysis.'));
     end;
 
     for LUnitName in LImplUses do
     begin
-      if not AContext.HasUnit(LUnitName) then
-        Continue;
-
-      if AContext.UnitHasInitialization(LUnitName) then
+      if MustPreserve(AContext, LUnitName, usImplementation,
+        LIntfUses + LImplUses, LImplIdents, LDecisions) then
         Continue;
 
       LUsedInImpl := IsUnitUsed(AContext, LUnitName, LImplIdents,
         LIntfIdents + LImplIdents);
       
       if not LUsedInImpl then
-        LUnused.Add(LUnitName);
+      begin
+        LDecisions.Add(TDependencyDecision.Create(LUnitName, usImplementation,
+          dsUnused, daRemove, 'No matching identifier in the implementation.'));
+        Continue;
+      end;
+      LDecisions.Add(TDependencyDecision.Create(LUnitName, usImplementation,
+        dsUsed, daPreserve, 'Matching identifier in the implementation.'));
     end;
 
-    Result.UnusedUnits := LUnused.ToArray;
-    Result.UnitsToMoveToImpl := LMoved.ToArray;
+    Result.UnusedUnits := LDecisions.UnitsForAction(daRemove);
+    Result.UnitsToMoveToImpl := LDecisions.UnitsForAction(daMoveToImplementation);
+    Result.Decisions := LDecisions.ToArray;
+    Result.PreservationReasons := LDecisions.PreservationMessages;
     Result.PreservedAmbiguities := LAmbiguities.ToArray;
   finally
     LAmbiguities.Free;
-    LUnused.Free;
-    LMoved.Free;
+    LDecisions.Free;
   end;
 end;
 
