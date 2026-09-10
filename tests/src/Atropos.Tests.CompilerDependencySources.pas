@@ -1,4 +1,4 @@
-unit Atropos.Tests.CompilerDependencySources;
+﻿unit Atropos.Tests.CompilerDependencySources;
 
 interface
 
@@ -30,6 +30,11 @@ type
     [Test] procedure DependencyReaderRetainsReportedPath;
     [Test] procedure ContextIncludesResourceAndObjectPaths;
     [Test] procedure SourceCaptureHonorsCancellation;
+    [TestCase('Success', '0')]
+    [TestCase('RootMutation', '1')]
+    [TestCase('IncludeMutation', '2')]
+    procedure UnitPreparationValidatesSnapshot(AKind: Integer);
+    [Test] procedure NativePreparationFindsSiblingSource;
   end;
 
 implementation
@@ -247,6 +252,46 @@ begin
     LIncludes.Free;
     LSnapshot.Free;
   end;
+end;
+
+procedure TCompilerDependencySourceTests.NativePreparationFindsSiblingSource;
+var LProjectText: string; LPrepared: TCompilerPreparedSource; LPreparer: ICompilerSourcePreparer;
+begin
+  TDirectory.CreateDirectory(TPath.Combine(FRoot, 'sources'));
+  TFile.Move(FSource, TPath.Combine(FRoot, 'sources\NativeProbe.pas'));
+  TFile.Move(FDependency, TPath.Combine(FRoot, 'sources\Dependency.pas'));
+  TFile.Move(FInclude, TPath.Combine(FRoot, 'sources\shape.inc'));
+  FSource := TPath.Combine(FRoot, 'sources\NativeProbe.pas');
+  LProjectText := TFile.ReadAllText(FProject).Replace(FRoot, '');
+  TFile.WriteAllText(FProject, LProjectText, TEncoding.UTF8);
+  LPreparer := TNativeSourcePreparer.Create(Context('Win64'), FDelphi);
+  LPrepared := LPreparer.Prepare(FSource, TDelphiSourceReader.ReadRaw(FSource).ContentHash);
+  Assert.Contains(LPrepared.Text, 'SmallSelected');
+end;
+
+procedure TCompilerDependencySourceTests.UnitPreparationValidatesSnapshot(AKind: Integer);
+var LPreparer: ICompilerSourcePreparer; LRunner: TObservingCompilerRunner;
+  LPrepared: TCompilerPreparedSource; LHash: string;
+begin
+  TFile.WriteAllText(FSource, 'unit NativeProbe; interface {$I shape.inc}' +
+    '{$IF SizeOf(TPayload)=1}type SmallSelected=Integer;{$ENDIF} implementation end.', TEncoding.UTF8);
+  LRunner := TObservingCompilerRunner.Create;
+  LRunner.FailFirstProgram := True;
+  if AKind > 0 then LRunner.MutateAfter := 5;
+  LRunner.PathToMutate := FSource;
+  if AKind = 2 then LRunner.PathToMutate := FInclude;
+  LPreparer := TNativeSourcePreparer.Create(Context('Win64'), FDelphi, LRunner);
+  LHash := TDelphiSourceReader.ReadRaw(FSource).ContentHash;
+  if AKind > 0 then
+  begin
+    Assert.WillRaise(procedure begin LPreparer.Prepare(FSource, LHash) end, EInvalidOperation);
+    Exit;
+  end;
+  LPrepared := LPreparer.Prepare(FSource, LHash);
+  Assert.Contains(LPrepared.Text, 'SmallSelected');
+  Assert.AreEqual(5, LRunner.Calls);
+  LPreparer.Prepare(FSource, LHash);
+  Assert.AreEqual(5, LRunner.Calls);
 end;
 
 initialization

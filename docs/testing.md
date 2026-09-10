@@ -1,4 +1,4 @@
-# Tests, coverage, and quality gates
+﻿# Tests, coverage, and quality gates
 
 The separate [semantic baseline](../tests/SemanticProbe/README.md) reproduces the
 research catalog against the real parser and domain, preserving known functional
@@ -381,3 +381,7 @@ Source-closure tests cover resource/object mutation, missing resource creation,
 recursive includes and cancellation. MSBuild evaluation is checked for resource
 and object search paths. The dependency reader retains the reported path alongside
 the generated DCU path, rather than deriving provenance from temporary output alone.
+Native RTL preparation also covers System.Generics.Collections and System.Variants
+on Win32/Win64. Unit-first regressions check snapshot mutation rejection and cache
+reuse; a separate source-directory fixture resolves siblings absent from the project
+search path. These cases do not replace testing a complete external project.

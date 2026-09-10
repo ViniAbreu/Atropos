@@ -1,22 +1,25 @@
-unit Atropos.Adapters.CompilerTraceProcess;
+﻿unit Atropos.Adapters.CompilerTraceProcess;
 
 interface
 
-uses Atropos.Core.Ports, Atropos.Core.Compilation, Atropos.Adapters.BuildService,
+uses System.SysUtils, System.Classes, Atropos.Core.Ports, Atropos.Core.Compilation, Atropos.Adapters.BuildService,
   Atropos.Adapters.CompilerDependencies;
 
 type
+  ECompilerTraceFailed = class(EInvalidOperation);
+
   TCompilerTraceProcess = class
   private
     FRunner: IBuildProcessRunner;
     FCancel: TCancellationCheck;
-    class function Request(const AContext: TProjectCompilationContext;
-      const ASourcePath, AOutputPath: string; AProgram: Boolean): string; static;
+    FSourceDirectory: string;
+    function Request(const AContext: TProjectCompilationContext;
+      const ASourcePath, AOutputPath: string; AProgram: Boolean): string;
     function Execute(const AContext: TProjectCompilationContext;
       const ADelphiPath, ASourcePath, AOutputPath: string; AProgram: Boolean): string;
   public
     constructor Create(const ARunner: IBuildProcessRunner;
-      const ACancel: TCancellationCheck);
+      const ACancel: TCancellationCheck; const ASourceDirectory: string = '');
     // Caller owns a fresh output directory and instrumented source files.
     function Compile(const AContext: TProjectCompilationContext;
       const ADelphiPath, ASourcePath, AOutputPath: string): string;
@@ -32,19 +35,20 @@ type
 
 implementation
 
-uses System.SysUtils, System.Classes, System.IOUtils, System.JSON,
+uses System.IOUtils, System.JSON,
   Atropos.Adapters.DelphiPowerShell, Atropos.Adapters.CompilerTraceScript;
 
 constructor TCompilerTraceProcess.Create(const ARunner: IBuildProcessRunner;
-  const ACancel: TCancellationCheck);
+  const ACancel: TCancellationCheck; const ASourceDirectory: string);
 begin
   inherited Create;
   FRunner := ARunner;
   if not Assigned(FRunner) then FRunner := TWin32BuildProcessRunner.Create;
   FCancel := ACancel;
+  FSourceDirectory := ASourceDirectory;
 end;
 
-class function TCompilerTraceProcess.Request(const AContext: TProjectCompilationContext;
+function TCompilerTraceProcess.Request(const AContext: TProjectCompilationContext;
   const ASourcePath, AOutputPath: string; AProgram: Boolean): string;
 var LRequest, LInput: TJSONObject; LFiles: TJSONArray; LFile: TSourceDependency; LExtension: string;
 begin
@@ -59,6 +63,7 @@ begin
     LRequest.AddPair('configuration', AContext.Target.Configuration);
     LRequest.AddPair('platform', AContext.Target.Platform);
     LRequest.AddPair('compilerContextHash', AContext.CompilerContextHash);
+    LRequest.AddPair('sourceDirectory', FSourceDirectory);
     LRequest.AddPair('sourcePath', TPath.GetFullPath(ASourcePath));
     LRequest.AddPair('outputPath', TPath.GetFullPath(AOutputPath));
     LExtension := '.dcu';
@@ -144,8 +149,9 @@ begin
       LCode, LTimedOut, LCancelled);
     if LCancelled then raise EAbort.Create('Compiler preparation cancelled.');
     if LTimedOut then raise EInvalidOperation.Create('Compiler preparation timed out.');
-    if not LStarted or (LCode <> 0) then
-      raise EInvalidOperation.Create('Compiler preparation failed: ' + Result);
+    if not LStarted then raise EInvalidOperation.Create('Compiler preparation did not start.');
+    if LCode <> 0 then
+      raise ECompilerTraceFailed.Create('Compiler preparation failed: ' + Result);
     if not TFile.Exists(LArtifact) then
       raise EInvalidOperation.Create('Compiler preparation produced no output artifact.');
   finally

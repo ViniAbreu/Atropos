@@ -1,4 +1,4 @@
-# Evaluated project context
+﻿# Evaluated project context
 
 `TAppServiceFactory` now uses `IProjectContextProvider` for target-specific analysis.
 Every requested configuration/platform gets its own parser, source resolver and
@@ -124,6 +124,15 @@ graph and resource/object references extend the snapshot before the second compi
 ResourcePath and _ObjectPath come from the evaluated project. Capture visits all
 conditional branches and records missing candidates; this can invalidate a preparation
 even when a changed input was inactive. A new or unidentified dependency is rejected.
+
+The original unit directory is appended after evaluated unit search paths during
+source preparation, so sibling dependencies can be found without overriding project
+or library paths. If program compilation fails, preparation can compile the traced
+unit first and then discover dependencies through a host consuming that DCU. The
+staged source is hidden during host compilation and the dependency list must identify
+the freshly compiled root DCU. Validation repeats the selected mode; unit mode replays
+the unit compiler output. Cancellation, timeout and process startup failures do not
+trigger this retry. The generated host is never executed.
 
 Relative resource/object relocation for the instrumented root, recursive includes in
 that root, custom toolchains and complete build-target effects remain limitations.
