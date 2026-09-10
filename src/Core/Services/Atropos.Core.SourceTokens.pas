@@ -15,7 +15,7 @@ type
     FSource: string;
     FPosition: Integer;
     function Current: Char;
-    procedure Quoted;
+    procedure Quoted(AQuote: Char);
     procedure BlockComment(const AClose: string);
     procedure SkipToken;
   public
@@ -38,15 +38,15 @@ begin
     Result := FSource[FPosition];
 end;
 
-procedure TSourceTokenizer.Quoted;
+procedure TSourceTokenizer.Quoted(AQuote: Char);
 var LQuotes, LStart, LCount: Integer;
 begin
   LStart := FPosition;
-  while Current = '''' do
+  while Current = AQuote do
     Inc(FPosition);
   LQuotes := FPosition - LStart;
   // Odd runs of three or more quotes followed by a line break open multiline text.
-  if (LQuotes >= 3) and Odd(LQuotes) then
+  if (AQuote = '''') and (LQuotes >= 3) and Odd(LQuotes) then
   begin
     while CharInSet(Current, [#9, ' ']) do
       Inc(FPosition);
@@ -70,13 +70,13 @@ begin
   FPosition := LStart + 1;
   while FPosition <= Length(FSource) do
   begin
-    if Current <> '''' then
+    if Current <> AQuote then
     begin
       Inc(FPosition);
       Continue;
     end;
     Inc(FPosition);
-    if Current <> '''' then
+    if Current <> AQuote then
       Exit;
     Inc(FPosition);
   end;
@@ -125,7 +125,7 @@ begin
       LToken.Kind := stSymbol;
       LToken.Condition := string.Join('/', LConditions.ToArray);
       case Current of
-        '''': begin LToken.Kind := stString; Quoted end;
+        '''', '"': begin LToken.Kind := stString; Quoted(Current) end;
         '{': begin LToken.Kind := stComment; Inc(FPosition); BlockComment('}') end;
         '(': begin
           Inc(FPosition);

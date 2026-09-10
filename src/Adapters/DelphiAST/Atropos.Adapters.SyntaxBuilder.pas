@@ -12,6 +12,7 @@ type
   protected
     function GetTokenID: TptTokenKind; override;
     procedure Expected(Sym: TptTokenKind); override;
+    procedure RecordAlignValue; override;
     procedure InitializationSection; override;
     procedure FinalizationSection; override;
     procedure CompoundStatement; override;
@@ -26,6 +27,21 @@ type
 implementation
 
 uses DelphiAST.Classes, Atropos.Core.TypeNames;
+
+procedure TAtroposSyntaxBuilder.RecordAlignValue;
+var LRecord, LExpression: TSyntaxNode; LChildren: TArray<TSyntaxNode>;
+begin
+  LRecord := FStack.Peek;
+  ConstantExpression;
+  LChildren := LRecord.ChildNodes;
+  if Length(LChildren) = 0 then Exit;
+  LExpression := LChildren[High(LChildren)];
+  if LExpression.Typ <> ntExpression then Exit;
+  LChildren := LExpression.ChildNodes;
+  if Length(LChildren) <> 1 then Exit;
+  if (LChildren[0].Typ = ntLiteral) and (LChildren[0] is TValuedSyntaxNode) then
+    LRecord.SetAttribute(anAlign, TValuedSyntaxNode(LChildren[0]).Value);
+end;
 
 function TAtroposSyntaxBuilder.GetTokenID: TptTokenKind;
 begin

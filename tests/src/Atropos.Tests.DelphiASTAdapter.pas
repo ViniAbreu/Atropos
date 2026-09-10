@@ -72,11 +72,42 @@ type
     [TestCase('ParameterAttribute', '1')]
     [TestCase('ResultAttribute', '2')]
     procedure UnsafeAttributesRemainParsable(AScenario: Integer);
+    [TestCase('Literal', '8')]
+    [TestCase('SizeOf', '(SizeOf(Pointer))')]
+    [TestCase('Arithmetic', '(SizeOf(Pointer) * 2)')]
+    [TestCase('BareArithmetic', '4+4')]
+    [TestCase('NamedConstant', 'AlignmentValue')]
+    procedure RecordAlignmentExpressionRetainsType(const AAlignment: string);
+    [TestCase('Imported', 'AlignmentValue')]
+    [TestCase('Qualified', 'AlignmentSupport.AlignmentValue')]
+    procedure RecordAlignmentRetainsImportedReference(const AExpression: string);
   end;
 
 implementation
 
 uses Atropos.Adapters.DelphiSource;
+
+procedure TDelphiASTAdapterTests.RecordAlignmentRetainsImportedReference(const AExpression: string);
+var LTree: IUnitSyntaxTree;
+begin
+  TFile.WriteAllText(FTestFile, 'unit MockUnit; interface uses AlignmentSupport; ' +
+    'type TAligned = record Value: Byte; end align (' + AExpression + '); implementation end.', TEncoding.UTF8);
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.Contains<string>(LTree.GetIdentifiersUsedInInterface, AExpression);
+end;
+
+procedure TDelphiASTAdapterTests.RecordAlignmentExpressionRetainsType(const AAlignment: string);
+var LTree: IUnitSyntaxTree;
+begin
+  TFile.WriteAllText(FTestFile, 'unit MockUnit; interface const AlignmentValue=8; ' +
+    'type TAligned = record Value: Byte; end align ' + AAlignment + '; ' +
+    'TAfter = Integer; implementation end.', TEncoding.UTF8);
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.Contains<string>(LTree.GetExportedIdentifiers, 'TAligned');
+  Assert.Contains<string>(LTree.GetExportedIdentifiers, 'TAfter');
+  if AAlignment.StartsWith('(') then
+    Assert.Contains<string>(LTree.GetIdentifiersUsedInInterface, 'Pointer');
+end;
 
 procedure TDelphiASTAdapterTests.UnsafeAttributesRemainParsable(AScenario: Integer);
 const Sources: array[0..2] of string = (
