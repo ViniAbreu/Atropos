@@ -357,3 +357,9 @@ Local declaration lookup is indexed by scope and name, retaining declaration ord
 availability positions, generic arity and conservative overload behavior. SymbolBinding
 regressions cover 30,000 declarations, input-array isolation, and comparison against
 SameText for ASCII and non-ASCII names. External-name ordering remains unchanged.
+
+Parser syntax failures retain their source file and line/column in diagnostics,
+including errors inside include files. Unexpected EOF coordinates are normalized
+before the upstream parser wraps its exception. DelphiASTAdapter regressions verify
+root, include and EOF locations. Coordinates refer to the parser's normalized input;
+multiline-string normalization preserves lines but may change columns.

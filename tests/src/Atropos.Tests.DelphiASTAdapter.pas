@@ -81,11 +81,45 @@ type
     [TestCase('Imported', 'AlignmentValue')]
     [TestCase('Qualified', 'AlignmentSupport.AlignmentValue')]
     procedure RecordAlignmentRetainsImportedReference(const AExpression: string);
+    [TestCase('Root', '0')]
+    [TestCase('Include', '1')]
+    [TestCase('UnexpectedEof', '2')]
+    procedure SyntaxErrorsRetainLocations(AScenario: Integer);
   end;
 
 implementation
 
 uses Atropos.Adapters.DelphiSource;
+
+procedure TDelphiASTAdapterTests.SyntaxErrorsRetainLocations(AScenario: Integer);
+var LSource, LMessage, LExpectedPath, LExpectedPosition: string;
+begin
+  LSource := 'unit MockUnit;' + sLineBreak + 'interface' + sLineBreak + 'type Broken = ?;';
+  LExpectedPath := FTestFile;
+  LExpectedPosition := '(3:15)';
+  if AScenario = 1 then
+  begin
+    LExpectedPath := TPath.Combine(FTestDirectory, 'Broken.inc');
+    TFile.WriteAllText(LExpectedPath, 'type Broken = ?;', TEncoding.UTF8);
+    LSource := 'unit MockUnit;' + sLineBreak + 'interface' + sLineBreak +
+      '{$I Broken.inc}' + sLineBreak + 'implementation end.';
+    LExpectedPosition := '(1:15)';
+  end;
+  if AScenario = 2 then
+  begin
+    LSource := 'unit MockUnit;' + sLineBreak + 'interface' + sLineBreak + 'implementation';
+    LExpectedPosition := '(3:15)';
+  end;
+  TFile.WriteAllText(FTestFile, LSource, TEncoding.UTF8);
+  LMessage := '';
+  try
+    FParser.ParseFile(FTestFile);
+  except
+    on E: Exception do LMessage := E.Message;
+  end;
+  Assert.Contains(LMessage, LExpectedPath);
+  Assert.Contains(LMessage, LExpectedPosition);
+end;
 
 procedure TDelphiASTAdapterTests.RecordAlignmentRetainsImportedReference(const AExpression: string);
 var LTree: IUnitSyntaxTree;
