@@ -39,6 +39,9 @@ type
     [TestCase('LegacyInclude', 'begin')]
     procedure LifecycleIncludeRetainsSourceProvenance(const ASection: string);
     [Test] procedure ProgramBodyIsNotUnitInitialization;
+    [Test] procedure HelperFactsDescribeReceiverAndVisibility;
+    [Test] procedure HelperFactsExcludeOrdinaryAndImplementationTypes;
+    [Test] procedure HelperFactsAreStableAcrossRepeatedReads;
   end;
 
 implementation
@@ -245,6 +248,68 @@ begin
   LTree := FParser.ParseFile(FTestFile);
   Assert.IsFalse(LTree.HasInitializationSection);
 end;
+procedure TDelphiASTAdapterTests.HelperFactsDescribeReceiverAndVisibility;
+var LTree: IUnitSyntaxTree; LFacts: IUnitHelperFacts;
+  LItems: TArray<THelperDeclaration>;
+begin
+  WriteUtf8BomFile('unit Sample; interface' + sLineBreak +
+    'type TStringTool = record helper for string' + sLineBreak +
+    'function Twist: string;' + sLineBreak +
+    'private procedure Hidden;' + sLineBreak +
+    'public property Size: Integer read GetSize; end;' + sLineBreak +
+    'TObjectTool = class helper for TObject protected procedure Polish; end;' + sLineBreak +
+    'implementation end.');
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsTrue(Supports(LTree, IUnitHelperFacts, LFacts));
+  LItems := LFacts.GetHelperDeclarations;
+  Assert.AreEqual<NativeInt>(4, Length(LItems));
+  Assert.AreEqual('TStringTool', LItems[0].HelperName);
+  Assert.AreEqual('string', LItems[0].ReceiverType);
+  Assert.AreEqual('Twist', LItems[0].MemberName);
+  Assert.AreEqual('public', LItems[0].Visibility);
+  Assert.AreEqual(Ord(hmMethod), Ord(LItems[0].Kind));
+  Assert.AreEqual(FTestFile, LItems[0].SourcePath);
+  Assert.AreEqual(3, LItems[0].NormalizedLine);
+  Assert.IsTrue(LItems[0].NormalizedColumn > 0);
+  Assert.AreEqual('private', LItems[1].Visibility);
+  Assert.AreEqual('Size', LItems[2].MemberName);
+  Assert.AreEqual(Ord(hmProperty), Ord(LItems[2].Kind));
+  Assert.AreEqual('TObjectTool', LItems[3].HelperName);
+  Assert.AreEqual('TObject', LItems[3].ReceiverType);
+  Assert.AreEqual('protected', LItems[3].Visibility);
+end;
+
+procedure TDelphiASTAdapterTests.HelperFactsExcludeOrdinaryAndImplementationTypes;
+var LTree: IUnitSyntaxTree; LFacts: IUnitHelperFacts;
+begin
+  WriteUtf8BomFile('unit Sample; interface ' +
+    'type TAlias = Integer; TOrdinary = class procedure Twist; end; ' +
+    'procedure Run; implementation ' +
+    'type TPrivateTool = record helper for string procedure Hidden; end; ' +
+    'procedure Run; begin end; end.');
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsTrue(Supports(LTree, IUnitHelperFacts, LFacts));
+  Assert.AreEqual<NativeInt>(0, Length(LFacts.GetHelperDeclarations));
+end;
+
+procedure TDelphiASTAdapterTests.HelperFactsAreStableAcrossRepeatedReads;
+var LTree: IUnitSyntaxTree; LFacts: IUnitHelperFacts;
+  LItems: TArray<THelperDeclaration>;
+begin
+  WriteUtf8BomFile('unit Sample; interface type TTool = class helper for TObject ' +
+    'public procedure Polish; end; implementation ' +
+    'procedure TTool.Polish; begin end; end.');
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsTrue(Supports(LTree, IUnitHelperFacts, LFacts));
+  LItems := LFacts.GetHelperDeclarations;
+  Assert.AreEqual<NativeInt>(1, Length(LItems));
+  LItems[0].ReceiverType := 'changed';
+  LItems := LFacts.GetHelperDeclarations;
+  Assert.AreEqual<NativeInt>(1, Length(LItems));
+  Assert.AreEqual('TObject', LItems[0].ReceiverType);
+  Assert.AreEqual('Polish', LItems[0].MemberName);
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TDelphiASTAdapterTests);
 
