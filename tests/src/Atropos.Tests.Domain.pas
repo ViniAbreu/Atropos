@@ -2,17 +2,19 @@ unit Atropos.Tests.Domain;
 
 interface
 uses
-  Atropos.Core.Ports, Atropos.Core.Domain, DUnitX.TestFramework;
+  Atropos.Core.HelperBinding, Atropos.Core.Ports, Atropos.Core.Domain, DUnitX.TestFramework;
 
 type
   { Mock AST }
-  TMockSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree)
+  TMockSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree, IUnitMemberReferences)
   public
     UnitName: string;
     IntfUses: TArray<string>;
     ImplUses: TArray<string>;
     IntfIdents: TArray<string>;
     ImplIdents: TArray<string>;
+    Members: TArray<TMemberReference>;
+    function GetMemberReferences: TArray<TMemberReference>;
     
     function GetUnitName: string;
     function GetInterfaceUses: TArray<string>;
@@ -29,6 +31,7 @@ type
     FContext: TProjectContext;
     FAnalyzer: TAnalyzeUnitUses;
   public
+    [Test] procedure MissingMemberFactsCannotProveHelperUnused;
     [Setup]
     procedure Setup;
     [TearDown]
@@ -52,6 +55,18 @@ type
   end;
 
 implementation
+
+procedure TDomainTests.MissingMemberFactsCannotProveHelperUnused;
+begin
+  FContext.RegisterUnitExports('Helpers', ['!HELPER:Twist:string']);
+  Assert.AreEqual(Ord(huUnknown), Ord(FContext.AssessHelpers('Helpers',
+    ['Helpers'], [], False, False)));
+end;
+
+function TMockSyntaxTree.GetMemberReferences: TArray<TMemberReference>;
+begin
+  Result := Members;
+end;
 
 { TMockSyntaxTree }
 
@@ -187,6 +202,9 @@ begin
   LSyntaxTree.IntfUses := ['System.SysUtils'];
   LSyntaxTree.IntfIdents := ['ACodSegm', 'SmallInt'];
   LSyntaxTree.ImplIdents := ['ACodSegm', 'ToString'];
+  SetLength(LSyntaxTree.Members, 1);
+  LSyntaxTree.Members[0].MemberName := 'ToString';
+  LSyntaxTree.Members[0].ReceiverType := 'SmallInt';
   LResult := FAnalyzer.Execute(LSyntaxTree, FContext);
   Assert.AreEqual(0, Integer(Length(LResult.UnusedUnits)));
   Assert.AreEqual(1, Integer(Length(LResult.UnitsToMoveToImpl)));

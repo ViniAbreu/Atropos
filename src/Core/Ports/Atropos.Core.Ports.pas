@@ -90,6 +90,16 @@ type
     function GetHelperDeclarations: TArray<THelperDeclaration>;
   end;
 
+  TMemberReference = record
+    MemberName, ReceiverType: string;
+    ReceiverIsClass: Boolean;
+    InInterface: Boolean;
+  end;
+  IUnitMemberReferences = interface
+    ['{4D84D498-4573-4672-ACF1-D58A75A2D00C}']
+    function GetMemberReferences: TArray<TMemberReference>;
+  end;
+
   IUnitSourceDependencies = interface
     ['{7EBA76D2-050F-48CD-82F7-955CBAB1DCC5}']
     function GetSourceDependencies: TArray<TSourceDependency>;

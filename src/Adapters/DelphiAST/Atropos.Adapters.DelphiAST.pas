@@ -16,7 +16,7 @@ type
 
   TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
     IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints,
-    IProjectSourceImports, IUnitLifecycleFacts, IUnitHelperFacts)
+    IProjectSourceImports, IUnitLifecycleFacts, IUnitHelperFacts, IUnitMemberReferences)
   private
     FFileName: string;
     FUnitName: string;
@@ -57,6 +57,7 @@ type
     function GetProjectImports: TArray<TUnitSourceMapping>;
     function GetLifecycleSections: TArray<TLifecycleSection>;
     function GetHelperDeclarations: TArray<THelperDeclaration>;
+    function GetMemberReferences: TArray<TMemberReference>;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser, IAnalysisSnapshot,
@@ -82,7 +83,7 @@ type
 
 implementation
 
-uses Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
+uses Atropos.Adapters.MemberReferences, Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalImports,
   SimpleParser.Lexer.Types;
@@ -288,6 +289,17 @@ begin
   end;
 end;
 
+function TDelphiASTSyntaxTree.GetMemberReferences: TArray<TMemberReference>;
+var LExtractor: TMemberReferenceExtractor;
+begin
+  LExtractor := TMemberReferenceExtractor.Create;
+  try
+    Result := LExtractor.Extract(FRoot);
+  finally
+    LExtractor.Free;
+  end;
+end;
+
 function TDelphiASTSyntaxTree.GetLifecycleSections: TArray<TLifecycleSection>;
 begin
   Result := TDelphiSyntaxFacts.LifecycleSections(FRoot, FFileName);
@@ -419,7 +431,7 @@ var
   LChild: TSyntaxNode;
   LTypeDeclDepth: Integer;
   LIsHelper: Boolean;
-  LName, LTargetType, LMethodName: string;
+  LName: string;
   I: Integer;
 begin
   if not Assigned(ANode) then
@@ -429,32 +441,7 @@ begin
     Exit;
     
   if ANode.Typ = ntHelper then
-  begin
-    LTargetType := EmptyStr;
-    for I := 0 to Length(ANode.ChildNodes) - 1 do
-    begin
-      if ANode.ChildNodes[I].Typ = ntIdentifier then
-      begin
-        LTargetType := ExtractNodeName(ANode.ChildNodes[I]);
-        Break;
-      end;
-    end;
-    
-    if not LTargetType.IsEmpty then
-    begin
-      for I := 0 to Length(ANode.ChildNodes) - 1 do
-      begin
-        LChild := ANode.ChildNodes[I];
-        if LChild.Typ = ntMethod then
-        begin
-          LMethodName := ExtractNodeName(LChild);
-          if not LMethodName.IsEmpty then
-            AList.Add('!HELPER:' + LMethodName + ':' + LTargetType);
-        end;
-      end;
-    end;
     Exit;
-  end;
     
   // Se encontrarmos um ntTypeDecl estando já dentro de um (Depth > 0), é um Nested Type!
   // Tipos aninhados (e seus enums) pertencem à classe, não ao escopo global.
@@ -554,6 +541,7 @@ end;
 
 function TDelphiASTSyntaxTree.GetExportedIdentifiers: TArray<string>;
 var
+  LHelper: THelperDeclaration;
   LNode: TSyntaxNode;
   LList: TList<string>;
 begin
@@ -567,6 +555,9 @@ begin
     LList := TList<string>.Create;
     try
       FindExportedIdentifiers(LNode, LList);
+      for LHelper in GetHelperDeclarations do
+        if LHelper.Visibility <> 'private' then
+          LList.Add('!HELPER:' + LHelper.MemberName + ':' + LHelper.ReceiverType);
       Result := LList.ToArray;
     finally
       LList.Free;

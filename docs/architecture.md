@@ -35,6 +35,10 @@ Helper declarations are available through the optional Core port
 type spellings, member names/kinds, visibility and normalized source locations.
 Methods are siblings of the HELPER node or children of visibility blocks; they
 are not children of HELPER. Private members remain facts, not public exports.
-This additive port does not yet participate in import decisions. Receiver scope,
-aliases, inheritance and helper precedence still require binding before replacing
-the legacy helper matching heuristic.
+Helper facts now derive legacy export entries. Analysis matches these entries to
+member references resolved from routine parameters and variables, with section
+and lexical scope. The Core binding service preserves unknown receivers and
+competing helper candidates; flat identifier matching excludes helper entries.
+The legacy direct lookup API retains its optional compatibility behavior.
+Aliases, class fields, inherited receiver types and full symbol identity still
+require further binding; uncertain supported references preserve the import.

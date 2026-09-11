@@ -2,7 +2,7 @@
 
 interface
 uses
-  Atropos.Core.Ports, Atropos.Adapters.DelphiAST, DUnitX.TestFramework, System.SysUtils, System.Classes, System.IOUtils;
+  Atropos.Core.Domain, Atropos.Core.Analysis, Atropos.Core.Ports, Atropos.Adapters.DelphiAST, DUnitX.TestFramework, System.SysUtils, System.Classes, System.IOUtils;
 
 type
   [TestFixture]
@@ -12,6 +12,7 @@ type
     FTestFile: string;
     procedure CreateMockPasFile;
     procedure WriteUtf8BomFile(const ASource: string);
+    function AnalyzeHelperSource(const ASource: string; ACompeting: Boolean = False): TUnitAnalysisResult;
   public
     [Setup]
     procedure Setup;
@@ -42,6 +43,18 @@ type
     [Test] procedure HelperFactsDescribeReceiverAndVisibility;
     [Test] procedure HelperFactsExcludeOrdinaryAndImplementationTypes;
     [Test] procedure HelperFactsAreStableAcrossRepeatedReads;
+    [TestCase('StringParameter', '0,1')]
+    [TestCase('UnrelatedClass', '1,0')]
+    [TestCase('SeparateRoutines', '2,1')]
+    [TestCase('ParameterShadowsGlobal', '3,0')]
+    [TestCase('ChainedReceiver', '4,2')]
+    [TestCase('BareCall', '5,2')]
+    [TestCase('LocalAlias', '6,2')]
+    [TestCase('WithScope', '7,2')]
+    [TestCase('LifecycleVariable', '8,1')]
+    [TestCase('ClassFieldShadowsGlobal', '9,2')]
+    procedure HelperDecisionsUseReceiverScopes(AScenario, AAction: Integer);
+    [Test] procedure CompetingHelpersPreserveBothImports;
   end;
 
 implementation
@@ -308,6 +321,79 @@ begin
   Assert.AreEqual<NativeInt>(1, Length(LItems));
   Assert.AreEqual('TObject', LItems[0].ReceiverType);
   Assert.AreEqual('Polish', LItems[0].MemberName);
+end;
+
+function TDelphiASTAdapterTests.AnalyzeHelperSource(const ASource: string;
+  ACompeting: Boolean): TUnitAnalysisResult;
+var LContext: TProjectContext; LAnalyzer: TAnalyzeUnitUses; LTree: IUnitSyntaxTree;
+begin
+  LContext := TProjectContext.Create;
+  LAnalyzer := TAnalyzeUnitUses.Create;
+  try
+    WriteUtf8BomFile('unit Helpers; interface type TTool = record helper for string ' +
+      'function Twist: string; end; implementation end.');
+    LTree := FParser.ParseFile(FTestFile);
+    LContext.RegisterUnitExports('Helpers', LTree.GetExportedIdentifiers);
+    LContext.RegisterUnitDependencies('Helpers', []);
+    if ACompeting then
+    begin
+      LContext.RegisterUnitExports('OtherHelpers', LTree.GetExportedIdentifiers);
+      LContext.RegisterUnitDependencies('OtherHelpers', []);
+    end;
+    WriteUtf8BomFile(ASource);
+    LTree := FParser.ParseFile(FTestFile);
+    Result := LAnalyzer.Execute(LTree, LContext);
+  finally
+    LAnalyzer.Free;
+    LContext.Free;
+  end;
+end;
+
+procedure TDelphiASTAdapterTests.HelperDecisionsUseReceiverScopes(AScenario, AAction: Integer);
+const
+  Sources: array[0..9] of string = (
+    'implementation procedure Run(Value: string); begin Value.Twist; end;',
+    'type TLocal = class function Twist: string; end; implementation ' +
+      'procedure Run(Value: TLocal); begin Value.Twist; end;',
+    'type TLocal = class function Twist: string; end; implementation ' +
+      'procedure A(Value: TLocal); begin Value.Twist; end; ' +
+      'procedure B(Value: string); begin Value.Twist; end;',
+    'type TLocal = class function Twist: string; end; var Value: string; implementation ' +
+      'procedure Run(Value: TLocal); begin Value.Twist; end;',
+    'implementation procedure Run(Value: TObject); begin Value.Child.Twist; end;',
+    'implementation procedure Run; begin Twist; end;',
+    'implementation procedure Run; type TAlias = string; var Value: TAlias; begin Value.Twist; end;',
+    'implementation procedure Run(Value: string; Other: TObject); begin with Other do Value.Twist; end;',
+    'var Value: string; implementation initialization Value.Twist;',
+    'type TLocal = class function Twist: string; end; ' +
+      'TOwner = class Value: string; procedure Run; end; var Value: TLocal; ' +
+      'implementation procedure TOwner.Run; begin Value.Twist; end;');
+var LResult: TUnitAnalysisResult;
+begin
+  LResult := AnalyzeHelperSource('unit Sample; interface uses Helpers; ' + Sources[AScenario] + ' end.');
+  Assert.AreEqual<NativeInt>(1, Length(LResult.Decisions));
+  if AAction = 0 then
+    Assert.AreEqual(Ord(daRemove), Ord(LResult.Decisions[0].Action));
+  if AAction = 1 then
+    Assert.AreEqual(Ord(daMoveToImplementation), Ord(LResult.Decisions[0].Action));
+  if AAction = 2 then
+  begin
+    Assert.AreEqual(Ord(daPreserve), Ord(LResult.Decisions[0].Action));
+    Assert.AreEqual(Ord(dsUnknown), Ord(LResult.Decisions[0].State));
+  end;
+end;
+
+procedure TDelphiASTAdapterTests.CompetingHelpersPreserveBothImports;
+var LResult: TUnitAnalysisResult; LDecision: TDependencyDecision;
+begin
+  LResult := AnalyzeHelperSource('unit Sample; interface uses Helpers, OtherHelpers; ' +
+    'implementation procedure Run(Value: string); begin Value.Twist; end; end.', True);
+  Assert.AreEqual<NativeInt>(2, Length(LResult.Decisions));
+  for LDecision in LResult.Decisions do
+  begin
+    Assert.AreEqual(Ord(daPreserve), Ord(LDecision.Action));
+    Assert.AreEqual(Ord(dsUnknown), Ord(LDecision.State));
+  end;
 end;
 
 initialization
