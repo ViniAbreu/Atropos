@@ -254,3 +254,25 @@ in artifacts/integration/<platform>/binary-runtime/result.json with compiler, CL
 DCU, runner and fixture hashes. Producer sources and project copies are retained
 for inspection. This proves conservative handling of a DCU-only dependency, not
 DCU decompilation or dynamic BPL loading. The historical Probe catalog is unchanged.
+
+For a controlled scaling measurement, run `tests/run-scaled-profile.ps1 -Platform Win32`
+and then the same command with `-Platform Win64`. Do not run competing builds while
+measuring. Defaults generate 16 providers, 32 consumers, and 128 or 512 constants
+per provider, with three fresh copies per size. Every consumer references four
+constants near the end of each provider's declarations and includes one unused
+dependency. The generated project therefore exposes 2,048 or 8,192 provider symbols
+and 2,048 source references across the consumers. `-SymbolCounts` and `-Repetitions`
+can adjust the experiment; the standalone generator also exposes provider/consumer
+counts and refuses to overwrite an existing directory.
+
+The runner builds and executes the baseline, profiles production cleanup, executes
+the result, and checks the exact expected sum, all required imports, removal of the
+unused imports, unchanged other source files, phase accounting, and verification
+builds. It retains generated inputs, outputs, hashes and per-phase measurements under
+`artifacts/performance/scaled/<platform>/<run-id>/run.json`. Each run records PASS or
+FAIL; incomplete measurements must not be reported as successful experiments.
+This is a synthetic scaling workload, not a claim about a particular production
+application. Baseline compilation precedes measurement, so filesystem/compiler caches
+may be warm. Timing includes profiler overhead and should be compared across repeated
+runs on the same machine. Use it alongside the representative runtime fixtures;
+neither a single timing nor a passing build alone justifies persistent cache changes.
