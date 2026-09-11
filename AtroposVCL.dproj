@@ -106,6 +106,7 @@
         <DCCReference Include="src\GUI\Atropos.VCL.Main.pas">
             <Form>MainForm</Form>
         </DCCReference>
+        <DCCReference Include="src\Core\Services\Atropos.Core.Profiling.pas"/>
         <DCCReference Include="src\Core\Ports\Atropos.Core.Ports.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.Analysis.pas"/>
         <DCCReference Include="src\Core\Domain\Atropos.Core.AnalysisIntersection.pas"/>

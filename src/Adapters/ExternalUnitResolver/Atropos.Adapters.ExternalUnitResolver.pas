@@ -34,7 +34,7 @@ type
   end;
 
 implementation
-uses System.IOUtils,
+uses Atropos.Core.Profiling, System.IOUtils,
   System.SysUtils;
 
 constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser;
@@ -175,11 +175,12 @@ begin
   Result := FDependencies.TryGet(AUnitName, AImports);
 end;
 function TExternalUnitResolverAdapter.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
-var
+var LProfileScope: IInterface;
   LLowerName: string;
   LFilePath: string;
   LSyntaxTree: IUnitSyntaxTree;
 begin
+  LProfileScope := TExecutionProfile.Measure('resolution', AUnitName);
   Result := False;
   AExports := [];
   AHasInit := False;

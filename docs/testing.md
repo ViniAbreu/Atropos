@@ -186,3 +186,33 @@ These tests prove restart freshness and the `cache-context-isolation` contract.
 They do not implement or validate persistent/shared content-keyed caching or automatic
 invalidation inside an active analysis. Such mutations still abort the snapshot;
 source/include persistent-cache scenarios retain their historical BLOCKED status.
+
+## Phase performance profiling
+
+Run `tests/run-performance-profile.ps1 -Platform Win32` and again with Win64.
+The runner builds the optimized AtroposProfile harness and applies the real default
+application workflow to three fresh copies of each representative fixture. It checks
+successful baseline/final builds, actual edits, required phase samples, original
+fixture hashes, and accounting of exclusive time against total execution time.
+Results and a RUNNING/PASS/FAIL manifest with source/runner/harness/binary hashes
+are written under `artifacts/performance/<platform>`. Profiling is a diagnostic
+workflow, not a timing threshold in the regular quality gate. Do not run other
+builds/benchmarks concurrently when collecting a comparison.
+
+The in-memory, thread-local profiler is inactive by default in CLI/VCL. The harness
+explicitly enables it and outputs per-phase/per-subject calls and inclusive/exclusive
+wall-clock milliseconds. Exclusive time subtracts nested instrumented operations;
+only exclusive phase totals may be summed. Parsing includes source I/O, conditional
+preparation and includes; extraction covers syntax traversals; resolution excludes
+its nested parsing/extraction; decisions exclude their nested resolution/extraction.
+Project evaluation, target preparation (including compiler symbol probing), edit
+planning, edit writes (including backups), builds and remaining execution overhead
+are separate phases. Errors close their scopes and failed executions cannot be
+reported as successful measurements. Repeated parser calls are reported per file;
+nested resolver wrapper calls are not counts of distinct units.
+
+Measurements include instrumentation overhead, OS caches and process-startup cost.
+These small console/VCL fixtures do not establish large-project throughput or justify
+persistent caching. Compare repeated runs and source/toolchain hashes before drawing
+performance conclusions. Direct use of AtroposProfile applies edits; supply only a
+disposable project copy, as the runner does automatically.

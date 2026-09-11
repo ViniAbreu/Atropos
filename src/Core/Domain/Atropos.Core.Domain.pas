@@ -78,7 +78,7 @@ type
 
 implementation
 
-uses Atropos.Core.TypeNames;
+uses Atropos.Core.Profiling, Atropos.Core.TypeNames;
 
 constructor TProjectContext.Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
 begin
@@ -479,7 +479,7 @@ begin
 end;
 
 function TAnalyzeUnitUses.Execute(const ASyntaxTree: IUnitSyntaxTree; AContext: TProjectContext): TUnitAnalysisResult;
-var
+var LProfileScope: IInterface;
   LIntfUses: TArray<string>;
   LImplUses: TArray<string>;
   LIntfIdents: TArray<string>;
@@ -491,6 +491,7 @@ var
   LUsedInImpl: Boolean;
   LTree: IUnitSyntaxTree;
 begin
+  LProfileScope := TExecutionProfile.Measure('decisions', '');
   LTree := ASyntaxTree;
   Result := Default(TUnitAnalysisResult);
   Result.UnitName := ASyntaxTree.GetUnitName;

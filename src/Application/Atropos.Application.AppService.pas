@@ -82,7 +82,7 @@ type
   end;
 
 implementation
-uses System.Diagnostics, System.IOUtils, System.Threading,
+uses Atropos.Core.Profiling, System.Diagnostics, System.IOUtils, System.Threading,
   System.SysUtils, Atropos.Application.TargetAnalysis, Atropos.Application.Logger;
 
 procedure TProjectCleanerAppService.CollectProjectParserWarnings;
@@ -576,7 +576,9 @@ begin
 end;
 
 function TProjectCleanerAppService.Execute(const ADprojPath: string): Boolean;
+var LProfileScope: IInterface;
 begin
+  LProfileScope := TExecutionProfile.Measure('execution', ADprojPath);
   try
     Result := ExecuteSafely(ADprojPath);
   except

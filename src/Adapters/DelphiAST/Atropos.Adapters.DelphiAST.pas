@@ -83,7 +83,7 @@ type
 
 implementation
 
-uses Atropos.Adapters.ExportFacts, Atropos.Adapters.ImplicitEffects, Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
+uses Atropos.Core.Profiling, Atropos.Adapters.ExportFacts, Atropos.Adapters.ImplicitEffects, Atropos.Core.LocalBinding, Atropos.Adapters.SymbolFacts,
   Atropos.Adapters.MemberReferences, Atropos.Adapters.HelperFacts, Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalSource,
@@ -163,7 +163,7 @@ begin
 end;
 
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
-var
+var LProfileScope: IInterface;
   LBuilder: TPasSyntaxTreeBuilder;
   LRoot: TSyntaxNode;
   LSourceStream: TStringStream;
@@ -176,6 +176,7 @@ var
   LText, LVersion: string;
   LLexer: TmwPasLex;
 begin
+  LProfileScope := TExecutionProfile.Measure('parsing', AFilePath);
   if not FileExists(AFilePath) then
     raise EASTParserException.CreateFmt('File not found: %s', [AFilePath]);
 
@@ -280,7 +281,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetIncompleteAnalysisReasons: TArray<string>;
+var LProfileScope: IInterface;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   Result := Copy(FIncompleteReasons);
   if HasIncludedUses(FRoot, False) then
     Result := Result + ['Uses entries originate in an include; editing their source provenance is not supported yet.'];
@@ -292,13 +295,16 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetProjectImports: TArray<TUnitSourceMapping>;
+var LProfileScope: IInterface;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   Result := TDelphiSyntaxFacts.ProjectImports(FRoot);
 end;
 
 function TDelphiASTSyntaxTree.GetHelperDeclarations: TArray<THelperDeclaration>;
-var LExtractor: THelperFactExtractor;
+var LProfileScope: IInterface; LExtractor: THelperFactExtractor;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   LExtractor := THelperFactExtractor.Create(FFileName);
   try
     Result := LExtractor.Extract(FRoot);
@@ -308,8 +314,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetMemberReferences: TArray<TMemberReference>;
-var LExtractor: TMemberReferenceExtractor;
+var LProfileScope: IInterface; LExtractor: TMemberReferenceExtractor;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   LExtractor := TMemberReferenceExtractor.Create;
   try
     Result := LExtractor.Extract(FRoot);
@@ -319,7 +326,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetLifecycleSections: TArray<TLifecycleSection>;
+var LProfileScope: IInterface;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   Result := TDelphiSyntaxFacts.LifecycleSections(FRoot, FFileName);
 end;
 procedure TDelphiASTSyntaxTree.FindAllUses(ANode: TSyntaxNode; AList: TList<string>);
@@ -346,10 +355,11 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetUsesList(ANodeType: TSyntaxNodeType): TArray<string>;
-var
+var LProfileScope: IInterface;
   LNode: TSyntaxNode;
   LList: TList<string>;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   Result := [];
   if not Assigned(FRoot) then
     Exit;
@@ -368,8 +378,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetSymbolFacts: TUnitSymbolFacts;
-var LExtractor: TSymbolFactExtractor;
+var LProfileScope: IInterface; LExtractor: TSymbolFactExtractor;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   LExtractor := TSymbolFactExtractor.Create(FFileName);
   try
     Result := LExtractor.Extract(FRoot);
@@ -379,8 +390,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetReferencedIdentifiers(AInterface: Boolean): TArray<string>;
-var LBinding: TLocalSymbolBinding;
+var LProfileScope: IInterface; LBinding: TLocalSymbolBinding;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   LBinding := TLocalSymbolBinding.Create(GetSymbolFacts);
   try
     Result := LBinding.Identifiers(AInterface);
@@ -409,8 +421,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetExportFacts: TArray<TExportedSymbol>;
-var LExtractor: TExportFactExtractor;
+var LProfileScope: IInterface; LExtractor: TExportFactExtractor;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   LExtractor := TExportFactExtractor.Create;
   try
     Result := LExtractor.Extract(FRoot);
@@ -420,8 +433,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetExportedIdentifiers: TArray<string>;
-var LHelper: THelperDeclaration; LFact: TExportedSymbol; LList: TList<string>;
+var LProfileScope: IInterface; LHelper: THelperDeclaration; LFact: TExportedSymbol; LList: TList<string>;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   LList := TList<string>.Create;
   try
     for LFact in GetExportFacts do
@@ -436,8 +450,9 @@ begin
   end;
 end;
 function TDelphiASTSyntaxTree.HasInitializationSection: Boolean;
-var LEffect: TImplicitEffect;
+var LProfileScope: IInterface; LEffect: TImplicitEffect;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   Result := Length(GetLifecycleSections) > 0;
   if Result then
     Exit;
@@ -447,8 +462,9 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetImplicitEffects: TArray<TImplicitEffect>;
-var LExtractor: TImplicitEffectExtractor;
+var LProfileScope: IInterface; LExtractor: TImplicitEffectExtractor;
 begin
+  LProfileScope := TExecutionProfile.Measure('extraction', FFileName);
   LExtractor := TImplicitEffectExtractor.Create(FFileName);
   try
     Result := LExtractor.Extract(FRoot);

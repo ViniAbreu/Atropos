@@ -22,7 +22,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.Classes, Atropos.Core.Analysis, Atropos.Core.UsesEditor,
+uses Atropos.Core.Profiling, System.SysUtils, System.Classes, Atropos.Core.Analysis, Atropos.Core.UsesEditor,
   Atropos.Core.UsesSyntax;
 
 class function TApplyUsesChanges.EnsureInterfaceImport(const ASource, AUnitToAdd: string): string;
@@ -50,8 +50,9 @@ end;
 
 function TApplyUsesChanges.Prepare(const AFilePath: string;
   const AAnalysisResult: TUnitAnalysisResult): TUsesEditPlan;
-var LPlanner: TUsesEditPlanner; LPreviewConfig: TToolConfig;
+var LProfileScope: IInterface; LPlanner: TUsesEditPlanner; LPreviewConfig: TToolConfig;
 begin
+  LProfileScope := TExecutionProfile.Measure('editing-plan', AFilePath);
   LPreviewConfig := FConfig;
   if FConfig.DryRun and not FConfig.RemoveUnused and not FConfig.MoveToImplementation then
     LPreviewConfig := FConfig.WithRemoveUnused(True).WithMoveToImplementation(True);
@@ -64,8 +65,9 @@ begin
 end;
 
 procedure TApplyUsesChanges.ApplyPlan(const AFilePath: string; const APlan: TUsesEditPlan);
-var LCurrent: string;
+var LProfileScope: IInterface; LCurrent: string;
 begin
+  LProfileScope := TExecutionProfile.Measure('editing-write', AFilePath);
   if FConfig.DryRun or not APlan.HasChanges then
     Exit;
   LCurrent := FFileService.ReadFileContent(AFilePath);
