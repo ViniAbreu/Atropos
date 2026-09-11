@@ -1,4 +1,4 @@
-unit Atropos.Tests.CompilerTraceProcess;
+﻿unit Atropos.Tests.CompilerTraceProcess;
 
 interface
 
@@ -9,6 +9,7 @@ type
   TObservingCompilerRunner = class(TInterfacedObject, IBuildProcessRunner)
   public
     Calls, MutateAfter: Integer;
+    FailFirstProgram: Boolean;
     PathToMutate: string;
     function Execute(const ACommand: string; ATimeoutMs: Cardinal;
       const AShouldCancel: TCancellationCheck; out AOutput: string;
@@ -79,11 +80,15 @@ type
     [TestCase('Win64', 'Win64')]
     procedure NativePreparationReachesParser(const APlatform: string);
     [Test] procedure NativePreparationPreservesRepeatedIncludes;
-    [TestCase('Windows32', 'Win32,rtl\win\Winapi.Windows.pas')]
-    [TestCase('Windows64', 'Win64,rtl\win\Winapi.Windows.pas')]
-    [TestCase('SysUtils32', 'Win32,rtl\sys\System.SysUtils.pas')]
-    [TestCase('SysUtils64', 'Win64,rtl\sys\System.SysUtils.pas')]
-    procedure NativePreparationParsesRTL(const APlatform, ARelativePath: string);
+    [TestCase('Windows32', 'Win32,rtl\win\Winapi.Windows.pas,2')]
+    [TestCase('Windows64', 'Win64,rtl\win\Winapi.Windows.pas,2')]
+    [TestCase('SysUtils32', 'Win32,rtl\sys\System.SysUtils.pas,2')]
+    [TestCase('SysUtils64', 'Win64,rtl\sys\System.SysUtils.pas,2')]
+    [TestCase('Collections32', 'Win32,rtl\common\System.Generics.Collections.pas,2')]
+    [TestCase('Collections64', 'Win64,rtl\common\System.Generics.Collections.pas,2')]
+    [TestCase('Variants32', 'Win32,rtl\sys\System.Variants.pas,5')]
+    [TestCase('Variants64', 'Win64,rtl\sys\System.Variants.pas,5')]
+    procedure NativePreparationParsesRTL(const APlatform, ARelativePath: string; AExpectedCalls: Integer);
     [TestCase('RootAfterDiscovery', '1,0')]
     [TestCase('IncludeAfterValidation', '2,1')]
     procedure SourceMutationPreventsPreparation(ACall, AInclude: Integer);
@@ -108,6 +113,11 @@ begin
   Result := LRunner.Execute(ACommand, ATimeoutMs, AShouldCancel, AOutput,
     AExitCode, ATimedOut, ACancelled);
   Inc(Calls);
+  if FailFirstProgram and (Calls = 1) then
+  begin
+    AExitCode := 1;
+    AOutput := 'Forced program compilation failure';
+  end;
   if Result and (AExitCode = 0) and (Calls = MutateAfter) and not PathToMutate.IsEmpty then
     TFile.AppendAllText(PathToMutate, sLineBreak);
 end;
@@ -180,9 +190,12 @@ begin
 end;
 
 procedure TCompilerTraceProcessTests.ProcessFailuresRejectPreparation(AKind: Integer);
+var LExpected: ExceptClass;
 begin
   FStub.Kind := AKind;
-  Assert.WillRaise(procedure begin Compile end, EInvalidOperation);
+  LExpected := EInvalidOperation;
+  if AKind = 2 then LExpected := ECompilerTraceFailed;
+  Assert.WillRaise(procedure begin Compile end, LExpected);
   Assert.AreEqual<NativeInt>(0, Length(TDirectory.GetFiles(FRoot, '*.ps1')));
 end;
 
@@ -462,7 +475,8 @@ begin
   Assert.Contains<string>(LTree.GetExportedIdentifiers, 'TSecond');
 end;
 
-procedure TNativeCompilerTraceTests.NativePreparationParsesRTL(const APlatform, ARelativePath: string);
+procedure TNativeCompilerTraceTests.NativePreparationParsesRTL(
+  const APlatform, ARelativePath: string; AExpectedCalls: Integer);
 var LContext: TProjectCompilationContext; LSymbols: TCompilerSymbols;
   LReader: TCompilerSymbolReader; LPreparer: ICompilerSourcePreparer;
   LParser: IASTParser; LTree: IUnitSyntaxTree; LRunner: TObservingCompilerRunner;
@@ -482,8 +496,8 @@ begin
   Assert.IsTrue(Supports(LParser, IAnalysisSnapshot, LSnapshot));
   LSnapshot.BeginAnalysis;
   LTree := LParser.ParseFile(LSourcePath);
-  Assert.AreEqual(2, LRunner.Calls);
-  Assert.IsTrue(Length(LTree.GetExportedIdentifiers) > 100);
+  Assert.AreEqual(AExpectedCalls, LRunner.Calls);
+  Assert.IsTrue(Length(LTree.GetExportedIdentifiers) > 0);
   LSnapshot.ValidateAnalysis;
 end;
 

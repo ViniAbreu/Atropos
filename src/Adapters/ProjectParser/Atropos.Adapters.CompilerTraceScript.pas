@@ -1,4 +1,4 @@
-unit Atropos.Adapters.CompilerTraceScript;
+﻿unit Atropos.Adapters.CompilerTraceScript;
 
 interface
 
@@ -59,6 +59,9 @@ begin
     ' }' + sLineBreak +
     ' foreach ($property in @(''DCC_ExeOutput'',''DCC_DcuOutput'',''DCC_BplOutput'',''DCC_DcpOutput'',''DCC_HppOutput'',''DCC_ObjOutput'',''DCC_BpiOutput'',''DCC_ResourceOutput'')) {' + sLineBreak +
     '  [void]$instance.SetProperty($property, $request.outputPath)' + sLineBreak +
+    ' }' + sLineBreak +
+    ' if ($request.sourceDirectory) {' + sLineBreak +
+    '  [void]$instance.SetProperty(''UnitSearchPath'', $instance.GetPropertyValue(''UnitSearchPath'') + '';'' + $request.sourceDirectory)' + sLineBreak +
     ' }' + sLineBreak +
     ' [void]$instance.SetProperty(''DCC_ForceExecute'', ''true'')' + sLineBreak +
     ' if ($request.collectDependencies) {' + sLineBreak +

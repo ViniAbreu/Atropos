@@ -2,9 +2,10 @@ unit Atropos.Adapters.CompilerInputs;
 
 interface
 
-uses Atropos.Core.Ports, Atropos.Core.Compilation,
+uses System.Generics.Collections, Atropos.Core.Ports, Atropos.Core.Compilation,
   Atropos.Adapters.SourceSnapshot, Atropos.Adapters.SourceIncludes,
-  Atropos.Adapters.DelphiSource;
+  Atropos.Adapters.DelphiSource, Atropos.Adapters.CompilerDependencies,
+  Atropos.Adapters.CompilerSourceInputs;
 
 type
   TCompilerInputs = class
@@ -13,17 +14,21 @@ type
     FIncludes: TSourceIncludeResolver;
     FRootPath: string;
     FSearchPaths: TArray<string>;
+    FSourceInputs: TCompilerSourceInputs;
+    FGenerated: TDictionary<string, Boolean>;
+    FCancel: TCancellationCheck;
     procedure CaptureFile(const APath: string);
     procedure CaptureCandidates(const ADependency: string);
-    function GeneratedRoot(const APath, AOutputPath: string): Boolean;
+    function IsGenerated(const APath, AOutputPath: string): Boolean;
+    procedure CaptureGenerated(const AEntry: TCompilerDependency);
   public
     constructor Create(const ARootPath: string; const AContext: TProjectCompilationContext;
-      const ADelphiPath: string);
+      const ADelphiPath: string; const ACancel: TCancellationCheck = nil);
     destructor Destroy; override;
     function ReadRoot: TDelphiSourceContent;
     function ReadInclude(const AParent, AName: string; out AContent, APath: string): Boolean;
-    procedure CaptureDependencies(const APaths: TArray<string>; const AOutputPath: string);
-    procedure ValidateDependencies(const APaths: TArray<string>; const AOutputPath: string);
+    procedure CaptureDependencies(const APaths: TArray<TCompilerDependency>; const AOutputPath: string);
+    procedure ValidateDependencies(const APaths: TArray<TCompilerDependency>; const AOutputPath: string);
     procedure Validate;
     function Dependencies: TArray<TSourceDependency>;
     function MissingPaths: TArray<string>;
@@ -34,16 +39,20 @@ implementation
 uses System.SysUtils, System.Classes, System.IOUtils, System.Hash;
 
 constructor TCompilerInputs.Create(const ARootPath: string;
-  const AContext: TProjectCompilationContext; const ADelphiPath: string);
+  const AContext: TProjectCompilationContext; const ADelphiPath: string;
+  const ACancel: TCancellationCheck);
 var LFile: TSourceDependency; LTool, LCompiler: string;
 begin
   inherited Create;
+  FCancel := ACancel;
   FRootPath := TPath.GetFullPath(ARootPath);
   FSearchPaths := [TPath.GetDirectoryName(FRootPath), TPath.GetDirectoryName(AContext.ProjectPath)] +
     AContext.SearchPaths;
   FSnapshot := TSourceSnapshot.Create;
   FSnapshot.BeginAnalysis;
   FIncludes := TSourceIncludeResolver.Create(FRootPath, AContext.IncludePaths, FSnapshot);
+  FSourceInputs := TCompilerSourceInputs.Create(FSnapshot, FIncludes, AContext, ACancel);
+  FGenerated := TDictionary<string, Boolean>.Create;
   for LFile in AContext.ProjectFiles do FSnapshot.RecordSource(LFile.FilePath, LFile.ContentHash);
   LCompiler := 'dcc32.exe';
   if SameText(AContext.Target.Platform, 'Win64') then LCompiler := 'dcc64.exe';
@@ -54,6 +63,8 @@ end;
 
 destructor TCompilerInputs.Destroy;
 begin
+  FGenerated.Free;
+  FSourceInputs.Free;
   FIncludes.Free;
   FSnapshot.Free;
   inherited;
@@ -93,33 +104,54 @@ begin
       CaptureFile(TPath.Combine(LDirectory, LName));
 end;
 
-function TCompilerInputs.GeneratedRoot(const APath, AOutputPath: string): Boolean;
+function TCompilerInputs.IsGenerated(const APath, AOutputPath: string): Boolean;
 begin
   Result := TPath.GetFullPath(APath).StartsWith(IncludeTrailingPathDelimiter(TPath.GetFullPath(AOutputPath)), True);
-  if not Result then Exit;
-  if not SameText(TPath.GetFileName(APath), TPath.GetFileNameWithoutExtension(FRootPath) + '.dcu') then
-    raise EInvalidOperation.Create('Compiler regenerated a dependency without a source snapshot: ' + APath);
 end;
 
-procedure TCompilerInputs.CaptureDependencies(const APaths: TArray<string>; const AOutputPath: string);
-var LPath: string;
+procedure TCompilerInputs.CaptureGenerated(const AEntry: TCompilerDependency);
+var LSource: string;
 begin
-  for LPath in APaths do
+  if SameText(TPath.GetFileName(AEntry.FilePath), TPath.GetFileNameWithoutExtension(FRootPath) + '.dcu') then Exit;
+  LSource := TPath.ChangeExtension(AEntry.ReportedPath, '.pas');
+  if not TFile.Exists(LSource) then
+    raise EInvalidOperation.Create('Compiler dependency has no identifiable source: ' + AEntry.ReportedPath);
+  FSourceInputs.Capture(LSource);
+  CaptureCandidates(AEntry.ReportedPath);
+  FGenerated.AddOrSetValue(AEntry.ReportedPath.ToLowerInvariant, True);
+end;
+
+procedure TCompilerInputs.CaptureDependencies(const APaths: TArray<TCompilerDependency>; const AOutputPath: string);
+var LEntry: TCompilerDependency;
+begin
+  for LEntry in APaths do
   begin
-    if GeneratedRoot(LPath, AOutputPath) then Continue;
-    CaptureFile(LPath);
-    CaptureCandidates(LPath);
+    if Assigned(FCancel) then
+      if FCancel() then raise EAbort.Create('Compiler dependency capture cancelled.');
+    if IsGenerated(LEntry.FilePath, AOutputPath) then
+    begin
+      CaptureGenerated(LEntry);
+      Continue;
+    end;
+    CaptureFile(LEntry.FilePath);
+    CaptureCandidates(LEntry.FilePath);
   end;
 end;
 
-procedure TCompilerInputs.ValidateDependencies(const APaths: TArray<string>; const AOutputPath: string);
-var LPath: string;
+procedure TCompilerInputs.ValidateDependencies(const APaths: TArray<TCompilerDependency>; const AOutputPath: string);
+var LEntry: TCompilerDependency;
 begin
-  for LPath in APaths do
+  for LEntry in APaths do
   begin
-    if GeneratedRoot(LPath, AOutputPath) then Continue;
-    if not FSnapshot.ContainsSource(LPath) then
-      raise EInvalidOperation.Create('Compiler used an uncaptured dependency: ' + LPath);
+    if IsGenerated(LEntry.FilePath, AOutputPath) then
+    begin
+      if SameText(TPath.GetFileName(LEntry.FilePath), TPath.GetFileNameWithoutExtension(FRootPath) + '.dcu') then Continue;
+      if not FGenerated.ContainsKey(LEntry.ReportedPath.ToLowerInvariant) then
+        raise EInvalidOperation.Create('Compiler regenerated an uncaptured source: ' + LEntry.ReportedPath);
+      Continue;
+    end;
+    if not FSnapshot.ContainsSource(LEntry.FilePath) then
+      raise EInvalidOperation.Create('Compiler used an uncaptured dependency: ' + LEntry.FilePath);
   end;
   Validate;
 end;

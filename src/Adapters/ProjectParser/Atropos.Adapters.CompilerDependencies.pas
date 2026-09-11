@@ -3,9 +3,14 @@ unit Atropos.Adapters.CompilerDependencies;
 interface
 
 type
+  TCompilerDependency = record
+    FilePath, ReportedPath: string;
+  end;
+
   TCompilerDependencies = class
   public
     class function Read(const APath: string; const AOutputPath: string = ''): TArray<string>; static;
+    class function ReadEntries(const APath, AOutputPath: string): TArray<TCompilerDependency>; static;
   end;
 
 implementation
@@ -14,11 +19,19 @@ uses System.SysUtils, System.Classes, System.IOUtils, System.RegularExpressions,
   System.Generics.Collections, Atropos.Adapters.DelphiSource;
 
 class function TCompilerDependencies.Read(const APath, AOutputPath: string): TArray<string>;
-var LSource: TDelphiSourceContent; LLines: TList<string>;
+var LEntries: TArray<TCompilerDependency>; I: Integer;
+begin
+  LEntries := ReadEntries(APath, AOutputPath);
+  SetLength(Result, Length(LEntries));
+  for I := 0 to High(LEntries) do Result[I] := LEntries[I].FilePath;
+end;
+
+class function TCompilerDependencies.ReadEntries(const APath, AOutputPath: string): TArray<TCompilerDependency>;
+var LSource: TDelphiSourceContent; LLines: TList<TCompilerDependency>; LEntry: TCompilerDependency;
   LLine, LRawLine, LResolved, LGenerated: string; LHeader: Boolean;
 begin
   LSource := TDelphiSourceReader.ReadRaw(APath);
-  LLines := TList<string>.Create;
+  LLines := TList<TCompilerDependency>.Create;
   try
     LHeader := False;
     for LRawLine in LSource.Text.Split([#10]) do
@@ -43,7 +56,9 @@ begin
       end;
       if not TFile.Exists(LResolved) then
         raise EInvalidOperation.Create('Unresolved compiler dependency: ' + LLine);
-      LLines.Add(TPath.GetFullPath(LResolved));
+      LEntry.FilePath := TPath.GetFullPath(LResolved);
+      LEntry.ReportedPath := TPath.GetFullPath(LLine);
+      LLines.Add(LEntry);
     end;
     if LLines.Count = 0 then raise EInvalidOperation.Create('Compiler returned no dependency files.');
     Result := LLines.ToArray;

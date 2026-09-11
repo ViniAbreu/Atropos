@@ -126,6 +126,7 @@
         <DCCReference Include="src\Atropos.Tests.AnalysisSnapshot.pas"/>
         <DCCReference Include="src\Atropos.Tests.ProjectContext.pas"/>
         <DCCReference Include="src\Atropos.Tests.CompilerTraceProcess.pas"/>
+        <DCCReference Include="src\Atropos.Tests.CompilerDependencySources.pas"/>
         <DCCReference Include="src\Atropos.Tests.TargetAnalysis.pas"/>
         <DCCReference Include="src\Atropos.Tests.EffectGraph.pas"/>
         <DCCReference Include="..\src\Core\Domain\Atropos.Core.Domain.pas"/>
@@ -154,6 +155,7 @@
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.TracedIncludes.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.CompilerPreparation.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.CompilerInputs.pas"/>
+        <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.CompilerSourceInputs.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.NativeSourcePreparer.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalSource.pas"/>
         <DCCReference Include="..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas"/>

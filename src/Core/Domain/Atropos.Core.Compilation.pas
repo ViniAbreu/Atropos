@@ -34,6 +34,8 @@ type
     SourceMappings: TArray<TUnitSourceMapping>;
     SearchPaths: TArray<string>;
     IncludePaths: TArray<string>;
+    ResourcePaths: TArray<string>;
+    ObjectPaths: TArray<string>;
     Namespaces: TArray<string>;
     Aliases: TArray<string>;
     Options: TArray<TCompilerOption>;

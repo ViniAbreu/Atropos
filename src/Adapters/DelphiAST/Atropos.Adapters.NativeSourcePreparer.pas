@@ -1,9 +1,10 @@
-unit Atropos.Adapters.NativeSourcePreparer;
+﻿unit Atropos.Adapters.NativeSourcePreparer;
 
 interface
 
 uses System.Generics.Collections, Atropos.Core.Ports, Atropos.Core.Compilation, Atropos.Adapters.BuildService,
-  Atropos.Adapters.CompilerPreparation, Atropos.Adapters.CompilerBranchTrace;
+  Atropos.Adapters.CompilerPreparation, Atropos.Adapters.CompilerBranchTrace,
+  Atropos.Adapters.CompilerTraceProcess, Atropos.Adapters.CompilerDependencies;
 
 type
   TNativeSourcePreparer = class(TInterfacedObject, ICompilerSourcePreparer)
@@ -16,6 +17,11 @@ type
     class function CopyPrepared(const ASource: TCompilerPreparedSource): TCompilerPreparedSource; static;
     class function CacheValid(const ASource: TCompilerPreparedSource): Boolean; static;
     function WriteSources(ATrace: TCompilerBranchTrace; const AFilePath, ADirectory: string): string;
+    function CompileUnitHost(ACompiler: TCompilerTraceProcess;
+      const ASource, AOutput: string; out ADependencies: TArray<TCompilerDependency>): string;
+    function CompileTrace(ACompiler: TCompilerTraceProcess;
+      const AProgram, AOutput, AOriginalPath: string; AAllowFallback: Boolean; var AUnitMode: Boolean;
+      out ADependencies: TArray<TCompilerDependency>): string;
     function PrepareIn(const AFilePath, AExpectedHash, ADirectory: string): TCompilerPreparedSource;
   public
     constructor Create(const AContext: TProjectCompilationContext; const ADelphiPath: string;
@@ -28,7 +34,7 @@ implementation
 
 uses System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Adapters.DelphiSource, Atropos.Adapters.CompilerInputs,
-  Atropos.Adapters.CompilerTraceProcess, Atropos.Adapters.SourceSnapshot;
+  Atropos.Adapters.SourceSnapshot;
 
 constructor TNativeSourcePreparer.Create(const AContext: TProjectCompilationContext;
   const ADelphiPath: string; const ARunner: IBuildProcessRunner; const ACancel: TCancellationCheck);
@@ -39,6 +45,8 @@ begin
   FContext.ProjectFiles := Copy(AContext.ProjectFiles);
   FContext.SearchPaths := Copy(AContext.SearchPaths);
   FContext.IncludePaths := Copy(AContext.IncludePaths);
+  FContext.ResourcePaths := Copy(AContext.ResourcePaths);
+  FContext.ObjectPaths := Copy(AContext.ObjectPaths);
   FDelphiPath := ADelphiPath;
   FRunner := ARunner;
   FCancel := ACancel;
@@ -92,13 +100,63 @@ begin
     TPath.GetFileNameWithoutExtension(AFilePath) + ' in ' + QuotedStr(LSourcePath) + '; begin end.', TEncoding.UTF8);
 end;
 
+function TNativeSourcePreparer.CompileUnitHost(ACompiler: TCompilerTraceProcess;
+  const ASource, AOutput: string; out ADependencies: TArray<TCompilerDependency>): string;
+var LSourceText, LUnitOutput, LHost, LHostOutput, LRootDcu: string;
+  LEntry: TCompilerDependency; LFound: Boolean; LHostCompiler: TCompilerTraceProcess;
+begin
+  LUnitOutput := TPath.Combine(AOutput, 'unit');
+  LHostOutput := TPath.Combine(LUnitOutput, 'host');
+  TDirectory.CreateDirectory(LHostOutput);
+  Result := ACompiler.Compile(FContext, FDelphiPath, ASource, LUnitOutput);
+  LRootDcu := TPath.Combine(LUnitOutput, TPath.GetFileNameWithoutExtension(ASource) + '.dcu');
+  LHost := TPath.Combine(LUnitOutput, 'AtroposUnitHost.dpr');
+  TFile.WriteAllText(LHost, 'program AtroposUnitHost; uses ' +
+    TPath.GetFileNameWithoutExtension(ASource) + '; begin end.', TEncoding.UTF8);
+  LSourceText := TFile.ReadAllText(ASource, TEncoding.UTF8);
+  TFile.Delete(ASource);
+  LHostCompiler := TCompilerTraceProcess.Create(FRunner, FCancel);
+  try
+    LHostCompiler.CompileProgramEntries(FContext, FDelphiPath, LHost, LHostOutput, ADependencies);
+  finally
+    LHostCompiler.Free;
+    TFile.WriteAllText(ASource, LSourceText, TEncoding.UTF8);
+  end;
+  LFound := False;
+  for LEntry in ADependencies do
+    if SameText(LEntry.FilePath, LRootDcu) then LFound := True;
+  if not LFound then raise EInvalidOperation.Create('Compiler host did not consume the prepared unit.');
+end;
+
+function TNativeSourcePreparer.CompileTrace(ACompiler: TCompilerTraceProcess;
+  const AProgram, AOutput, AOriginalPath: string; AAllowFallback: Boolean; var AUnitMode: Boolean;
+  out ADependencies: TArray<TCompilerDependency>): string;
+var LSource: string;
+begin
+  if not AUnitMode then
+  begin
+    try
+      Exit(ACompiler.CompileProgramEntries(FContext, FDelphiPath, AProgram, AOutput, ADependencies));
+    except
+      on E: ECompilerTraceFailed do
+      begin
+        if not AAllowFallback then raise;
+        AUnitMode := True;
+      end;
+    end;
+  end;
+  LSource := TPath.Combine(TPath.GetDirectoryName(AProgram),
+    TPath.GetFileNameWithoutExtension(AOriginalPath) + '.pas');
+  Result := CompileUnitHost(ACompiler, LSource, AOutput, ADependencies);
+end;
+
 function TNativeSourcePreparer.PrepareIn(const AFilePath, AExpectedHash,
   ADirectory: string): TCompilerPreparedSource;
 var LInputs: TCompilerInputs; LTrace: TCompilerBranchTrace; LCompiler: TCompilerTraceProcess;
   LSource: TDelphiSourceContent; LProgram, LDiscovery, LValidation, LOutput: string;
-  LDependencies: TArray<string>; LIndex: Integer;
+  LDependencies: TArray<TCompilerDependency>; LIndex: Integer; LUnitMode: Boolean;
 begin
-  LInputs := TCompilerInputs.Create(AFilePath, FContext, FDelphiPath);
+  LInputs := TCompilerInputs.Create(AFilePath, FContext, FDelphiPath, FCancel);
   try
     LSource := LInputs.ReadRoot;
     if not SameText(LSource.ContentHash, AExpectedHash) then
@@ -112,12 +170,13 @@ begin
       LValidation := TPath.Combine(ADirectory, 'validation');
       TDirectory.CreateDirectory(LDiscovery);
       TDirectory.CreateDirectory(LValidation);
-      LCompiler := TCompilerTraceProcess.Create(FRunner, FCancel);
+      LCompiler := TCompilerTraceProcess.Create(FRunner, FCancel, TPath.GetDirectoryName(AFilePath));
+      LUnitMode := False;
       try
-        LDependencies := LCompiler.DiscoverDependencies(FContext, FDelphiPath, LProgram, LDiscovery);
+        CompileTrace(LCompiler, LProgram, LDiscovery, AFilePath, True, LUnitMode, LDependencies);
         LInputs.CaptureDependencies(LDependencies, LDiscovery);
         LInputs.Validate;
-        LOutput := LCompiler.CompileProgram(FContext, FDelphiPath, LProgram, LValidation, LDependencies);
+        LOutput := CompileTrace(LCompiler, LProgram, LValidation, AFilePath, False, LUnitMode, LDependencies);
         LInputs.ValidateDependencies(LDependencies, LValidation);
         Result.Text := TDelphiSourceReader.Normalize(LTrace.Replay(LOutput));
         Result.SourceHash := LSource.ContentHash;

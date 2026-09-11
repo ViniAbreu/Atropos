@@ -79,6 +79,8 @@ begin
     '  unitPaths = @($project.GetItems(''DCCReference'') | Where-Object { [IO.Path]::GetExtension($_.EvaluatedInclude) -eq ''.pas'' } | ForEach-Object { $_.GetMetadataValue(''FullPath'') })' + sLineBreak +
     '  searchPaths = @(Read-Paths $search)' + sLineBreak +
     '  includePaths = @(Read-Paths $include)' + sLineBreak +
+    '  resourcePaths = @(Read-Paths ($project.GetPropertyValue(''ResourcePath'')))' + sLineBreak +
+    '  objectPaths = @(Read-Paths ($project.GetPropertyValue(''_ObjectPath'')))' + sLineBreak +
     '  namespaces = @(Read-List ($project.GetPropertyValue(''DCC_Namespace'')))' + sLineBreak +
     '  aliases = @(Read-List ($project.GetPropertyValue(''DCC_UnitAlias'')))' + sLineBreak +
     '  options = $options' + sLineBreak +
