@@ -73,6 +73,11 @@ branch. The DelphiAST submodule remains pinned and unchanged.
 `IUnitExportFacts` carries symbol kind and generic arity independently of legacy
 export names. Resolver caches and aliases forward these facts to the Core. Type
 lookups require matching arity; generic routine calls may infer their arguments.
+`TUnitExports` indexes the full exported name and arity inside each analysis context.
+Routine inference adds an arity-zero candidate; replacing facts replaces the whole
+index. Index keys use the same ASCII case folding as the previous `SameText`
+predicate. This is an in-memory lookup index, with no persisted metadata or shared
+state between target contexts.
 Fallback resolvers without these facts keep the broader legacy name comparison.
 The syntax adapter retains qualified generic arguments and full attribute names
 that upstream AST flattening would discard. Scoped enum members stay under their

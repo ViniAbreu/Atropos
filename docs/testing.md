@@ -276,3 +276,13 @@ application. Baseline compilation precedes measurement, so filesystem/compiler c
 may be warm. Timing includes profiler overhead and should be compared across repeated
 runs on the same machine. Use it alongside the representative runtime fixtures;
 neither a single timing nor a passing build alone justifies persistent cache changes.
+
+Structured export lookup uses an analysis-local index of full export names and
+generic arities. A routine also supplies the inferred-argument lookup at arity zero;
+types do not. Replacing export facts clears previous entries, including inferred
+routine entries. Known empty metadata does not fall back to legacy identifiers.
+TypeIdentity tests compare indexed lookup with the previous linear predicate across
+duplicate names, owners, arities, routines and non-ASCII characters, and verify input
+array isolation and replacement. Existing source-based tests cover qualified types,
+routine inference, attributes and aliases. Use the unchanged scaled generator to
+compare performance; keep behavioral checks enabled when measuring the index.

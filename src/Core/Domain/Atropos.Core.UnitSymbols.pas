@@ -4,8 +4,9 @@ uses System.Generics.Collections, Atropos.Core.Ports;
 type
   TUnitExports = class
   private
-    FExportFacts: TArray<TExportedSymbol>;
+    FExportIndex: TDictionary<string, Boolean>;
     FExportFactsKnown: Boolean;
+    class function ExportKey(const AName: string; AArity: Integer): string; static;
   public
     UnitName: string;
     ExportedIdentifiers: TList<string>;
@@ -26,29 +27,33 @@ type
 implementation
 uses System.SysUtils, Atropos.Core.TypeNames;
 
-procedure TUnitExports.SetExportFacts(const AFacts: TArray<TExportedSymbol>);
+class function TUnitExports.ExportKey(const AName: string; AArity: Integer): string;
 begin
-  FExportFacts := Copy(AFacts);
+  // Match SameText's ASCII case folding, not locale-dependent AnsiSameText.
+  Result := UpperCase(AName) + '#' + IntToStr(AArity);
+end;
+
+procedure TUnitExports.SetExportFacts(const AFacts: TArray<TExportedSymbol>);
+var LFact: TExportedSymbol;
+begin
+  FExportIndex.Clear;
+  for LFact in AFacts do
+  begin
+    FExportIndex.AddOrSetValue(ExportKey(LFact.Name, LFact.GenericArity), True);
+    // Generic routine arguments can be inferred at a call site.
+    if LFact.Kind = ekRoutine then
+      FExportIndex.AddOrSetValue(ExportKey(LFact.Name, 0), True);
+  end;
   FExportFactsKnown := True;
 end;
 
 function TUnitExports.MatchesIdentifier(const AName: string; AStructured: Boolean): Boolean;
-var LName: TTypeName; LFact: TExportedSymbol;
+var LName: TTypeName;
 begin
   LName := TTypeName.Read(AName);
   if not AStructured or not FExportFactsKnown then
     Exit(ExportedIdentifiers.Contains(LName.Name));
-  for LFact in FExportFacts do
-  begin
-    if not SameText(LFact.Name, LName.Name) then
-      Continue;
-    if LFact.GenericArity = LName.Arity then
-      Exit(True);
-    // Generic routine arguments can be inferred at a call site.
-    if (LFact.Kind = ekRoutine) and (LName.Arity = 0) then
-      Exit(True);
-  end;
-  Result := False;
+  Result := FExportIndex.ContainsKey(ExportKey(LName.Name, LName.Arity));
 end;
 
 procedure TUnitExports.SetImplicitEffects(const AEffects: TArray<TImplicitEffect>; AKnown: Boolean);
@@ -128,12 +133,14 @@ begin
   HasInitialization := AHasInit;
   ImportsKnown := False;
   IsNative := AIsNative;
+  FExportIndex := TDictionary<string, Boolean>.Create;
   ExportedIdentifiers := TList<string>.Create;
   ExportedHelpers := TObjectDictionary<string, TList<string>>.Create([doOwnsValues]);
 end;
 
 destructor TUnitExports.Destroy;
 begin
+  FExportIndex.Free;
   ExportedHelpers.Free;
   ExportedIdentifiers.Free;
   inherited;
