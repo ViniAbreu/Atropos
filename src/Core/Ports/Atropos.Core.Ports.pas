@@ -38,7 +38,7 @@ type
     RemovedUnitsCount: Integer;
     MovedUnitsCount: Integer;
     DelphiVersion: string;
-    ResolvedInlineHintsCount: Integer;
+    InlineHintEditsCount: Integer;
     InlineHints: TArray<TInlineHint>;
     DiagnosticOutput: string;
   end;

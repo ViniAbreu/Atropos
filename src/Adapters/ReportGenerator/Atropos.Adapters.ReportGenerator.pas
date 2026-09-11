@@ -144,9 +144,9 @@ const
     '          <div class="metric-delta delta-positive">{{MOVED_COUNT}} moved to implementation</div>' + sLineBreak +
     '        </div>' + sLineBreak +
     '        <div class="metric-card">' + sLineBreak +
-    '          <div class="metric-title">Hints removed</div>' + sLineBreak +
+    '          <div class="metric-title">Inline hint edits applied</div>' + sLineBreak +
     '          <div class="metric-value">{{HINTS_FIXED_COUNT}}</div>' + sLineBreak +
-    '          <div class="metric-delta delta-positive">{{HINTS_FIXED_COUNT}} fixed</div>' + sLineBreak +
+    '          <div class="metric-delta delta-positive">{{HINTS_FIXED_COUNT}} edits applied</div>' + sLineBreak +
     '        </div>' + sLineBreak +
     '        <div class="metric-card">' + sLineBreak +
     '          <div class="metric-title">Compile Time</div>' + sLineBreak +
@@ -312,7 +312,7 @@ begin
       LResult.AppendLine('');
       LResult.AppendLine('Cleaned Units (Removed Uses): ' + FMetricsAfter.RemovedUnitsCount.ToString);
       LResult.AppendLine('Moved Units (To Implementation): ' + FMetricsAfter.MovedUnitsCount.ToString);
-      LResult.AppendLine('Hints removed: ' + FMetricsAfter.ResolvedInlineHintsCount.ToString);
+      LResult.AppendLine('Inline hint edits applied: ' + FMetricsAfter.InlineHintEditsCount.ToString);
       LResult.AppendLine('');
       LResult.AppendLine('Compile Time (Before): ' + FormatTimeMs(FMetricsBefore.CompileTimeMs));
       LResult.AppendLine('Compile Time (After): ' + FormatTimeMs(FMetricsAfter.CompileTimeMs));
@@ -436,7 +436,7 @@ begin
   Result := Result.Replace('{{MOVED_COUNT}}',
     FMetricsAfter.MovedUnitsCount.ToString);
   Result := Result.Replace('{{HINTS_FIXED_COUNT}}',
-    FMetricsAfter.ResolvedInlineHintsCount.ToString);
+    FMetricsAfter.InlineHintEditsCount.ToString);
   Result := Result.Replace('{{COMPILE_TIME}}',
     FormatTimeMs(FMetricsAfter.CompileTimeMs));
   ApplyTimeMetrics(Result);

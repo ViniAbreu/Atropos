@@ -32,9 +32,29 @@ type
     procedure PreservedAmbiguityReasonIsRendered;
     [Test]
     procedure AnalysisWarningsAreRenderedInTextAndHTML;
+    [Test]
+    procedure InlineHintEditsDoNotClaimDiagnosticRemoval;
   end;
 
 implementation
+
+procedure TReportGeneratorTests.InlineHintEditsDoNotClaimDiagnosticRemoval;
+var LBefore, LAfter: TBuildMetrics; LText, LHTML: string;
+begin
+  LBefore := Default(TBuildMetrics);
+  LAfter := Default(TBuildMetrics);
+  LBefore.Hints := 5;
+  LAfter.Hints := 5;
+  LAfter.InlineHintEditsCount := 2;
+  FReport.AddMetrics(LBefore, LAfter);
+  LText := FReport.GetReportContentTXT;
+  LHTML := FReport.GetReportContentHTML;
+  Assert.IsTrue(LText.Contains('Inline hint edits applied: 2'));
+  Assert.IsTrue(LText.Contains('Hints (Before/After): 5 / 5'));
+  Assert.IsTrue(LHTML.Contains('Inline hint edits applied'));
+  Assert.IsFalse(LText.Contains('Hints removed'));
+  Assert.IsFalse(LHTML.Contains('Hints removed'));
+end;
 
 procedure TReportGeneratorTests.Setup;
 begin
@@ -95,7 +115,7 @@ begin
   LAfter.Hints := 1;
   LAfter.RemovedUnitsCount := 2;
   LAfter.MovedUnitsCount := 1;
-  LAfter.ResolvedInlineHintsCount := 3;
+  LAfter.InlineHintEditsCount := 3;
   FReport.SetAnalysisInfo('Project.dproj', 1250, 10, 4);
   FReport.AddMetrics(LBefore, LAfter);
   FReport.AddUnitProcessed('Unit1.pas', ['Unused.Unit'], ['Moved.Unit'], []);

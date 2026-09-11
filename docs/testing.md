@@ -38,6 +38,12 @@ default code page. Regression fixtures check exact accented text, extracted fact
 and unchanged source bytes for the default code page, UTF-8 with/without BOM and
 UTF-16 with BOM. This does not infer arbitrary foreign code pages or CODEPAGE directives.
 
+Build diagnostics accept MSBuild's `Hint warning H...` prefix as well as the
+existing labelled and unlabelled formats. Reports count inline hint edits applied
+separately from the before/after diagnostic totals: an edit is not proof that a
+diagnostic disappeared. Regression coverage includes unchanged hint totals after
+multiple edits, in both text and HTML reports.
+
 The same adapter coverage exercises modern Delphi multiline string literals. Their contents are replaced with line-preserving placeholders for syntax analysis, preventing SQL or other embedded text from being interpreted as Delphi identifiers while keeping diagnostics aligned with the original source.
 
 Coverage only:

@@ -259,7 +259,7 @@ var
 begin
   LPattern := '(?im)^(?:\s*\[dcc[^\]]+\]\s*)?' +
     '(?<file>[^\r\n]*?\.pas)\((?<location>\d+(?:,\d+)?)\)\s*:\s*' +
-    '(?:(?:hint|warning)\s+)?(?<code>' + ACodePrefix +
+    '(?:hint\s+)?(?:warning\s+)?(?<code>' + ACodePrefix +
     '\d{4})\s*:?\s*(?<message>.*?)(?:\s+\[[^\]\r\n]+\.dproj\])?\s*$';
   LDiagnosticKeys := TDictionary<string, Byte>.Create;
   try
@@ -583,4 +583,3 @@ begin
 end;
 
 end.
-
