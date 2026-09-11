@@ -28,6 +28,17 @@ type
     procedure Test_ParseUtf8BomFileAtExactBufferBoundary;
     [Test]
     procedure Test_ParseModernMultilineStrings;
+    [TestCase('Initialization', 'initialization,0')]
+    [TestCase('Finalization', 'initialization finalization,1')]
+    [TestCase('Legacy', 'begin,2')]
+    procedure LifecycleReferencesAreOutsideInterface(const ASection: string; APhase: Integer);
+    [Test] procedure ProcedureBodiesAreNotLifecycleSections;
+    [Test] procedure LifecycleFactsKeepBothPhasesAndSource;
+    [TestCase('InitInclude', 'initialization')]
+    [TestCase('FinalInclude', 'initialization finalization')]
+    [TestCase('LegacyInclude', 'begin')]
+    procedure LifecycleIncludeRetainsSourceProvenance(const ASection: string);
+    [Test] procedure ProgramBodyIsNotUnitInitialization;
   end;
 
 implementation
@@ -157,6 +168,83 @@ begin
   Assert.DoesNotContain(LImplementationIdentifiers, 'System.SysUtils');
 end;
 
+procedure TDelphiASTAdapterTests.LifecycleReferencesAreOutsideInterface(
+  const ASection: string; APhase: Integer);
+var LTree: IUnitSyntaxTree; LFacts: IUnitLifecycleFacts;
+  LSection: TLifecycleSection; LFound: Boolean;
+begin
+  WriteUtf8BomFile('unit Consumer; interface uses Provider; implementation ' +
+    ASection + ' Boot; end.');
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.Contains<string>(LTree.GetIdentifiersUsedInImplementation, 'Boot');
+  Assert.AreEqual<NativeInt>(0, Length(LTree.GetIdentifiersUsedInInterface));
+  Assert.IsTrue(LTree.HasInitializationSection, 'Direct lifecycle effect must preserve the provider');
+  Assert.IsTrue(Supports(LTree, IUnitLifecycleFacts, LFacts));
+  LFound := False;
+  for LSection in LFacts.GetLifecycleSections do
+    if Ord(LSection.Phase) = APhase then
+      LFound := True;
+  Assert.IsTrue(LFound, 'Expected lifecycle phase');
+end;
+
+procedure TDelphiASTAdapterTests.ProcedureBodiesAreNotLifecycleSections;
+var LTree: IUnitSyntaxTree; LFacts: IUnitLifecycleFacts;
+begin
+  WriteUtf8BomFile('unit Consumer; interface procedure Boot; implementation ' +
+    'procedure Boot; begin end; end.');
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsFalse(LTree.HasInitializationSection);
+  Assert.IsTrue(Supports(LTree, IUnitLifecycleFacts, LFacts));
+  Assert.AreEqual<NativeInt>(0, Length(LFacts.GetLifecycleSections));
+end;
+
+procedure TDelphiASTAdapterTests.LifecycleFactsKeepBothPhasesAndSource;
+var LTree: IUnitSyntaxTree; LFacts: IUnitLifecycleFacts;
+  LSections: TArray<TLifecycleSection>;
+begin
+  WriteUtf8BomFile('unit Consumer;' + sLineBreak + 'interface' + sLineBreak +
+    'implementation' + sLineBreak + 'initialization' + sLineBreak +
+    'Boot;' + sLineBreak + 'finalization' + sLineBreak + 'Shutdown;' + sLineBreak + 'end.');
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsTrue(Supports(LTree, IUnitLifecycleFacts, LFacts));
+  LSections := LFacts.GetLifecycleSections;
+  Assert.AreEqual<NativeInt>(2, Length(LSections));
+  Assert.AreEqual(Ord(lpInitialization), Ord(LSections[0].Phase));
+  Assert.AreEqual(Ord(lpFinalization), Ord(LSections[1].Phase));
+  Assert.AreEqual(FTestFile, LSections[0].SourcePath);
+  Assert.AreEqual(4, LSections[0].NormalizedLine);
+  Assert.AreEqual(6, LSections[1].NormalizedLine);
+  Assert.Contains<string>(LTree.GetIdentifiersUsedInImplementation, 'Boot');
+  Assert.Contains<string>(LTree.GetIdentifiersUsedInImplementation, 'Shutdown');
+  LSections[0].SourcePath := 'changed copy';
+  Assert.AreEqual(FTestFile, LFacts.GetLifecycleSections[0].SourcePath);
+end;
+
+procedure TDelphiASTAdapterTests.LifecycleIncludeRetainsSourceProvenance(const ASection: string);
+var LTree: IUnitSyntaxTree; LFacts: IUnitLifecycleFacts; LInclude: string;
+  LFact: TLifecycleSection;
+begin
+  LInclude := TPath.ChangeExtension(FTestFile, '.inc');
+  TFile.WriteAllText(LInclude, ASection + ' Boot;', TEncoding.UTF8);
+  try
+    WriteUtf8BomFile('unit Consumer; interface implementation {$I MockUnit.inc} end.');
+    LTree := FParser.ParseFile(FTestFile);
+    Assert.IsTrue(Supports(LTree, IUnitLifecycleFacts, LFacts));
+    for LFact in LFacts.GetLifecycleSections do
+      Assert.AreEqual(LInclude, LFact.SourcePath);
+    Assert.Contains<string>(LTree.GetIdentifiersUsedInImplementation, 'Boot');
+  finally
+    TFile.Delete(LInclude);
+  end;
+end;
+
+procedure TDelphiASTAdapterTests.ProgramBodyIsNotUnitInitialization;
+var LTree: IUnitSyntaxTree;
+begin
+  WriteUtf8BomFile('program Sample; begin end.');
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsFalse(LTree.HasInitializationSection);
+end;
 initialization
   TDUnitX.RegisterTestFixture(TDelphiASTAdapterTests);
 

@@ -65,6 +65,20 @@ type
     ContentHash: string;
   end;
 
+  TLifecyclePhase = (lpInitialization, lpFinalization, lpLegacyInitialization);
+
+  TLifecycleSection = record
+    Phase: TLifecyclePhase;
+    SourcePath: string;
+    NormalizedLine: Integer;
+    NormalizedColumn: Integer;
+  end;
+
+  IUnitLifecycleFacts = interface
+    ['{CFB97DCC-F14C-4FCB-B47A-570903B0444D}']
+    function GetLifecycleSections: TArray<TLifecycleSection>;
+  end;
+
   IUnitSourceDependencies = interface
     ['{7EBA76D2-050F-48CD-82F7-955CBAB1DCC5}']
     function GetSourceDependencies: TArray<TSourceDependency>;

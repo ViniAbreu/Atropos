@@ -2,10 +2,10 @@ unit Atropos.Adapters.ContextSyntaxBuilder;
 
 interface
 
-uses DelphiAST, SimpleParser.Lexer, System.Generics.Collections;
+uses Atropos.Adapters.SyntaxBuilder, SimpleParser.Lexer, System.Generics.Collections;
 
 type
-  TContextSyntaxBuilder = class(TPasSyntaxTreeBuilder)
+  TContextSyntaxBuilder = class(TAtroposSyntaxBuilder)
   private
     FReasons: TList<string>;
     procedure PreserveDirective(const ADirective: string);

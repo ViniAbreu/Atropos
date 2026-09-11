@@ -16,7 +16,7 @@ type
 
   TDelphiASTSyntaxTree = class(TInterfacedObject, IUnitSyntaxTree,
     IUnitSourceDependencies, IUnitAnalysisDiagnostics, IUnitImportConstraints,
-    IProjectSourceImports)
+    IProjectSourceImports, IUnitLifecycleFacts)
   private
     FFileName: string;
     FUnitName: string;
@@ -55,6 +55,7 @@ type
     function GetIncompleteAnalysisReasons: TArray<string>;
     function GetPreservedImportNames: TArray<string>;
     function GetProjectImports: TArray<TUnitSourceMapping>;
+    function GetLifecycleSections: TArray<TLifecycleSection>;
   end;
 
   TDelphiASTAdapter = class(TInterfacedObject, IASTParser, IAnalysisSnapshot,
@@ -80,7 +81,7 @@ type
 
 implementation
 
-uses Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
+uses Atropos.Adapters.SyntaxBuilder, Atropos.Adapters.SyntaxFacts, Atropos.Adapters.DelphiSource, Atropos.Adapters.SourceIncludes,
   Atropos.Adapters.ContextSyntaxBuilder,
   Atropos.Adapters.ConditionalImports,
   SimpleParser.Lexer.Types;
@@ -176,7 +177,7 @@ begin
       if FExplicitContext then
         LBuilder := TContextSyntaxBuilder.Create;
       if not Assigned(LBuilder) then
-        LBuilder := TPasSyntaxTreeBuilder.Create;
+        LBuilder := TAtroposSyntaxBuilder.Create;
       try
         LIncludes := TSourceIncludeResolver.Create(AFilePath, FIncludePaths, FSnapshot);
         LIncludeHandler := LIncludes;
@@ -271,29 +272,14 @@ begin
 end;
 
 function TDelphiASTSyntaxTree.GetProjectImports: TArray<TUnitSourceMapping>;
-var
-  LUses, LChild: TSyntaxNode;
-  LMapping: TUnitSourceMapping;
-  LMappings: TList<TUnitSourceMapping>;
 begin
-  LMappings := TList<TUnitSourceMapping>.Create;
-  try
-    LUses := FRoot.FindNode(ntUses);
-    if Assigned(LUses) then
-      for LChild in LUses.ChildNodes do
-      begin
-        if LChild.Typ <> ntUnit then
-          Continue;
-        LMapping.UnitName := LChild.GetAttribute(anName);
-        LMapping.FilePath := LChild.GetAttribute(anPath);
-        LMappings.Add(LMapping);
-      end;
-    Result := LMappings.ToArray;
-  finally
-    LMappings.Free;
-  end;
+  Result := TDelphiSyntaxFacts.ProjectImports(FRoot);
 end;
 
+function TDelphiASTSyntaxTree.GetLifecycleSections: TArray<TLifecycleSection>;
+begin
+  Result := TDelphiSyntaxFacts.LifecycleSections(FRoot, FFileName);
+end;
 procedure TDelphiASTSyntaxTree.FindAllUses(ANode: TSyntaxNode; AList: TList<string>);
 var
   LChild: TSyntaxNode;
@@ -550,7 +536,8 @@ end;
 
 function TDelphiASTSyntaxTree.GetIdentifiersUsedInImplementation: TArray<string>;
 begin
-  Result := GetIdentifiersList(ntImplementation);
+  Result := GetIdentifiersList(ntImplementation) + GetIdentifiersList(ntInitialization) +
+    GetIdentifiersList(ntFinalization) + GetIdentifiersList(ntStatements);
 end;
 
 function TDelphiASTSyntaxTree.GetExportedIdentifiers: TArray<string>;
@@ -577,9 +564,7 @@ end;
 
 function TDelphiASTSyntaxTree.HasInitializationSection: Boolean;
 begin
-  Result := False;
-  if Assigned(FRoot) then
-    Result := Assigned(FRoot.FindNode(ntInitialization));
+  Result := Length(GetLifecycleSections) > 0;
 end;
 
 end.

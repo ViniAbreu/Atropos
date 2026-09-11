@@ -41,3 +41,17 @@ Coverage only:
 ```
 
 The `.github\workflows\delphi-quality.yml` workflow requires a self-hosted Windows runner with RAD Studio and `DELPHI_CODE_COVERAGE` configured.
+
+The lifecycle runtime smoke builds the original project via CLI dry-run, runs it,
+then removes an unused import and moves the provider used only in initialization
+and finalization to implementation. The rebuilt executable must retain exactly
+`Boot|Main|Shutdown` on both platforms. This tests direct calls across the two phases;
+it does not yet prove transitive initialization order or all movement semantics.
+
+Parser lifecycle tests distinguish initialization, finalization and the legacy unit
+body from ordinary procedure bodies and program bodies. The optional
+`IUnitLifecycleFacts` port exposes phase, source path and normalized start location.
+These are parser facts, not original byte ranges for editing. The adapter preserves
+the start-file provenance when a section begins in an include and ends in its parent.
+The legacy `HasInitializationSection` flag is a compatibility summary of any direct
+unit lifecycle section; callers needing the phase should consume the facts port.

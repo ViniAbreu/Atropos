@@ -26,8 +26,9 @@
 - Unqualified identifiers exported by multiple units are preserved and reported to prevent semantically ambiguous changes.
 - Implementation ambiguity checks include interface imports. Ambiguous candidates
   remain in their original sections; unrelated imports can still be analyzed.
-- Known initialization effects are preserved for native and project units alike.
-  Transitive effects and legacy lifecycle forms still require further analysis.
+- Direct initialization, finalization and legacy unit-body effects are preserved
+  for native and project units alike. Transitive effects, managed global storage
+  and class constructors still require further analysis.
 - Initialization sections and conditional references may prevent changes.
 - Dynamic RTTI, name-based loading, side effects, and generated code may escape static analysis.
 - Library Paths and globally installed components may differ between machines.
