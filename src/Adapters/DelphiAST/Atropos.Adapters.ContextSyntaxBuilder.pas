@@ -2,7 +2,7 @@ unit Atropos.Adapters.ContextSyntaxBuilder;
 
 interface
 
-uses Atropos.Adapters.SyntaxBuilder, SimpleParser.Lexer, System.Generics.Collections;
+uses Atropos.Adapters.SyntaxBuilder, System.Generics.Collections;
 
 type
   TContextSyntaxBuilder = class(TAtroposSyntaxBuilder)
@@ -10,9 +10,6 @@ type
     FReasons: TList<string>;
     procedure PreserveDirective(const ADirective: string);
   protected
-    procedure HandlePtIfOptDirect(Sender: TmwBasePasLex); override;
-    procedure HandlePtIfDirect(Sender: TmwBasePasLex); override;
-    procedure HandlePtElseIfDirect(Sender: TmwBasePasLex); override;
     procedure MainUsedUnitExpression; override;
   public
     constructor Create; override;
@@ -60,24 +57,6 @@ begin
   LReason := ADirective + ' requires project-aware expression/switch evaluation.';
   if not FReasons.Contains(LReason) then
     FReasons.Add(LReason);
-end;
-
-procedure TContextSyntaxBuilder.HandlePtIfOptDirect(Sender: TmwBasePasLex);
-begin
-  PreserveDirective('IFOPT');
-  inherited;
-end;
-
-procedure TContextSyntaxBuilder.HandlePtIfDirect(Sender: TmwBasePasLex);
-begin
-  PreserveDirective('IF');
-  inherited;
-end;
-
-procedure TContextSyntaxBuilder.HandlePtElseIfDirect(Sender: TmwBasePasLex);
-begin
-  PreserveDirective('ELSEIF');
-  inherited;
 end;
 
 function TContextSyntaxBuilder.IncompleteReasons: TArray<string>;

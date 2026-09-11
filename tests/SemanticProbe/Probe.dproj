@@ -72,6 +72,8 @@
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.ContextSyntaxBuilder.pas"/>
+        <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalExpression.pas"/>
+        <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalSource.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.SyntaxFacts.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas"/>
