@@ -120,6 +120,11 @@
         <DCCReference Include="src\Core\Services\Atropos.Core.UsesEditPlan.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectParser.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectContext.pas"/>
+        <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.CompilerDependencies.pas"/>
+        <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.CompilerContextSignature.pas"/>
+        <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.CompilerTraceScript.pas"/>
+        <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.CompilerTraceProcess.pas"/>
+        <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.DelphiPowerShell.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.CompilerSymbols.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.TargetAnalysisFactory.pas"/>
         <DCCReference Include="src\Adapters\ProjectParser\Atropos.Adapters.ProjectSourceMappings.pas"/>
@@ -130,6 +135,11 @@
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.DelphiAST.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ContextSyntaxBuilder.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ConditionalExpression.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.CompilerBranchTrace.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.TracedIncludes.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.CompilerPreparation.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.CompilerInputs.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.NativeSourcePreparer.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ConditionalSource.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ConditionalImports.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SyntaxFacts.pas"/>

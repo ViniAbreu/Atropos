@@ -49,7 +49,9 @@ existing process runner supplies cancellation, timeout and process-tree cleanup.
   literals and the selected compiler's CompilerVersion. Integer comparisons remain
   exact on both platforms. Decimal literals are limited to 16 characters; mixed
   numeric comparisons outside exact double integer range are rejected. Arithmetic,
-  bitwise expressions, declaration queries and RTLVersion remain unsupported.
+  bitwise expressions and high precision calculations remain restricted. Selected
+  compiler numeric facts support known SIZEOF and RTLVersion values. Declaration
+  queries and numeric names requiring binding can use compiler preparation below.
 - Ordered namespaces and single-step aliases are used for source lookup;
   active DPR `uses ... in` mappings take precedence over PAS filename lookup and
   searched sources. Mapped sources join the unit union even without DCCReference.
@@ -90,3 +92,35 @@ Win64 compilers, action disagreement, four evaluated targets, dry-run and projec
 metadata mutation. Its matrix tests use the real evaluator/parser/resolver/filesystem
 with a build-service stub; the quality gate separately runs actual CLI builds and
 representative project smoke tests. This is not yet a runtime-semantic guarantee.
+
+## Compiler-assisted conditional preparation
+
+When DECLARED or a numeric condition requires declaration resolution, the target
+parser can compile an instrumented copy of a Pascal unit. Unique messages identify
+selected branches; each include invocation has its own copy and marker sequence.
+The replay preserves source lines and original include paths. The parser retains
+all imports in these units because removing an import can change a conditional
+result even if a subsequent build succeeds. Their exported declarations remain
+available for analysis of other consumers.
+
+The adapter evaluates the original project with MSBuild, then redirects output
+properties on its ProjectInstance. It runs the native compiler target and its path
+file targets, without running the generated executable. Project initial targets,
+replaced compiler targets and hooks on those targets are rejected. A signature of
+evaluated compiler properties and standard compiler/task binaries is checked before
+and after compilation. Source, include and captured binary hashes extend the
+analysis snapshot; missing lookup candidates are recorded as well.
+
+A discovery compilation obtains the compiler dependency list. A second compilation
+produces the branch trace after those inputs have been captured, and its dependencies
+must be covered by the snapshot. MakeModifiedUnits ensures generated DCUs exist;
+the dependency reader accounts for compiler lists that name their source directory
+instead of their fresh output directory. Temporary files are deleted, and cached
+preparations are reused only while their recorded inputs remain unchanged.
+
+This path currently requires precompiled dependencies: a dependency unit regenerated
+from an uncaptured source is rejected. Relative resource/object lookup, recursive
+includes, custom toolchains and complete build-target effects remain limitations.
+The declaration-dependent fallback currently accepts Pascal units, not DPR sources.
+Failure, timeout, cancellation or an incomplete trace never substitutes guessed
+conditional values.

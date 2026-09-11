@@ -28,6 +28,7 @@ type
     ApplicationType: string;
     CompilerPath: string;
     CompilerFileVersion: string;
+    CompilerContextHash: string;
     Defines: TArray<string>;
     UnitPaths: TArray<string>;
     SourceMappings: TArray<TUnitSourceMapping>;

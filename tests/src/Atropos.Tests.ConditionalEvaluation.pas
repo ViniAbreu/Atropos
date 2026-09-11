@@ -28,7 +28,6 @@ type
     [TestCase('Greater', '2 > 1,true')]
     [TestCase('LargeIntegers', '9007199254740993 > 9007199254740992,true')]
     procedure ExpressionMatchesBooleanSemantics(const AText: string; AExpected: Boolean);
-    [TestCase('Unknown', 'Declared(TMissing)')]
     [TestCase('MissingClose', '(TRUE')]
     [TestCase('Trailing', 'TRUE garbage')]
     [TestCase('NumericNot', 'NOT 1 = 0')]
@@ -38,6 +37,10 @@ type
     [TestCase('MixedPrecision', '9007199254740993 = 9007199254740992.0')]
     [TestCase('DecimalPrecision', '0.123456789012345678 = 0.123456789012345679')]
     procedure UnsupportedExpressionsFailExplicitly(const AText: string);
+    [TestCase('Declared', 'Declared(TMissing)')]
+    [TestCase('SizeOf', 'SizeOf(TImported)>0')]
+    [TestCase('RtlVersion', 'RTLVersion>0')]
+    procedure CompilerDependentExpressionsRequestCompiler(const AText: string);
     [Test] procedure NestedExpressionsSelectTheCorrectImport;
     [Test] procedure ElseIfSelectsOnlyTheFirstMatchingBranch;
     [Test] procedure IncludesShareDefinesAndSwitchesInSourceOrder;
@@ -198,6 +201,18 @@ begin
     function(AName: string): Boolean begin Result := False; end, '36.0');
   try
     Assert.WillRaise(procedure begin LExpression.Evaluate(AText); end, EInvalidOpException);
+  finally
+    LExpression.Free;
+  end;
+end;
+
+procedure TConditionalEvaluationTests.CompilerDependentExpressionsRequestCompiler(const AText: string);
+var LExpression: TConditionalExpression;
+begin
+  LExpression := TConditionalExpression.Create(
+    function(AName: string): Boolean begin Result := False end, '36.0');
+  try
+    Assert.WillRaise(procedure begin LExpression.Evaluate(AText) end, ECompilerConditionRequired);
   finally
     LExpression.Free;
   end;

@@ -13,8 +13,9 @@ type
   TDelphiSourceReader = class
   private
     class function CreateStringPlaceholder(const AMatch: TMatch): string; static;
-    class function Normalize(const ASource: string): string; static;
   public
+    class function Normalize(const ASource: string): string; static;
+    class function ReadRaw(const AFilePath: string): TDelphiSourceContent; static;
     class function Read(const AFilePath: string): TDelphiSourceContent; static;
   end;
 
@@ -52,7 +53,7 @@ begin
   end;
 end;
 
-class function TDelphiSourceReader.Read(
+class function TDelphiSourceReader.ReadRaw(
   const AFilePath: string): TDelphiSourceContent;
 var
   LBytes: TBytes;
@@ -63,11 +64,17 @@ begin
   LBytes := TFile.ReadAllBytes(AFilePath);
   LEncoding := nil;
   LPreambleSize := TEncoding.GetBufferEncoding(LBytes, LEncoding, TSourceEncoding.Detect(LBytes));
-  Result.Text := Normalize(LEncoding.GetString(LBytes, LPreambleSize,
-    Length(LBytes) - LPreambleSize));
+  Result.Text := LEncoding.GetString(LBytes, LPreambleSize,
+    Length(LBytes) - LPreambleSize);
   LHash := THashSHA2.Create;
   LHash.Update(LBytes);
   Result.ContentHash := LHash.HashAsString;
+end;
+
+class function TDelphiSourceReader.Read(const AFilePath: string): TDelphiSourceContent;
+begin
+  Result := ReadRaw(AFilePath);
+  Result.Text := Normalize(Result.Text);
 end;
 
 end.

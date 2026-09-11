@@ -14,7 +14,6 @@ type
       const ATarget: TBuildTarget): string;
     function RunEvaluation(const AScript, ADelphiPath: string): string;
     function CreateCommand(const AScriptPath, ADelphiPath: string): string;
-    class procedure ValidateCommandPath(const APath: string); static;
     class function ReadStrings(AObject: TJSONObject;
       const AName: string): TArray<string>; static;
     class function ReadOptions(AObject: TJSONObject): TArray<TCompilerOption>; static;
@@ -30,7 +29,7 @@ type
 implementation
 
 uses Atropos.Core.Profiling, System.SysUtils, System.Classes, System.IOUtils, System.NetEncoding,
-  Atropos.Adapters.ProjectEvaluationScript;
+  Atropos.Adapters.ProjectEvaluationScript, Atropos.Adapters.DelphiPowerShell;
 
 constructor TMsBuildProjectContext.Create(const ARunner: IBuildProcessRunner;
   const AShouldCancel: TCancellationCheck);
@@ -61,34 +60,10 @@ begin
   end;
 end;
 
-class procedure TMsBuildProjectContext.ValidateCommandPath(const APath: string);
-var
-  LCharacter: Char;
-begin
-  for LCharacter in APath do
-    if CharInSet(LCharacter, ['"', '%', '!', '&', '|', '<', '>', '^', #10, #13]) then
-      raise EArgumentException.Create('Unsupported character in evaluation tool path.');
-end;
-
 function TMsBuildProjectContext.CreateCommand(const AScriptPath,
   ADelphiPath: string): string;
-var
-  LEnvironment, LWindows, LShell, LPowerShell: string;
 begin
-  LEnvironment := TPath.Combine(ADelphiPath, 'bin\rsvars.bat');
-  LWindows := GetEnvironmentVariable('SystemRoot');
-  LShell := TPath.Combine(LWindows, 'System32\cmd.exe');
-  LPowerShell := TPath.Combine(LWindows, 'System32\WindowsPowerShell\v1.0\powershell.exe');
-  ValidateCommandPath(LEnvironment);
-  ValidateCommandPath(AScriptPath);
-  ValidateCommandPath(LShell);
-  ValidateCommandPath(LPowerShell);
-  if not TFile.Exists(LEnvironment) then
-    raise EFileNotFoundException.Create('Delphi environment script not found: ' + LEnvironment);
-  if not TFile.Exists(LPowerShell) then
-    raise EFileNotFoundException.Create('Windows PowerShell is unavailable.');
-  Result := Format('"%s" /d /c ""%s" && "%s" -NoProfile -NonInteractive -File "%s""',
-    [LShell, LEnvironment, LPowerShell, AScriptPath]);
+  Result := TDelphiPowerShell.Command(AScriptPath, ADelphiPath);
 end;
 
 function TMsBuildProjectContext.RunEvaluation(const AScript,
@@ -185,6 +160,7 @@ begin
     Result.ApplicationType := LData.GetValue<string>('applicationType');
     Result.CompilerPath := LData.GetValue<string>('compilerPath');
     Result.CompilerFileVersion := LData.GetValue<string>('compilerFileVersion');
+    Result.CompilerContextHash := LData.GetValue<string>('compilerContextHash', '');
     Result.Defines := ReadStrings(LData, 'defines');
     Result.UnitPaths := ReadStrings(LData, 'unitPaths');
     Result.SearchPaths := ReadStrings(LData, 'searchPaths');
