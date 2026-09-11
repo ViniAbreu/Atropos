@@ -59,12 +59,29 @@ type
     procedure NumericNamesRequiringBindingRemainUnknown(AScenario: Integer);
     [Test] procedure QualifiedNumericFactsIgnoreUnrelatedLocalType;
     [Test] procedure PreparationRetainsParentLinesAndIncludedPath;
+    [TestCase('Active', 'TRUE')]
+    [TestCase('Inactive', 'FALSE')]
+    procedure AssemblyQuotesDoNotConsumeConditionalEnd(const ACondition: string);
   end;
 
 implementation
 
 uses System.SysUtils, System.Classes, System.IOUtils,
-  Atropos.Adapters.ConditionalExpression, Atropos.Adapters.DelphiAST;
+  Atropos.Adapters.ConditionalExpression, Atropos.Adapters.DelphiAST, Atropos.Core.UnitSymbols;
+
+procedure TConditionalEvaluationTests.AssemblyQuotesDoNotConsumeConditionalEnd(const ACondition: string);
+var LTree: IUnitSyntaxTree; LFacts: IUnitSymbolFacts; LDeclaration: TSymbolDeclaration; LFound: Boolean;
+begin
+  LTree := Parse('unit Consumer; interface implementation ' +
+    '{$IF ' + ACondition + '} procedure Run; asm CMP AL,"''" end; {$ENDIF}' +
+    ' {$IF TRUE} type TAfterAssembly = Integer; {$ENDIF} end.');
+  Assert.AreEqual('Consumer', LTree.GetUnitName);
+  Assert.IsTrue(Supports(LTree, IUnitSymbolFacts, LFacts));
+  LFound := False;
+  for LDeclaration in LFacts.GetSymbolFacts.Declarations do
+    if SameText(LDeclaration.Name, 'TAfterAssembly') then LFound := True;
+  Assert.IsTrue(LFound, 'Declaration after the assembler block must remain visible.');
+end;
 
 function TConditionalEvaluationTests.ParseNumeric(const ASource: string): IUnitSyntaxTree;
 var LContext: TProjectCompilationContext; LSymbols: TCompilerSymbols; LParser: IASTParser;

@@ -339,3 +339,16 @@ inside a target, the metric remains unknown. Metadata lookup failures preserve
 build success; cancellation still propagates. A real RepresentativeConsole run
 with minimal MSBuild verbosity reproduces the old missing-size report and verifies
 the measured executable with the new adapter.
+
+Assembler double-quoted literals are tokenized as strings, including apostrophes
+inside them. ConditionalEvaluation tests cover active and inactive assembler blocks
+and require the declaration after the closing conditional to remain visible. The
+minimal assembler example compiles with dcc32 and dcc64. The local System.AnsiStrings
+source reproduces the former unterminated-conditional error and parses successfully
+with this tokenizer correction.
+
+Record alignment is parsed as a constant expression. Tests cover literal sizes,
+SizeOf, arithmetic, local constants and imported constants with both bare and
+qualified names. Alignment expressions remain in the syntax tree so dependency
+analysis can retain their references; a single literal also keeps its alignment
+attribute. Compiler fixtures verify the accepted alignment syntax in Win32 and Win64.
