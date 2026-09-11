@@ -2,7 +2,7 @@ unit Atropos.Adapters.SyntaxBuilder;
 
 interface
 
-uses DelphiAST, DelphiAST.Consts;
+uses DelphiAST, DelphiAST.Consts, SimpleParser.Lexer.Types;
 
 type
   TAtroposSyntaxBuilder = class(TPasSyntaxTreeBuilder)
@@ -10,6 +10,8 @@ type
     procedure RestoreSectionSource(AType: TSyntaxNodeType; const APath: string);
     procedure RestoreDeclarationSource(AType: TSyntaxNodeType; const APath: string);
   protected
+    function GetTokenID: TptTokenKind; override;
+    procedure Expected(Sym: TptTokenKind); override;
     procedure InitializationSection; override;
     procedure FinalizationSection; override;
     procedure CompoundStatement; override;
@@ -23,7 +25,25 @@ type
 
 implementation
 
-uses DelphiAST.Classes, SimpleParser.Lexer.Types, Atropos.Core.TypeNames;
+uses DelphiAST.Classes, Atropos.Core.TypeNames;
+
+function TAtroposSyntaxBuilder.GetTokenID: TptTokenKind;
+begin
+  Result := inherited;
+  if Result = ptUnsafe then Result := ptIdentifier;
+end;
+
+procedure TAtroposSyntaxBuilder.Expected(Sym: TptTokenKind);
+var LKind: TptTokenKind;
+begin
+  LKind := inherited GetTokenID;
+  if (Sym = ptIdentifier) and (LKind = ptUnsafe) then
+  begin
+    NextToken;
+    Exit;
+  end;
+  inherited;
+end;
 
 procedure TAtroposSyntaxBuilder.TypeSimple;
 var LParent, LType, LArguments: TSyntaxNode; LChildren: TArray<TSyntaxNode>;

@@ -10,6 +10,7 @@ type
   private
     FParser: IASTParser;
     FTestFile: string;
+    FTestDirectory: string;
     procedure CreateMockPasFile;
     procedure WriteUtf8BomFile(const ASource: string);
     function AnalyzeHelperSource(const ASource: string; ACompeting: Boolean = False): TUnitAnalysisResult;
@@ -60,11 +61,56 @@ type
     [TestCase('Utf8Bom', '2')]
     [TestCase('Utf16Bom', '3')]
     procedure SourceEncodingPreservesTextAndFacts(AEncoding: Integer);
+    [TestCase('Constant', '0')]
+    [TestCase('Type', '1')]
+    [TestCase('Field', '2')]
+    [TestCase('Routine', '3')]
+    [TestCase('Parameter', '4')]
+    [TestCase('Local', '5')]
+    procedure UnsafeIdentifierRetainsDeclaration(AScenario: Integer);
+    [TestCase('FieldAttribute', '0')]
+    [TestCase('ParameterAttribute', '1')]
+    [TestCase('ResultAttribute', '2')]
+    procedure UnsafeAttributesRemainParsable(AScenario: Integer);
   end;
 
 implementation
 
 uses Atropos.Adapters.DelphiSource;
+
+procedure TDelphiASTAdapterTests.UnsafeAttributesRemainParsable(AScenario: Integer);
+const Sources: array[0..2] of string = (
+  'type TBox = class private [Unsafe] FValue: IInterface; end; implementation',
+  'procedure Run([Unsafe] Value: IInterface); implementation procedure Run([Unsafe] Value: IInterface); begin end;',
+  '[Result: Unsafe] function GetValue: IInterface; implementation function GetValue: IInterface; begin Result := nil; end;');
+var LTree: IUnitSyntaxTree;
+begin
+  TFile.WriteAllText(FTestFile, 'unit MockUnit; interface ' + Sources[AScenario] + ' end.', TEncoding.UTF8);
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.AreEqual('MockUnit', LTree.GetUnitName);
+  Assert.IsTrue(Length(LTree.GetExportedIdentifiers) > 0);
+end;
+
+procedure TDelphiASTAdapterTests.UnsafeIdentifierRetainsDeclaration(AScenario: Integer);
+const Sources: array[0..5] of string = (
+  'const Unsafe = 1; implementation',
+  'type Unsafe = Integer; implementation',
+  'type TBox = class Unsafe: Integer; end; implementation',
+  'procedure Unsafe; implementation procedure Unsafe; begin end;',
+  'procedure Run(Unsafe: Integer); implementation procedure Run(Unsafe: Integer); begin Inc(Unsafe); end;',
+  'implementation procedure Run; var Unsafe: Integer; begin Unsafe := 1; end;');
+var LTree: IUnitSyntaxTree; LPort: IUnitSymbolFacts; LDeclaration: TSymbolDeclaration; LFound: Boolean;
+begin
+  TFile.WriteAllText(FTestFile, 'unit MockUnit; interface ' + Sources[AScenario] + ' end.', TEncoding.UTF8);
+  LTree := FParser.ParseFile(FTestFile);
+  Assert.IsTrue(Supports(LTree, IUnitSymbolFacts, LPort));
+  LFound := False;
+  for LDeclaration in LPort.GetSymbolFacts.Declarations do
+    if SameText(LDeclaration.Name, 'Unsafe') then LFound := True;
+  Assert.IsTrue(LFound, 'Unsafe declaration must keep its original identity.');
+  if AScenario in [0, 1, 3] then
+    Assert.Contains<string>(LTree.GetExportedIdentifiers, 'Unsafe');
+end;
 
 procedure TDelphiASTAdapterTests.SourceEncodingPreservesTextAndFacts(AEncoding: Integer);
 var LSource: string; LEncoding: TEncoding; LBytes, LAfter: TBytes;
@@ -128,15 +174,20 @@ end;
 procedure TDelphiASTAdapterTests.Setup;
 begin
   FParser := TDelphiASTAdapter.Create;
-  FTestFile := TPath.Combine(TPath.GetTempPath, 'MockUnit.pas');
+  FTestDirectory := TPath.Combine(TPath.GetTempPath, 'Atropos-AST-' + TGUID.NewGuid.ToString);
+  TDirectory.CreateDirectory(FTestDirectory);
+  FTestFile := TPath.Combine(FTestDirectory, 'MockUnit.pas');
   CreateMockPasFile;
 end;
 
 procedure TDelphiASTAdapterTests.TearDown;
 begin
-  if TFile.Exists(FTestFile) then
-    TFile.Delete(FTestFile);
   FParser := nil;
+  if not TPath.GetFullPath(FTestDirectory).StartsWith(
+    TPath.Combine(TPath.GetTempPath, 'Atropos-AST-'), True) then
+    raise Exception.Create('Unexpected parser test directory.');
+  if TDirectory.Exists(FTestDirectory) then
+    TDirectory.Delete(FTestDirectory, True);
 end;
 
 procedure TDelphiASTAdapterTests.Test_ParseFile;
