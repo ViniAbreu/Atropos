@@ -32,13 +32,54 @@ type
     [Test] procedure TimedOutProcessFailsExplicitly;
     [Test] procedure InvalidTargetIsRejectedBeforeStartingProcess;
     [Test] procedure MissingEnvironmentFailsExplicitly;
+    [TestCase('Debug32', 'Debug,Win32')]
+    [TestCase('Release64', 'Release,Win64')]
+    procedure EvaluatesExecutablePath(const AConfig, APlatform: string);
+    [TestCase('Missing', '0')]
+    [TestCase('Library', '1')]
+    [TestCase('TargetProperty', '2')]
+    [TestCase('TaskOutput', '3')]
+    procedure UncertainExecutablePathIsEmpty(AScenario: Integer);
+    [TestCase('Existing', '0')]
+    [TestCase('Missing', '1')]
+    [TestCase('FailedBuild', '2')]
+    procedure MeasuresEvaluatedArtifact(AScenario: Integer);
+    [Test] procedure ArtifactEvaluationFailureKeepsBuildSuccessful;
+    [Test] procedure ArtifactEvaluationCancellationPropagates;
   end;
 
 implementation
 
 uses System.SysUtils, System.Classes, System.IOUtils, System.Hash,
   Atropos.Core.Ports, Atropos.Adapters.ProjectContext,
-  Atropos.Adapters.BuildService;
+  Atropos.Adapters.BuildService, Atropos.Adapters.BuildArtifact;
+
+procedure TProjectContextTests.EvaluatesExecutablePath(const AConfig, APlatform: string);
+var LContext: TProjectCompilationContext;
+begin
+  FProject := WriteText('Output.dproj',
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+    '<PropertyGroup><FinalOutput>saída\$(Platform)\$(Config)\Renamed.exe</FinalOutput></PropertyGroup></Project>');
+  LContext := FProvider.EvaluateProject(FProject, FRoot, TBuildTarget.Create(AConfig, APlatform));
+  Assert.AreEqual(TPath.Combine(FRoot, 'saída\' + APlatform + '\' + AConfig + '\Renamed.exe'),
+    LContext.ExecutablePath);
+end;
+
+procedure TProjectContextTests.UncertainExecutablePathIsEmpty(AScenario: Integer);
+const Contents: array[0..3] of string = (
+  '',
+  '<PropertyGroup><FinalOutput>Library.dll</FinalOutput></PropertyGroup>',
+  '<PropertyGroup><FinalOutput>Before.exe</FinalOutput></PropertyGroup>' +
+  '<Target Name="Change"><PropertyGroup><FinalOutput>After.exe</FinalOutput></PropertyGroup></Target>',
+  '<PropertyGroup><FinalOutput>Before.exe</FinalOutput></PropertyGroup>' +
+  '<Target Name="Change"><CreateProperty Value="After.exe"><Output TaskParameter="Value" PropertyName="FinalOutput"/></CreateProperty></Target>');
+var LContext: TProjectCompilationContext;
+begin
+  FProject := WriteText('Output.dproj',
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + Contents[AScenario] + '</Project>');
+  LContext := FProvider.EvaluateProject(FProject, FRoot, TBuildTarget.Create('Debug', 'Win32'));
+  Assert.AreEqual('', LContext.ExecutablePath);
+end;
 
 type
   TContextProcessStub = class(TInterfacedObject, IBuildProcessRunner)
@@ -58,6 +99,49 @@ begin
   AOutput := 'invalid output';
   ATimedOut := Kind = 1;
   ACancelled := Kind = 2;
+end;
+
+procedure TProjectContextTests.MeasuresEvaluatedArtifact(AScenario: Integer);
+var LMetrics: TBuildMetrics;
+begin
+  FProject := WriteText('Output.dproj',
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+    '<PropertyGroup><FinalOutput>$(Config)-$(Platform).exe</FinalOutput></PropertyGroup></Project>');
+  if AScenario <> 1 then
+    TFile.WriteAllBytes(TPath.Combine(FRoot, 'Release-Win64.exe'), TBytes.Create(1, 2, 3, 4, 5));
+  LMetrics := Default(TBuildMetrics);
+  LMetrics.Success := AScenario <> 2;
+  TBuildArtifact.UpdateSize(LMetrics, FProvider, FProject, FRoot,
+    TBuildTarget.Create('Release', 'Win64'), nil);
+  if AScenario = 0 then Assert.AreEqual<Int64>(5, LMetrics.ExeSizeBytes);
+  if AScenario <> 0 then Assert.AreEqual<Int64>(0, LMetrics.ExeSizeBytes);
+  Assert.AreEqual(AScenario <> 2, LMetrics.Success);
+end;
+
+procedure TProjectContextTests.ArtifactEvaluationFailureKeepsBuildSuccessful;
+var LRunner: TContextProcessStub; LMetrics: TBuildMetrics;
+begin
+  LRunner := TContextProcessStub.Create;
+  FProvider := TMsBuildProjectContext.Create(LRunner);
+  LMetrics := Default(TBuildMetrics);
+  LMetrics.Success := True;
+  LMetrics.ExeSizeBytes := 123;
+  TBuildArtifact.UpdateSize(LMetrics, FProvider, FProject, FRoot, Default(TBuildTarget), nil);
+  Assert.IsTrue(LMetrics.Success);
+  Assert.AreEqual<Int64>(0, LMetrics.ExeSizeBytes);
+end;
+
+procedure TProjectContextTests.ArtifactEvaluationCancellationPropagates;
+var LRunner: TContextProcessStub; LMetrics: TBuildMetrics;
+begin
+  LRunner := TContextProcessStub.Create;
+  LRunner.Kind := 2;
+  FProvider := TMsBuildProjectContext.Create(LRunner);
+  LMetrics := Default(TBuildMetrics);
+  LMetrics.Success := True;
+  Assert.WillRaise(procedure begin
+    TBuildArtifact.UpdateSize(LMetrics, FProvider, FProject, FRoot, Default(TBuildTarget), nil);
+  end, EAbort);
 end;
 
 procedure TProjectContextTests.Setup;

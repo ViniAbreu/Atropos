@@ -93,6 +93,7 @@ uses
   Atropos.Application.TargetAnalysis in '..\src\Application\Atropos.Application.TargetAnalysis.pas',
   Atropos.Application.Logger in '..\src\Application\Atropos.Application.Logger.pas',
   Atropos.Adapters.BuildService in '..\src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
+  Atropos.Adapters.BuildArtifact in '..\src\Adapters\BuildService\Atropos.Adapters.BuildArtifact.pas',
   Atropos.Adapters.BuildCapability in '..\src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas',
   Atropos.Tests.BuildReliability in 'src\Atropos.Tests.BuildReliability.pas',
   Atropos.Tests.ProjectResolution in 'src\Atropos.Tests.ProjectResolution.pas',

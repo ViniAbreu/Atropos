@@ -2,7 +2,7 @@
 
 interface
 uses
-  Atropos.Core.Ports, System.Classes, Winapi.Windows;
+  Atropos.Core.Ports, Atropos.Core.Compilation, System.Classes, Winapi.Windows;
 
 type
   IBuildProcessRunner = interface
@@ -48,6 +48,7 @@ type
     FTimeoutMs: Cardinal;
     FShouldCancel: TCancellationCheck;
     FCapabilityDetector: IBuildCapabilityDetector;
+    FContextProvider: IProjectContextProvider;
     function GetDelphiFriendlyName(const ADelphiPath: string): string;
     function ExecuteBuildCommand(const ACommand, AErrorFile, AProjectPath,
       ADelphiPath, AToolName: string; ARequiresOutputFile: Boolean): TBuildMetrics;
@@ -58,20 +59,21 @@ type
     constructor Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger = nil;
       AProcessRunner: IBuildProcessRunner = nil; ATimeoutMs: Cardinal = 600000;
       const AShouldCancel: TCancellationCheck = nil;
-      const ACapabilityDetector: IBuildCapabilityDetector = nil);
+      const ACapabilityDetector: IBuildCapabilityDetector = nil;
+      const AContextProvider: IProjectContextProvider = nil);
     function BuildProject(const AProjectPath: string): TBuildMetrics;
     function BuildProjectForTarget(const AProjectPath: string;
       const ATarget: TBuildTarget): TBuildMetrics;
   end;
 
 implementation
-uses Atropos.Core.Profiling, System.Generics.Collections, System.IOUtils, System.Math,
+uses Atropos.Core.Profiling, Atropos.Adapters.BuildArtifact, System.Generics.Collections, System.IOUtils, System.Math,
   System.RegularExpressions, System.StrUtils, System.SysUtils;
 
 constructor TBuildServiceAdapter.Create(AEnvService: IDelphiEnvironmentService; ALogger: ILogger;
   AProcessRunner: IBuildProcessRunner; ATimeoutMs: Cardinal;
   const AShouldCancel: TCancellationCheck;
-  const ACapabilityDetector: IBuildCapabilityDetector);
+  const ACapabilityDetector: IBuildCapabilityDetector; const AContextProvider: IProjectContextProvider);
 begin
   FEnvService := AEnvService;
   FLogger := ALogger;
@@ -81,6 +83,7 @@ begin
   FTimeoutMs := ATimeoutMs;
   FShouldCancel := AShouldCancel;
   FCapabilityDetector := ACapabilityDetector;
+  FContextProvider := AContextProvider;
 end;
 
 function TWin32BuildProcessRunner.Execute(const ACommand: string; ATimeoutMs: Cardinal;
@@ -432,6 +435,7 @@ begin
 
   Result := ExecuteBuildCommand(LBdsCmd, LErrFile, AProjectPath, LDelphiPath,
     'bds.exe', True);
+  TBuildArtifact.UpdateSize(Result, FContextProvider, AProjectPath, LDelphiPath, Default(TBuildTarget), FLogger);
 end;
 
 function TBuildServiceAdapter.ShouldUseBdsFallback(
@@ -470,6 +474,7 @@ begin
     FLogger.Log('Executing default project build via headless MSBuild.');
   Result := ExecuteBuildCommand(LCommand, LErrorFile, AProjectPath,
     ADelphiPath, 'MSBuild.exe', False);
+  TBuildArtifact.UpdateSize(Result, FContextProvider, AProjectPath, ADelphiPath, Default(TBuildTarget), FLogger);
 end;
 
 function TBuildServiceAdapter.ExecuteBuildCommand(const ACommand, AErrorFile,
@@ -580,6 +585,7 @@ begin
       [ATarget.Configuration, ATarget.Platform]));
   Result := ExecuteBuildCommand(LCommand, LErrorFile, AProjectPath,
     LDelphiPath, 'MSBuild.exe', False);
+  TBuildArtifact.UpdateSize(Result, FContextProvider, AProjectPath, LDelphiPath, ATarget, FLogger);
 end;
 
 end.

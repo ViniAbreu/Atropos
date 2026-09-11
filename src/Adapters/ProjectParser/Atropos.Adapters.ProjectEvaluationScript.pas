@@ -58,7 +58,14 @@ begin
     ' $deferred = @($project.Targets.Values | ForEach-Object { $_.Children } | Where-Object { $_.GetType().Name -eq ''ProjectPropertyGroupTaskInstance'' } | ForEach-Object { $_.Properties } | Where-Object { $_.Name -match ''^(DCC_|UnitSearchPath$|IncludePath$|MainSource$)'' } | ForEach-Object { $_.Name } | Sort-Object -Unique)' + sLineBreak +
     ' $main = $project.GetPropertyValue(''MainSource'')' + sLineBreak +
     ' if ($main -ne '''') { $main = [IO.Path]::GetFullPath([IO.Path]::Combine($basePath, $main)) }' + sLineBreak +
+    ' $output = $project.GetPropertyValue(''FinalOutput'')' + sLineBreak +
+    ' $outputChanges = @($project.Targets.Values | ForEach-Object { $_.Children } | Where-Object { $_.GetType().Name -eq ''ProjectPropertyGroupTaskInstance'' } | ForEach-Object { $_.Properties } | Where-Object { $_.Name -match ''^(FinalOutput|OutputDir|OutputName|OutputFilename|DCC_ExeOutput|MainSource)$'' })' + sLineBreak +
+    ' $executable = ''''' + sLineBreak +
+    ' $outputTasks = @($project.Targets.Values | ForEach-Object { $_.Children } | Where-Object { $_.GetType().Name -eq ''ProjectTaskInstance'' } | ForEach-Object { $_.Outputs } | Where-Object { $_.GetType().Name -eq ''ProjectTaskOutputPropertyInstance'' } | Where-Object { $_.PropertyName -match ''^(FinalOutput|OutputDir|OutputName|OutputFilename|DCC_ExeOutput|MainSource)$'' })' + sLineBreak +
+    ' if ($outputTasks.Count -gt 0) { $output = '''' }' + sLineBreak +
+    ' if ($output -ne '''' -and $outputChanges.Count -eq 0 -and [IO.Path]::GetExtension($output) -eq ''.exe'' -and $output -notmatch ''\$\(|%\('') { $executable = [IO.Path]::GetFullPath([IO.Path]::Combine($basePath, $output)) }' + sLineBreak +
     ' $result = [ordered]@{' + sLineBreak +
+    '  executablePath = $executable' + sLineBreak +
     '  projectPath = $project.FullPath' + sLineBreak +
     '  configuration = $project.GetPropertyValue(''Config'')' + sLineBreak +
     '  platform = $platform' + sLineBreak +

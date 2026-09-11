@@ -61,6 +61,7 @@ uses
   Atropos.Application.Logger in 'src\Application\Atropos.Application.Logger.pas',
   Atropos.Application.Factory in 'src\Application\Atropos.Application.Factory.pas',
   Atropos.Adapters.BuildService in 'src\Adapters\BuildService\Atropos.Adapters.BuildService.pas',
+  Atropos.Adapters.BuildArtifact in 'src\Adapters\BuildService\Atropos.Adapters.BuildArtifact.pas',
   Atropos.Adapters.BuildCapability in 'src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas';
 
 var

@@ -163,6 +163,7 @@
         <DCCReference Include="src\Adapters\Execution\Atropos.Adapters.ExecutionThread.pas"/>
         <DCCReference Include="src\Application\Atropos.Application.Factory.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildService.pas"/>
+        <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildArtifact.pas"/>
         <DCCReference Include="src\Adapters\BuildService\Atropos.Adapters.BuildCapability.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
