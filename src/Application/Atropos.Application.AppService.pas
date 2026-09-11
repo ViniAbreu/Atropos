@@ -257,6 +257,8 @@ begin
     LPlan := LWorkflow.BuildPlan(AProjectPath, FDelphiPath, FConfig.BuildTargets,
       AUnitCount, FContextSearchPathCount);
     try
+      LPlan.Prepare(AModifier);
+      LWorkflow.ValidateSnapshots;
       Progress(AUnitCount, 0);
       for LChange in LPlan do
       begin
@@ -313,6 +315,7 @@ var
   LHasConfiguredChanges, LHasAmbiguity: Boolean;
 begin
   LResult := AChange.Analysis;
+  ReportPreservationReasons(AChange.FilePath, AChange.Editing.Warnings);
   if FConfig.DryRun then
   begin
     if (Length(LResult.UnusedUnits) > 0) or
@@ -328,7 +331,7 @@ begin
   LHasAmbiguity := Length(LResult.PreservedAmbiguities) > 0;
   if LHasConfiguredChanges then
   begin
-    AModifier.Execute(AChange.FilePath, LResult);
+    AModifier.ApplyPlan(AChange.FilePath, AChange.Editing);
     if FConfig.RemoveUnused then
       Inc(ARemoved, Length(LResult.UnusedUnits));
     if FConfig.MoveToImplementation then
@@ -375,6 +378,7 @@ begin
       Progress(AUnitCount, LIndex + 1);
     end;
     CheckCancellation;
+    LPlan.Prepare(LModifier);
     if Assigned(LSnapshot) then
       LSnapshot.ValidateAnalysis;
     for LChange in LPlan do
@@ -400,7 +404,7 @@ end;
 function TProjectCleanerAppService.ProcessInlineHints(const AHints: TArray<TInlineHint>; LModifier: TApplyUsesChanges): Integer;
 var
   LHint: TInlineHint;
-  LContent: string;
+  LContent, LUpdated: string;
 begin
   Result := 0;
   for LHint in AHints do
@@ -409,12 +413,11 @@ begin
       Continue;
     
     LContent := FFileService.ReadFileContent(LHint.FilePath);
+    LUpdated := TApplyUsesChanges.EnsureInterfaceImport(LContent, LHint.UnitNeeded);
+    if LUpdated = LContent then
+      Continue;
     FFileService.BackupFile(LHint.FilePath);
-    
-    LContent := TApplyUsesChanges.RemoveUnitFromUsesClause(LContent, LHint.UnitNeeded, False);
-    LContent := TApplyUsesChanges.AddUnitToInterfaceUses(LContent, LHint.UnitNeeded);
-    
-    FFileService.WriteFileContent(LHint.FilePath, LContent);
+    FFileService.WriteFileContent(LHint.FilePath, LUpdated);
     Log('Fixed ' + LHint.HintType + ' in ' + ExtractFileName(LHint.FilePath) + ': injected ' + LHint.UnitNeeded);
     Inc(Result);
   end;

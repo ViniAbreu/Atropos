@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{D3A806DE-8298-4E2F-95A2-E1E8597CB7E7}</ProjectGuid>
+    <MainSource>UsesConsole.dpr</MainSource>
+    <Base>true</Base>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <AppType>Console</AppType>
+    <FrameworkType>None</FrameworkType>
+    <ProjectVersion>20.1</ProjectVersion>
+    <DCC_DcuOutput>.artifacts\$(Platform)\$(Config)</DCC_DcuOutput>
+    <DCC_ExeOutput>.artifacts\$(Platform)\$(Config)</DCC_ExeOutput>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
+    <DCC_Namespace>System;$(DCC_Namespace)</DCC_Namespace>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug'">
+    <DCC_Define>WITH_EXTRA;$(DCC_Define)</DCC_Define>
+    <DCC_Optimize>false</DCC_Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <DCCReference Include="Edit.Consumer.pas" />
+    <DCCReference Include="Edit.Value.pas" />
+    <DCCReference Include="Edit.Unused.pas" />
+    <DCCReference Include="Edit.Extra.pas" />
+    <DelphiCompile Include="UsesConsole.dpr"><MainSource>MainSource</MainSource></DelphiCompile>
+    <BuildConfiguration Include="Debug"><Key>Debug</Key></BuildConfiguration>
+    <BuildConfiguration Include="Release"><Key>Release</Key></BuildConfiguration>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <BorlandProject><Delphi.Personality><Source><Source Name="MainSource">UsesConsole.dpr</Source></Source></Delphi.Personality><Platforms><Platform value="Win32">True</Platform><Platform value="Win64">True</Platform></Platforms></BorlandProject>
+    <ProjectFileVersion>12</ProjectFileVersion>
+  </ProjectExtensions>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" />
+</Project>

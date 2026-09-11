@@ -155,7 +155,12 @@
         <DCCReference Include="..\src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>
         <DCCReference Include="src\Atropos.Tests.FileSystem.pas"/>
         <DCCReference Include="..\src\Core\Services\Atropos.Core.Modifier.pas"/>
+        <DCCReference Include="..\src\Core\Services\Atropos.Core.SourceTokens.pas"/>
+        <DCCReference Include="..\src\Core\Services\Atropos.Core.UsesSyntax.pas"/>
+        <DCCReference Include="..\src\Core\Services\Atropos.Core.UsesEditor.pas"/>
+        <DCCReference Include="..\src\Core\Services\Atropos.Core.UsesEditPlan.pas"/>
         <DCCReference Include="src\Atropos.Tests.Modifier.pas"/>
+        <DCCReference Include="src\Atropos.Tests.UsesEditing.pas"/>
         <DCCReference Include="..\src\Adapters\ReportGenerator\Atropos.Adapters.ReportGenerator.pas"/>
         <DCCReference Include="src\Atropos.Tests.ReportGenerator.pas"/>
         <DCCReference Include="..\src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>

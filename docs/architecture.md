@@ -51,6 +51,18 @@ independent; qualified names retain their unit/type prefix. With scopes and loca
 overloads remain unknown and preserve matching imports. This is lexical binding,
 not complete overload resolution, inheritance or compiler-level type identity.
 
+Uses editing tokenizes the original source rather than searching section headers
+with regular expressions or using normalized AST columns. Prepared file plans
+retain the original and updated text; actionable decisions carry original UTF-16
+offsets, source path, section and condition identity. Target intersection preserves
+section identity. All file edits are prepared before writes, and the original text
+is checked again before each write. Dry-run uses the same preparation path.
+The editor retains comments and in-path entries, preserves moved-item source order,
+and leaves an already-present destination entry in place. Ambiguous occurrences,
+edits crossing directives and unsupported relocation remain unchanged with a reason.
+Unconditional entries can be removed when the affected separator and neighboring
+entry are also unconditional. Includes hiding a destination clause prevent insertion.
+
 `IUnitExportFacts` carries symbol kind and generic arity independently of legacy
 export names. Resolver caches and aliases forward these facts to the Core. Type
 lookups require matching arity; generic routine calls may infer their arguments.

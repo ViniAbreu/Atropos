@@ -63,6 +63,10 @@
         <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Domain.pas"/>
         <DCCReference Include="..\..\src\Core\Domain\Atropos.Core.Config.pas"/>
         <DCCReference Include="..\..\src\Core\Services\Atropos.Core.Modifier.pas"/>
+        <DCCReference Include="..\..\src\Core\Services\Atropos.Core.SourceTokens.pas"/>
+        <DCCReference Include="..\..\src\Core\Services\Atropos.Core.UsesSyntax.pas"/>
+        <DCCReference Include="..\..\src\Core\Services\Atropos.Core.UsesEditor.pas"/>
+        <DCCReference Include="..\..\src\Core\Services\Atropos.Core.UsesEditPlan.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.DelphiSource.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceIncludes.pas"/>
         <DCCReference Include="..\..\src\Adapters\DelphiAST\Atropos.Adapters.SourceSnapshot.pas"/>
