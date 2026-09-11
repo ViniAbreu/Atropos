@@ -61,6 +61,7 @@ type
     procedure PartiallyCompletedRollbackResumesSafely;
     [Test]
     procedure ManifestWithMismatchedBackupPathIsRejectedBeforeRestore;
+    [Test] procedure LockedLegacyTemporaryFileDoesNotBlockTransaction;
   end;
 
 implementation
@@ -476,6 +477,25 @@ begin
   FFileService.WriteFileContent(FTestFile, 'new content');
   LContent := FFileService.ReadFileContent(FTestFile);
   Assert.AreEqual('new content', LContent);
+end;
+
+procedure TFileSystemTests.LockedLegacyTemporaryFileDoesNotBlockTransaction;
+var LLocked: TFileStream; LTemporaryPath: string;
+begin
+  LTemporaryPath := GetManifestPath + '.tmp';
+  LLocked := TFileStream.Create(LTemporaryPath, fmCreate or fmShareExclusive);
+  try
+    FFileService.BackupFile(FTestFile);
+    FFileService.WriteFileContent(FTestFile, 'changed');
+    FFileService.RestoreBackups;
+    Assert.AreEqual('initial content', FFileService.ReadFileContent(FTestFile));
+    Assert.IsFalse(TFile.Exists(GetManifestPath));
+    Assert.IsTrue(TFile.Exists(LTemporaryPath), 'Unrelated temporary file must be preserved');
+    Assert.AreEqual<NativeInt>(1, Length(TDirectory.GetFiles(
+      TPath.GetDirectoryName(FTestFile), '*.tmp')));
+  finally
+    LLocked.Free;
+  end;
 end;
 
 initialization

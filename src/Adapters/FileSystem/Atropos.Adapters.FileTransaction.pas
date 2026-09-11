@@ -179,7 +179,8 @@ var
   LRoot: TJSONObject;
   LTemporaryPath: string;
 begin
-  LTemporaryPath := FFilePath + '.tmp';
+  LTemporaryPath := TPath.Combine(TPath.GetDirectoryName(FFilePath),
+    TGUID.NewGuid.ToString + '.tmp');
   LRoot := TJSONObject.Create;
   try
     LRoot.AddPair('version', TJSONNumber.Create(MANIFEST_VERSION));
