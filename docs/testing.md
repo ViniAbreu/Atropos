@@ -157,3 +157,16 @@ These observations justify definite record effects and unknown class activation,
 not a general proof of constructor scheduling. The lifecycle runtime gate now
 requires RecordInit and RecordFinal before/after optimization while preserving the
 managed provider in its original interface section.
+
+The `CancellationTransaction` fixture exercises the real application service,
+DelphiAST parser, dependency resolver, uses editor and filesystem transaction in
+an isolated temporary directory. It cancels after analysis before the first write,
+after the first of two writes, and after the final write before the final build.
+The write observer verifies that edits, a manifest and backups actually exist.
+Each case requires EAbort, byte-for-byte restoration of UTF-8/BOM/LF and
+UTF-16/BOM/CRLF sources, an unchanged provider, no commit or final build, and no
+remaining manifest or backups. A new independent transaction must then succeed.
+Project enumeration and the successful baseline build are controlled test doubles;
+this fixture does not claim to exercise compiler cancellation or process crashes.
+It provides direct application/filesystem evidence for the historical
+`cancellation-transaction` contract without changing the Probe catalog status.
