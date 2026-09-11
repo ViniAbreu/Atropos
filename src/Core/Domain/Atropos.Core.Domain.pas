@@ -27,7 +27,8 @@ type
     destructor Destroy; override;
     procedure RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False; AIsNative: Boolean = False);
     function UnitExportsIdentifier(const AUnitName, AIdentifier: string;
-      const AAllUsedIdents: TArray<string>; AIncludeHelpers: Boolean = True): Boolean;
+      const AAllUsedIdents: TArray<string>; AIncludeHelpers: Boolean = True;
+      AStructured: Boolean = False): Boolean;
     function AssessHelpers(const AUnitName: string; const AVisibleUnits: TArray<string>;
       const AReferences: TArray<TMemberReference>; AKnown, AInterface: Boolean): THelperUse;
     function FindAmbiguities(const AVisibleUnits,
@@ -41,6 +42,7 @@ type
     function AssessUnitEffects(const AUnitName: string): TEffectAssessment;
     procedure RegisterImplicitEffects(const AUnitName: string;
       const AEffects: TArray<TImplicitEffect>; AKnown: Boolean = True);
+    procedure RegisterExportFacts(const AUnitName: string; const AFacts: TArray<TExportedSymbol>);
   end;
 
   TUnitAnalysisResult = record
@@ -75,6 +77,8 @@ type
   end;
 
 implementation
+
+uses Atropos.Core.TypeNames;
 
 constructor TProjectContext.Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
 begin
@@ -136,6 +140,7 @@ end;
 procedure TProjectContext.LoadResolverImports(const AUnitName: string);
 var LDependencies: IUnitDependencyResolver; LImports: TArray<string>; LKnown: Boolean;
   LResolver: IUnitImplicitEffectResolver; LEffects: TArray<TImplicitEffect>;
+  LExports: IUnitExportFactResolver; LFacts: TArray<TExportedSymbol>;
 begin
   LKnown := False;
   if Supports(FResolver, IUnitDependencyResolver, LDependencies) then
@@ -145,6 +150,15 @@ begin
   if Supports(FResolver, IUnitImplicitEffectResolver, LResolver) then
     LKnown := LResolver.TryGetImplicitEffects(AUnitName, LEffects);
   RegisterImplicitEffects(AUnitName, LEffects, LKnown);
+  if Supports(FResolver, IUnitExportFactResolver, LExports) then
+    if LExports.TryGetExportFacts(AUnitName, LFacts) then
+      RegisterExportFacts(AUnitName, LFacts);
+end;
+
+procedure TProjectContext.RegisterExportFacts(const AUnitName: string;
+  const AFacts: TArray<TExportedSymbol>);
+begin
+  FUnitExports[AUnitName.ToLower].SetExportFacts(AFacts);
 end;
 
 procedure TProjectContext.RegisterImplicitEffects(const AUnitName: string;
@@ -191,47 +205,28 @@ begin
 end;
 
 function TProjectContext.UnitExportsIdentifier(const AUnitName, AIdentifier: string;
-  const AAllUsedIdents: TArray<string>; AIncludeHelpers: Boolean): Boolean;
+  const AAllUsedIdents: TArray<string>; AIncludeHelpers, AStructured: Boolean): Boolean;
 var
   LExports: TUnitExports;
-  LBaseIdent: string;
-  LPos: Integer;
-  LQualifiedUnit: string;
-  LQualifiedBaseIdentifier: string;
+  LBaseIdent, LQualifiedUnit, LQualifiedBaseIdentifier: string;
 begin
   Result := False;
-  if FUnitExports.TryGetValue(LowerCase(AUnitName), LExports) then
+  if not FUnitExports.TryGetValue(LowerCase(AUnitName), LExports) then
+    Exit;
+  LBaseIdent := AIdentifier;
+  if TryResolveQualifiedUnit(AIdentifier, LQualifiedUnit, LQualifiedBaseIdentifier) then
   begin
-    LBaseIdent := LowerCase(AIdentifier);
-
-    if TryResolveQualifiedUnit(AIdentifier, LQualifiedUnit,
-      LQualifiedBaseIdentifier) then
-    begin
-      if not SameText(LQualifiedUnit, AUnitName) then
-        Exit;
-      LBaseIdent := LowerCase(LQualifiedBaseIdentifier);
-      LPos := Pos('.', LBaseIdent);
-      if LPos > 0 then
-        LBaseIdent := Copy(LBaseIdent, 1, LPos - 1);
-    end;
-    
-    // Remover argumentos genéricos (ex: TArray<string> -> tarray)
-    LPos := Pos('<', LBaseIdent);
-    if LPos > 0 then
-      LBaseIdent := Copy(LBaseIdent, 1, LPos - 1);
-      
-    // Remover prefixos de namespace/unit (ex: SysUtils.Exception -> exception)
-    LPos := LastDelimiter('.', LBaseIdent);
-    if LPos > 0 then
-      LBaseIdent := Copy(LBaseIdent, LPos + 1, MaxInt);
-      
-    Result := LExports.ExportedIdentifiers.Contains(LBaseIdent);
-    
-    if not Result and AIncludeHelpers then
-      Result := LExports.MatchesLegacyHelper(LBaseIdent, AAllUsedIdents);
+    if not SameText(LQualifiedUnit, AUnitName) then
+      Exit;
+    LBaseIdent := TTypeName.FirstSegment(LQualifiedBaseIdentifier);
   end;
+  Result := LExports.MatchesIdentifier(TTypeName.LastSegment(LBaseIdent), AStructured);
+  if not Result and AStructured then
+    Result := LExports.MatchesIdentifier(TTypeName.FirstSegment(LBaseIdent), True);
+  if not Result and AIncludeHelpers then
+    Result := LExports.MatchesLegacyHelper(TTypeName.Read(
+      TTypeName.LastSegment(LBaseIdent)).Name, AAllUsedIdents);
 end;
-
 function TProjectContext.TryResolveQualifiedUnit(const AIdentifier: string;
   out AUnitName, ABaseIdentifier: string): Boolean;
 var
@@ -268,7 +263,7 @@ begin
     begin
       if not HasUnit(LUnitName) then
         Continue;
-      if not UnitExportsIdentifier(LUnitName, AIdentifier, [], False) then
+      if not UnitExportsIdentifier(LUnitName, AIdentifier, [], False, True) then
         Continue;
       LMatches.Add(LUnitName);
     end;
@@ -376,7 +371,7 @@ begin
   for LIdent in AUsedIdentifiers do
   begin
     if AContext.UnitExportsIdentifier(AUnitName, LIdent,
-      AVisibleIdentifiers, False) then
+      AVisibleIdentifiers, False, True) then
     begin
       if Assigned(FLogger) then
         FLogger.Log(Format('DEBUG-MATCH: [%s] matched with exported identifier [%s]', [AUnitName, LIdent]));
@@ -421,7 +416,7 @@ begin
     Exit;
   end;
   for LReference in FUnknownReferences[FReferenceInterface] do
-    if AContext.UnitExportsIdentifier(AUnitName, LReference, [], False) then
+    if AContext.UnitExportsIdentifier(AUnitName, LReference, [], False, True) then
     begin
       ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsUnknown,
         daPreserve, 'Unresolved lexical binding for ' + LReference + '.'));

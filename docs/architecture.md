@@ -51,6 +51,17 @@ independent; qualified names retain their unit/type prefix. With scopes and loca
 overloads remain unknown and preserve matching imports. This is lexical binding,
 not complete overload resolution, inheritance or compiler-level type identity.
 
+`IUnitExportFacts` carries symbol kind and generic arity independently of legacy
+export names. Resolver caches and aliases forward these facts to the Core. Type
+lookups require matching arity; generic routine calls may infer their arguments.
+Fallback resolvers without these facts keep the broader legacy name comparison.
+The syntax adapter retains qualified generic arguments and full attribute names
+that upstream AST flattening would discard. Scoped enum members stay under their
+named type; anonymous enums still expose their members, including under SCOPEDENUMS.
+Attribute references preserve both exact and Attribute-suffixed providers as unknown
+until constructor selection and inheritance are resolved. Ordinary references do
+not gain the suffix. This does not implement full nominal type or overload binding.
+
 Implicit lifecycle facts are separate from import completeness. Known managed-record
 global storage sets the compatibility lifecycle flag; unresolved global/typed/class
 storage and class-constructor activation produce unknown effect metadata. Resolver

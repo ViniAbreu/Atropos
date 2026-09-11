@@ -17,11 +17,52 @@ type
     procedure ExportedHeading; override;
     procedure ProcedureDeclarationSection; override;
     procedure TypeDeclaration; override;
+    procedure TypeSimple; override;
+    procedure AttributeName; override;
   end;
 
 implementation
 
-uses DelphiAST.Classes;
+uses DelphiAST.Classes, SimpleParser.Lexer.Types, Atropos.Core.TypeNames;
+
+procedure TAtroposSyntaxBuilder.TypeSimple;
+var LParent, LType, LArguments: TSyntaxNode; LChildren: TArray<TSyntaxNode>;
+begin
+  inherited;
+  LParent := FStack.Peek;
+  LChildren := LParent.ChildNodes;
+  if Length(LChildren) = 0 then
+    Exit;
+  LType := LChildren[High(LChildren)];
+  LArguments := LType.FindNode(ntTypeArgs);
+  if not Assigned(LArguments) then
+    Exit;
+  LType.SetAttribute(anName, LType.GetAttribute(anName) +
+    TTypeName.Parameters(Length(LArguments.ChildNodes)));
+  // The upstream TypeId flattening only copies arguments from the first segment.
+  if LType <> LParent.FindNode(ntType) then
+    LParent.AddChild(LArguments.Clone);
+end;
+
+procedure TAtroposSyntaxBuilder.AttributeName;
+var LName: string; LNode: TValuedSyntaxNode;
+begin
+  if TokenID <> ptIdentifier then
+  begin
+    inherited;
+    Exit;
+  end;
+  LNode := TValuedSyntaxNode(FStack.AddValuedChild(ntName, Lexer.Token));
+  LName := Lexer.Token;
+  Expected(ptIdentifier);
+  while TokenID = ptPoint do
+  begin
+    NextToken;
+    LName := LName + '.' + Lexer.Token;
+    Expected(ptIdentifier);
+  end;
+  LNode.Value := LName;
+end;
 
 procedure TAtroposSyntaxBuilder.RestoreDeclarationSource(AType: TSyntaxNodeType;
   const APath: string);

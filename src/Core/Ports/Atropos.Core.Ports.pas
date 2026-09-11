@@ -116,7 +116,7 @@ type
     Name, SourcePath: string;
     ScopeId, Position, GenericArity: Integer;
     NormalizedLine, NormalizedColumn: Integer;
-    InInterface, Uncertain: Boolean;
+    InInterface, Uncertain, IsAttribute: Boolean;
   end;
   TUnitSymbolFacts = record
     Scopes: TArray<TSymbolScope>;
@@ -143,6 +143,21 @@ type
     ['{E39ADBB5-C5A8-4096-B0CA-65C28A4C6A27}']
     function TryGetImplicitEffects(const AUnitName: string;
       out AEffects: TArray<TImplicitEffect>): Boolean;
+  end;
+
+  TExportKind = (ekType, ekRoutine, ekValue);
+  TExportedSymbol = record
+    Name: string;
+    Kind: TExportKind;
+    GenericArity: Integer;
+  end;
+  IUnitExportFacts = interface
+    ['{CBF47C21-40DF-4474-8586-5F25D920F7AC}']
+    function GetExportFacts: TArray<TExportedSymbol>;
+  end;
+  IUnitExportFactResolver = interface
+    ['{FE0D07BA-3D76-41E9-ACFD-717F4F49C553}']
+    function TryGetExportFacts(const AUnitName: string; out AFacts: TArray<TExportedSymbol>): Boolean;
   end;
 
   IUnitSourceDependencies = interface

@@ -3,6 +3,9 @@ interface
 uses System.Generics.Collections, Atropos.Core.Ports;
 type
   TUnitExports = class
+  private
+    FExportFacts: TArray<TExportedSymbol>;
+    FExportFactsKnown: Boolean;
   public
     UnitName: string;
     ExportedIdentifiers: TList<string>;
@@ -15,11 +18,38 @@ type
     constructor Create(const AUnitName: string; AHasInit: Boolean = False; AIsNative: Boolean = False);
     destructor Destroy; override;
     procedure AddIdentifiers(const AIdentifiers: TArray<string>);
+    procedure SetExportFacts(const AFacts: TArray<TExportedSymbol>);
+    function MatchesIdentifier(const AName: string; AStructured: Boolean): Boolean;
     procedure SetImplicitEffects(const AEffects: TArray<TImplicitEffect>; AKnown: Boolean);
     function MatchesLegacyHelper(const AName: string; const AIdentifiers: TArray<string>): Boolean;
   end;
 implementation
-uses System.SysUtils;
+uses System.SysUtils, Atropos.Core.TypeNames;
+
+procedure TUnitExports.SetExportFacts(const AFacts: TArray<TExportedSymbol>);
+begin
+  FExportFacts := Copy(AFacts);
+  FExportFactsKnown := True;
+end;
+
+function TUnitExports.MatchesIdentifier(const AName: string; AStructured: Boolean): Boolean;
+var LName: TTypeName; LFact: TExportedSymbol;
+begin
+  LName := TTypeName.Read(AName);
+  if not AStructured or not FExportFactsKnown then
+    Exit(ExportedIdentifiers.Contains(LName.Name));
+  for LFact in FExportFacts do
+  begin
+    if not SameText(LFact.Name, LName.Name) then
+      Continue;
+    if LFact.GenericArity = LName.Arity then
+      Exit(True);
+    // Generic routine arguments can be inferred at a call site.
+    if (LFact.Kind = ekRoutine) and (LName.Arity = 0) then
+      Exit(True);
+  end;
+  Result := False;
+end;
 
 procedure TUnitExports.SetImplicitEffects(const AEffects: TArray<TImplicitEffect>; AKnown: Boolean);
 var LEffect: TImplicitEffect;

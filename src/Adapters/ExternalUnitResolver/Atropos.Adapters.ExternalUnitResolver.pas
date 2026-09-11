@@ -6,7 +6,7 @@ uses
   Atropos.Core.Ports, Atropos.Adapters.UnitDependencies;
 
 type
-  TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver, IUnitImplicitEffectResolver)
+  TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver, IUnitImplicitEffectResolver, IUnitExportFactResolver)
   private
     FASTParser: IASTParser;
     FDependencies: TUnitDependencyCache;
@@ -28,6 +28,7 @@ type
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, AProjectBasePath: string);
     function TryGetUnitImports(const AUnitName: string; out AImports: TArray<string>): Boolean;
     function TryGetImplicitEffects(const AUnitName: string; out AEffects: TArray<TImplicitEffect>): Boolean;
+    function TryGetExportFacts(const AUnitName: string; out AFacts: TArray<TExportedSymbol>): Boolean;
     function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
@@ -157,6 +158,11 @@ begin
   FIsCacheBuilt := True;
 end;
 
+function TExternalUnitResolverAdapter.TryGetExportFacts(const AUnitName: string;
+  out AFacts: TArray<TExportedSymbol>): Boolean;
+begin
+  Result := FDependencies.TryGetExports(AUnitName, AFacts);
+end;
 function TExternalUnitResolverAdapter.TryGetImplicitEffects(const AUnitName: string;
   out AEffects: TArray<TImplicitEffect>): Boolean;
 begin

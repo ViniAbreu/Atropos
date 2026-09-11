@@ -61,7 +61,7 @@ end;
 function TLocalSymbolBinding.Bind(const AReference: TSymbolReference): TLocalBindingState;
 var LScope, LDot, LGeneric, LSteps: Integer; LName: string;
 begin
-  if AReference.Uncertain then
+  if AReference.Uncertain or AReference.IsAttribute then
     Exit(lbUnknown);
   LName := AReference.Name;
   LDot := Pos('.', LName);
@@ -93,6 +93,7 @@ end;
 
 function TLocalSymbolBinding.Identifiers(AInterface, AUncertainOnly: Boolean): TArray<string>;
 var LNames: TList<string>; LReference: TSymbolReference; LState: TLocalBindingState;
+  LAttribute: string;
 begin
   LNames := TList<string>.Create;
   try
@@ -105,6 +106,12 @@ begin
         Continue;
       if not LNames.Contains(LReference.Name) then
         LNames.Add(LReference.Name);
+      if LReference.IsAttribute and not LReference.Name.ToLower.EndsWith('attribute') then
+      begin
+        LAttribute := LReference.Name + 'Attribute';
+        if not LNames.Contains(LAttribute) then
+          LNames.Add(LAttribute);
+      end;
     end;
     Result := LNames.ToArray;
   finally

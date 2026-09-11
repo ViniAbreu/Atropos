@@ -1,11 +1,13 @@
 unit Lifecycle.Consumer;
 interface
-uses Lifecycle.Provider, Lifecycle.Unused, Lifecycle.Bridge, Lifecycle.Helpers, Lifecycle.Managed;
+uses Lifecycle.Provider, Lifecycle.Unused, Lifecycle.Bridge, Lifecycle.Helpers, Lifecycle.Managed,
+  Lifecycle.TypeChecks;
 procedure PrintMain;
 implementation
 procedure PrintMain;
 var Value: string; Clash: Integer;
 begin
+  CheckTypes;
   Clash := 0;
   Inc(Clash);
   if Clash <> 1 then

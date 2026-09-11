@@ -86,6 +86,14 @@ qualified type members, overload uncertainty and include expansion order. The
 lifecycle runtime fixture exports a colliding name from the unused provider and
 shadows it locally; the optimizer must remove that import while preserving output.
 
+Type-identity tests cover generic/plain collisions, argument counts, inferred and
+explicit generic routine calls, qualified and nested type arguments, scoped enum
+visibility, anonymous enum exports, attribute suffix alternatives and resolver
+alias/reset behavior. The lifecycle fixture checks a generic record value and
+instantiates an abbreviated custom attribute through RTTI before and after edits.
+It requires removal of the plain-type collision while retaining the generic and
+attribute providers in the interface, with identical lifecycle output on Win32/Win64.
+
 Declaration provenance tests split routine/type headers across includes and the
 main source. The adapter retains the starting file even when DelphiAST assigns
 the compound node's ending file. The class-method fixture uses an explicit public
