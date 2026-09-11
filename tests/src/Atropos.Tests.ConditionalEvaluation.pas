@@ -43,8 +43,13 @@ type
     [Test] procedure RepeatedIncludesUseTheirOwnPreparedContent;
     [Test] procedure InactiveBranchesDoNotLoadIncludesOrChangeSwitches;
     [Test] procedure ProjectSwitchIsOverriddenByLocalDirective;
+    [TestCase('EmptyProjectOption', '0')]
+    [TestCase('ProjectOverride', '1')]
+    procedure CompilerDefaultsRespectProjectAndLocalOptions(AOverride: Integer);
     [Test] procedure SwitchListsUpdateEachOption;
     [Test] procedure UnknownSwitchAndMalformedBranchesFail;
+    [Test] procedure InvalidProjectSwitchDoesNotSilentlyUseDefault;
+    [Test] procedure ResourceDirectiveDoesNotChangeRangeChecking;
     [Test] procedure PreparationRetainsParentLinesAndIncludedPath;
   end;
 
@@ -52,6 +57,32 @@ implementation
 
 uses System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Adapters.ConditionalExpression, Atropos.Adapters.DelphiAST;
+
+procedure TConditionalEvaluationTests.ResourceDirectiveDoesNotChangeRangeChecking;
+var LTree: IUnitSyntaxTree; LOption: TCompilerOption;
+begin
+  LOption.Name := 'RangeChecking';
+  LOption.Value := 'true';
+  LTree := Parse('unit C; {$R *.dfm} {$L external.obj} interface ' +
+    '{$IFOPT R+}type TStillOn = Integer;{$ELSE}type TWrong = Integer;{$ENDIF} implementation end.', [LOption]);
+  Assert.AreEqual('TStillOn', LTree.GetExportedIdentifiers[0]);
+end;
+procedure TConditionalEvaluationTests.InvalidProjectSwitchDoesNotSilentlyUseDefault;
+var LContext: TProjectCompilationContext; LSymbols: TCompilerSymbols; LParser: IASTParser;
+begin
+  LContext := Default(TProjectCompilationContext);
+  LSymbols := Default(TCompilerSymbols);
+  SetLength(LSymbols.DefaultSwitches, 1);
+  LSymbols.DefaultSwitches[0].Name := 'R';
+  LSymbols.DefaultSwitches[0].Value := 'OFF';
+  SetLength(LContext.Options, 1);
+  LContext.Options[0].Name := 'RangeChecking';
+  LContext.Options[0].Value := 'invalid';
+  LParser := TDelphiASTAdapter.Create(LContext, LSymbols);
+  Assert.WillRaise(procedure begin
+    LParser.ParseFile(WriteSource('Consumer.pas', 'unit Consumer; interface implementation end.'));
+  end, EASTParserException);
+end;
 
 procedure TConditionalEvaluationTests.Setup;
 begin
@@ -168,6 +199,32 @@ begin
   Assert.AreEqual('LocalUnit', LTree.GetImplementationUses[0]);
 end;
 
+procedure TConditionalEvaluationTests.CompilerDefaultsRespectProjectAndLocalOptions(AOverride: Integer);
+var LContext: TProjectCompilationContext; LSymbols: TCompilerSymbols;
+  LParser: IASTParser; LTree: IUnitSyntaxTree; LExpected: string;
+begin
+  LContext := Default(TProjectCompilationContext);
+  LSymbols := Default(TCompilerSymbols);
+  LSymbols.CompilerVersion := '36.0';
+  SetLength(LSymbols.DefaultSwitches, 1);
+  LSymbols.DefaultSwitches[0].Name := 'R';
+  LSymbols.DefaultSwitches[0].Value := 'OFF';
+  SetLength(LContext.Options, 1);
+  LContext.Options[0].Name := 'RangeChecking';
+  LContext.Options[0].Value := '';
+  LExpected := 'DefaultOff';
+  if AOverride = 1 then
+  begin
+    LContext.Options[0].Value := 'true';
+    LExpected := 'ProjectOn';
+  end;
+  LParser := TDelphiASTAdapter.Create(LContext, LSymbols);
+  LTree := LParser.ParseFile(WriteSource('Consumer.pas',
+    'unit Consumer; interface uses {$IFOPT R+}ProjectOn{$ELSE}DefaultOff{$ENDIF}; ' +
+    'implementation {$R-} uses {$IFOPT R-}LocalOff{$ELSE}WrongUnit{$ENDIF}; end.'));
+  Assert.AreEqual(LExpected, LTree.GetInterfaceUses[0]);
+  Assert.AreEqual('LocalOff', LTree.GetImplementationUses[0]);
+end;
 procedure TConditionalEvaluationTests.SwitchListsUpdateEachOption;
 var LTree: IUnitSyntaxTree;
 begin

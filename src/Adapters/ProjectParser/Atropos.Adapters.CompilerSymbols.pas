@@ -14,6 +14,7 @@ type
     function Compile(const AContext: TProjectCompilationContext;
       const ADelphiPath, ADirectory, ASourcePath: string): string;
     function ParseOutput(const AOutput: string): TCompilerSymbols;
+    function ReadSwitches(const AOutput: string): TArray<TCompilerOption>;
   public
     constructor Create(const ARunner: IBuildProcessRunner;
       const ACancel: TCancellationCheck);
@@ -51,6 +52,10 @@ begin
   for LSymbol in CSymbols.Split([';']) do
     Result := Result + '{$IFDEF ' + LSymbol + '}' +
       '{$MESSAGE HINT ''ATROPOS_DEFINE:' + LSymbol + '''}{$ENDIF}' + sLineBreak;
+  for LSymbol in 'R;Q;B;C;J;T'.Split([';']) do
+    Result := Result + '{$IFOPT ' + LSymbol + '+}' +
+      '{$MESSAGE HINT ''ATROPOS_SWITCH:' + LSymbol + ':ON''}{$ELSE}' +
+      '{$MESSAGE HINT ''ATROPOS_SWITCH:' + LSymbol + ':OFF''}{$ENDIF}' + sLineBreak;
   Result := Result + 'begin end.';
 end;
 
@@ -110,6 +115,7 @@ begin
   if not LMatch.Success then
     raise EInvalidOperation.Create('Compiler probe did not identify its language version.');
   Result.CompilerVersion := LMatch.Groups[1].Value;
+  Result.DefaultSwitches := ReadSwitches(AOutput);
   LNames := TList<string>.Create;
   try
     for LMatch in TRegEx.Matches(AOutput, 'ATROPOS_DEFINE:([A-Z0-9_]+)') do
@@ -124,6 +130,23 @@ begin
     Result.Defines := LNames.ToArray;
   finally
     LNames.Free;
+  end;
+end;
+
+function TCompilerSymbolReader.ReadSwitches(const AOutput: string): TArray<TCompilerOption>;
+var LSwitches: TList<TCompilerOption>; LMatch: TMatch; LOption: TCompilerOption;
+begin
+  LSwitches := TList<TCompilerOption>.Create;
+  try
+    for LMatch in TRegEx.Matches(AOutput, 'ATROPOS_SWITCH:([RQBCJT]):(ON|OFF)') do
+    begin
+      LOption.Name := LMatch.Groups[1].Value;
+      LOption.Value := LMatch.Groups[2].Value;
+      LSwitches.Add(LOption);
+    end;
+    Result := LSwitches.ToArray;
+  finally
+    LSwitches.Free;
   end;
 end;
 

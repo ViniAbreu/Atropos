@@ -44,6 +44,12 @@ separately from the before/after diagnostic totals: an edit is not proof that a
 diagnostic disappeared. Regression coverage includes unchanged hint totals after
 multiple edits, in both text and HTML reports.
 
+Compiler probing also records default R/Q/B/C/J/T switch values from the selected
+compiler. Conditional parsing applies these defaults before explicit project
+options and source directives; empty project options retain defaults and invalid
+values fail explicitly. Tests cover both target compilers, option precedence and
+the missing-default regression. Contexts without probed defaults remain unknown.
+
 The same adapter coverage exercises modern Delphi multiline string literals. Their contents are replaced with line-preserving placeholders for syntax analysis, preventing SQL or other embedded text from being interpreted as Delphi identifiers while keeping diagnostics aligned with the original source.
 
 Coverage only:

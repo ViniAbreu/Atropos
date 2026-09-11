@@ -106,6 +106,10 @@ var LValue: string;
 begin
   if Length(AName) <> 1 then Exit;
   LValue := UpperCase(AValue.Trim);
+  if LValue.IsEmpty then Exit;
+  if (LValue <> '+') and (LValue <> 'ON') and (LValue <> 'TRUE') and
+    (LValue <> '-') and (LValue <> 'OFF') and (LValue <> 'FALSE') then
+    raise EInvalidOpException.Create('Unsupported compiler switch value: ' + AName + '=' + AValue);
   if (LValue = '+') or (LValue = 'ON') or (LValue = 'TRUE') then
     FSwitches.AddOrSetValue(AName, True);
   if (LValue = '-') or (LValue = 'OFF') or (LValue = 'FALSE') then
@@ -222,7 +226,8 @@ begin
     Exit(IncludeSource(LArgument, AFilePath) + Blank(AText));
   if (Length(LName) >= 2) and CharInSet(LName[2], ['+', '-']) then
     ShortSwitches(UpperCase(LBody));
-  SetSwitch(SwitchName(LName), LArgument);
+  if Length(LName) > 1 then
+    SetSwitch(SwitchName(LName), LArgument);
   Result := AText;
 end;
 
