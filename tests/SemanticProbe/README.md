@@ -113,6 +113,22 @@ its different coverage does not negate these research failures.
 Every future correction must name affected case IDs, preserve unrelated regressions
 and justify any policy/oracle revision. Do not derive expectations from current output.
 
+### Anonymous-method compiler contract
+
+The historical `anonymous-parameter-shadow` input declares a local variable as
+`var Work: reference to procedure(...)`. Delphi compiler 36.0 rejects that exact
+source on both Win32 and Win64 with E2003 for `reference`. Its historical expectation
+of successful parsing therefore conflicts with the selected compiler; the preserved
+catalog still reports FAIL and is not rewritten to improve the count.
+
+`tests/run-anonymous-smoke-test.ps1` compiles temporary copies of that original input
+and provider and requires the specific rejection. The separate AnonymousConsole
+fixture uses a named `reference to` type, which the compiler accepts. It checks
+parameter shadowing, local/global captures and an outer reference after the closure
+before and after optimization. SymbolBinding tests also cover sibling closures and
+anonymous-function result types. These additional contracts do not change historical
+case IDs, input hashes, expected outcomes or PASS/FAIL totals.
+
 ## Source include increment
 
 Source-relative and nested includes now load through the production adapter. Probe

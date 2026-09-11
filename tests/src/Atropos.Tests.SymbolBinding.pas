@@ -32,6 +32,12 @@ type
     [TestCase('ObjectMemberIsNotGlobalRoutine', '15,0')]
     [TestCase('WithScopeIsUnknown', '16,3')]
     [TestCase('LocalOverloadIsUnknown', '17,3')]
+    [TestCase('AnonymousParameterShadowsImport', '18,0')]
+    [TestCase('AnonymousParameterDoesNotLeak', '19,1')]
+    [TestCase('AnonymousCapturesLocal', '20,0')]
+    [TestCase('AnonymousCapturesImport', '21,1')]
+    [TestCase('AnonymousFunctionReturnType', '22,1')]
+    [TestCase('SiblingAnonymousScopes', '23,1')]
     procedure LexicalDecisionsRespectScopes(AScenario, AAction: Integer);
     [Test] procedure FactsRetainKindsLocationsAndIndependentReads;
     [Test] procedure IncludeDeclarationsUseExpandedOrder;
@@ -78,7 +84,7 @@ begin
 end;
 
 procedure TSymbolBindingTests.LexicalDecisionsRespectScopes(AScenario, AAction: Integer);
-const Sources: array[0..17] of string = (
+const Sources: array[0..23] of string = (
   'implementation procedure Run; var Clash: Integer; begin Clash := 1; end;',
   'implementation procedure A; var Clash: Integer; begin Clash := 1; end; ' +
     'procedure B; begin Clash := 2; end;',
@@ -100,7 +106,20 @@ const Sources: array[0..17] of string = (
     'procedure Run(Value: TLocal); begin Value.CallMe; end;',
   'implementation procedure Run(Value: TObject); var Clash: Integer; begin with Value do Inc(Clash); end;',
   'procedure CallMe; overload; implementation procedure CallMe; begin end; ' +
-    'procedure Run; begin CallMe(1); end;');
+    'procedure Run; begin CallMe(1); end;',
+  'implementation type TWork = reference to procedure(Clash: Integer); ' +
+    'procedure Run; var Work: TWork; begin Work := procedure(Clash: Integer) begin Inc(Clash); end; end;',
+  'implementation type TWork = reference to procedure(Clash: Integer); ' +
+    'procedure Run; var Work: TWork; begin Work := procedure(Clash: Integer) begin Inc(Clash); end; Inc(Clash); end;',
+  'implementation type TWork = reference to procedure; ' +
+    'procedure Run; var Work: TWork; Clash: Integer; begin Clash := 1; Work := procedure begin Inc(Clash); end; end;',
+  'implementation type TWork = reference to procedure; ' +
+    'procedure Run; var Work: TWork; begin Work := procedure begin Inc(Clash); end; end;',
+  'implementation type TWork = reference to function: TItem; ' +
+    'procedure Run; var Work: TWork; begin Work := function: TItem begin Result := nil; end; end;',
+  'implementation type TParam = reference to procedure(Clash: Integer); TWork = reference to procedure; ' +
+    'procedure Run; var First: TParam; Second: TWork; begin ' +
+    'First := procedure(Clash: Integer) begin Inc(Clash); end; Second := procedure begin Inc(Clash); end; end;');
 var LResult: TUnitAnalysisResult;
 begin
   LResult := Analyze(Sources[AScenario]);
