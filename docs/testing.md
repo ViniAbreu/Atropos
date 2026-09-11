@@ -238,3 +238,19 @@ with input/binary/runner hashes and all target/control observations. Working cop
 are retained under the ignored artifacts directory for inspection; fixtures remain
 unchanged. Contracts cover project defines, platforms, namespaces, aliases, DPR paths
 and imported props without modifying the historical Probe catalog or BLOCKED totals.
+
+BinaryRuntime compiles a provider in an isolated producer directory and exposes
+only its DCU through the consumer project's binary search path. The producer source
+is retained outside the project; the provider is not a project source reference.
+The runner requires no provider PAS in the consumer tree, exactly one provider DCU
+(no project-output rebuild), an unchanged DCU hash and the explicit source/exports
+unresolved preservation diagnostic. Before and after removing another unused import,
+runtime must emit BinaryInit|Main|BinaryFinal even though no provider symbol is
+referenced in source. Removing the binary import in a control still compiles but
+must emit only Main, demonstrating that a successful build does not preserve effects.
+
+The quality gate runs this on Win32/Win64. Evidence for `package-dcu-only` is saved
+in artifacts/integration/<platform>/binary-runtime/result.json with compiler, CLI,
+DCU, runner and fixture hashes. Producer sources and project copies are retained
+for inspection. This proves conservative handling of a DCU-only dependency, not
+DCU decompilation or dynamic BPL loading. The historical Probe catalog is unchanged.

@@ -1,0 +1,23 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{3E0BF705-237E-4FF8-8D13-68DB0E2E26D6}</ProjectGuid>
+    <MainSource>BinaryRuntime.dpr</MainSource>
+    <Base>true</Base>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <AppType>Console</AppType><FrameworkType>None</FrameworkType>
+    <ProjectVersion>20.1</ProjectVersion>
+    <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
+    <DCC_Namespace>System</DCC_Namespace>
+    <DCC_UnitSearchPath>binary;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_DcuOutput>.artifacts\$(Platform)\$(Config)</DCC_DcuOutput>
+    <DCC_ExeOutput>.artifacts\$(Platform)\$(Config)</DCC_ExeOutput>
+  </PropertyGroup>
+  <ItemGroup>
+    <DCCReference Include="Binary.Consumer.pas" />
+    <DCCReference Include="Binary.Unused.pas" />
+    <DelphiCompile Include="BinaryRuntime.dpr"><MainSource>MainSource</MainSource></DelphiCompile>
+    <BuildConfiguration Include="Debug"><Key>Debug</Key></BuildConfiguration>
+  </ItemGroup>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" />
+</Project>
