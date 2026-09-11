@@ -123,6 +123,24 @@ historical inline `reference to` variable declaration with E2003 for `reference`
 That historical scenario keeps its original failing oracle; the valid supplementary
 tests do not promote it to PASS.
 
+SemanticRuntime exercises real VCL DFM streaming, OnCreate binding, class lookup by
+registered string name and overload selection across two units. Both platforms must
+emit DFM:42|Registry:TStreamProbe|Integer|String before and after cleanup. It also
+builds two deliberately broken copies: removing the registration import must still
+compile but fail during streaming; removing the exact overload provider must still
+compile/run but select Variant for both calls. Thus successful compilation alone
+cannot satisfy these contracts.
+
+`run-semantic-runtime-tests.ps1` writes `artifacts/integration/<platform>/semantic-runtime.json`
+and captured process logs. PASS is recorded only after positive behavior, both
+negative controls, actual removals, preserved imports and original fixture hashes
+have been checked. The evidence identifies the CLI binary hash, target, research
+catalog hash and fixture hashes. An interrupted run remains RUNNING; a caught failure
+records FAIL. These supplementary results cover `dfm-streaming-registration`,
+`rtti-string-registration` and `compiler-overload-binding` in their integration layer.
+They do not modify the historical Probe catalog or its BLOCKED totals and do not
+prove arbitrary dynamic registration or complete compiler overload resolution.
+
 Declaration provenance tests split routine/type headers across includes and the
 main source. The adapter retains the starting file even when DelphiAST assigns
 the compound node's ending file. The class-method fixture uses an explicit public

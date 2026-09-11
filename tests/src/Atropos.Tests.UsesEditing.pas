@@ -20,6 +20,9 @@ type
     [Test] procedure DifferentPathMappingPreventsMovement;
     [Test] procedure ConditionalAndDuplicateOccurrencesAreUnknown;
     [Test] procedure ConflictingDecisionsNeverEdit;
+    [TestCase('Unknown', '0')]
+    [TestCase('Ambiguous', '1')]
+    procedure PreservedDecisionRetainsItsActualReason(AAmbiguous: Integer);
     [TestCase('DisabledBranch', '0')]
     [TestCase('EnabledBranch', '1')]
     procedure GuardedDestinationRemainsValid(AEnabled: Integer);
@@ -46,6 +49,21 @@ uses System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Core.Modifier, Atropos.Core.UsesSyntax, Atropos.Core.AnalysisIntersection,
   Atropos.Core.Compilation, Atropos.Adapters.DelphiAST,
   Atropos.Adapters.FileSystem, Atropos.Tests.Modifier;
+
+procedure TUsesEditingTests.PreservedDecisionRetainsItsActualReason(AAmbiguous: Integer);
+var LAnalysis: TUnitAnalysisResult; LPlan: TUsesEditPlan; LState: TDependencyState;
+begin
+  LState := dsUnknown;
+  if AAmbiguous = 1 then LState := dsAmbiguous;
+  LAnalysis := Default(TUnitAnalysisResult);
+  LAnalysis.Decisions := [TDependencyDecision.Create('Keep', usInterface, LState, daPreserve,
+    'Original dependency evidence.')];
+  LPlan := Plan('unit C; interface uses Keep; implementation end.', LAnalysis);
+  Assert.IsFalse(LPlan.HasChanges);
+  Assert.AreEqual('Original dependency evidence.', LPlan.Analysis.Decisions[0].Reason);
+  Assert.AreEqual(Ord(LState), Ord(LPlan.Analysis.Decisions[0].State));
+  Assert.AreEqual<NativeInt>(0, Length(LPlan.Warnings));
+end;
 
 procedure TUsesEditingTests.RemovesUnconditionalTailWithoutTouchingDirectives;
 var LAnalysis: TUnitAnalysisResult; LPlan: TUsesEditPlan; LSource: string;
