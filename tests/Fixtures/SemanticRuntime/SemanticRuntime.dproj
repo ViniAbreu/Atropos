@@ -23,6 +23,9 @@
     <DCCReference Include="Semantic.Form.pas" />
     <DCCReference Include="Semantic.Registration.pas" />
     <DCCReference Include="Semantic.Calls.pas" />
+    <DCCReference Include="Semantic.HelperCalls.pas" />
+    <DCCReference Include="Semantic.FirstHelper.pas" />
+    <DCCReference Include="Semantic.SecondHelper.pas" />
     <DCCReference Include="Semantic.Unused.pas" />
     <DCCReference Include="Semantic.Overloads.pas" />
     <DCCReference Include="Semantic.Fallback.pas" />

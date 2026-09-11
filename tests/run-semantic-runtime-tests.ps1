@@ -59,7 +59,7 @@ function Invoke-RuntimeProgram([string]$Working, [string]$Label) {
 }
 try {
     $working = Copy-RuntimeFixture 'positive'
-    foreach ($name in @('Semantic.Form.pas', 'Semantic.Calls.pas')) {
+    foreach ($name in @('Semantic.Form.pas', 'Semantic.Calls.pas', 'Semantic.HelperCalls.pas')) {
         if (-not (Get-Content -Raw -LiteralPath (Join-Path $working $name)).Contains('Semantic.Unused')) {
             throw "Fixture $name has no unused import to exercise removal."
         }
@@ -70,7 +70,7 @@ try {
             throw "Dry-run changed $name."
         }
     }
-    $expected = 'DFM:42|Registry:TStreamProbe|Integer|String'
+    $expected = 'DFM:42|Registry:TStreamProbe|Integer|String|Second:value'
     $before = Invoke-RuntimeProgram $working 'before'
     if ($before.exitCode -ne 0 -or $before.output -ne $expected) { throw "Unexpected initial behavior: $($before.output)" }
     Invoke-RuntimeCleaner $working 'apply' $false
@@ -81,6 +81,11 @@ try {
     if ($diagnostics -notmatch 'Semantic.Overloads.*ambiguous.*Pick') {
         throw 'The overload preservation reason was not reported.'
     }
+    foreach ($provider in @('Semantic.FirstHelper', 'Semantic.SecondHelper')) {
+        if ($diagnostics -notmatch ([regex]::Escape($provider) + '.*unknown.*Helper receiver or precedence could not be resolved')) {
+            throw "Missing conservative helper preservation reason for $provider."
+        }
+    }
     $form = Get-Content -Raw -LiteralPath (Join-Path $working 'Semantic.Form.pas')
     $calls = Get-Content -Raw -LiteralPath (Join-Path $working 'Semantic.Calls.pas')
     if ($form.Contains('Semantic.Unused') -or $calls.Contains('Semantic.Unused')) { throw 'Unused imports were not removed.' }
@@ -88,6 +93,11 @@ try {
     if (-not $calls.Contains('Semantic.Overloads, Semantic.Fallback')) { throw 'Overload candidates changed order or were removed.' }
     if ((Get-FileHash -LiteralPath (Join-Path $working 'Semantic.Form.dfm') -Algorithm SHA256).Hash -ne $hashes['Semantic.Form.dfm']) {
         throw 'DFM resource changed during cleanup.'
+    }
+    $helpers = Get-Content -Raw -LiteralPath (Join-Path $working 'Semantic.HelperCalls.pas')
+    if ($helpers.Contains('Semantic.Unused')) { throw 'Unused helper-consumer import was not removed.' }
+    if (-not $helpers.Contains('Semantic.FirstHelper, Semantic.SecondHelper')) {
+        throw 'Competing helpers were removed or reordered.'
     }
     $after = Invoke-RuntimeProgram $working 'after'
     if ($after.exitCode -ne 0 -or $after.output -ne $expected) { throw "Semantic behavior changed: $($after.output)" }
@@ -113,19 +123,35 @@ try {
     [IO.File]::WriteAllText($path, $source.Replace('Semantic.Overloads, ', ''), [Text.UTF8Encoding]::new($false))
     Invoke-RuntimeCleaner $fallback 'fallback-build' $true
     $changed = Invoke-RuntimeProgram $fallback 'fallback-run'
-    if ($changed.exitCode -ne 0 -or $changed.output -ne 'DFM:42|Registry:TStreamProbe|Variant|Variant') {
+    if ($changed.exitCode -ne 0 -or $changed.output -ne 'DFM:42|Registry:TStreamProbe|Variant|Variant|Second:value') {
         throw "Overload negative control did not expose changed binding: $($changed.output)"
     }
     $evidence.observations.changedOverload = $changed
+    $reordered = Copy-RuntimeFixture 'reordered-helpers'
+    $path = Join-Path $reordered 'Semantic.HelperCalls.pas'
+    $source = [IO.File]::ReadAllText($path)
+    if (-not $source.Contains('Semantic.FirstHelper, Semantic.SecondHelper')) {
+        throw 'Helper negative control did not match.'
+    }
+    [IO.File]::WriteAllText($path,
+        $source.Replace('Semantic.FirstHelper, Semantic.SecondHelper', 'Semantic.SecondHelper, Semantic.FirstHelper'),
+        [Text.UTF8Encoding]::new($false))
+    Invoke-RuntimeCleaner $reordered 'reordered-helpers-build' $true
+    $changedHelper = Invoke-RuntimeProgram $reordered 'reordered-helpers-run'
+    if ($changedHelper.exitCode -ne 0 -or
+        $changedHelper.output -ne 'DFM:42|Registry:TStreamProbe|Integer|String|First:value') {
+        throw "Helper negative control did not expose changed binding: $($changedHelper.output)"
+    }
+    $evidence.observations.changedHelper = $changedHelper
     foreach ($name in $hashes.Keys) {
         if ((Get-FileHash -LiteralPath (Join-Path $fixture $name) -Algorithm SHA256).Hash -ne $hashes[$name]) {
             throw "Versioned fixture changed: $name"
         }
     }
-    $evidence.contracts = @('dfm-streaming-registration', 'rtti-string-registration', 'compiler-overload-binding') |
+    $evidence.contracts = @('dfm-streaming-registration', 'rtti-string-registration', 'compiler-overload-binding', 'compiler-helper-precedence') |
         ForEach-Object { [ordered]@{ id = $_; status = 'PASS' } }
     $evidence.status = 'PASS'
-    Write-Host "$Platform semantic runtime passed: $expected; both negative controls confirmed."
+    Write-Host "$Platform semantic runtime passed: $expected; all negative controls confirmed."
 }
 catch {
     $evidence.status = 'FAIL'

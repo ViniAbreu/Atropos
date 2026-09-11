@@ -132,10 +132,12 @@ case IDs, input hashes, expected outcomes or PASS/FAIL totals.
 ### Supplementary runtime contracts
 
 The full quality gate now executes SemanticRuntime on Win32/Win64 for the contracts
-`dfm-streaming-registration`, `rtti-string-registration` and `compiler-overload-binding`.
+`dfm-streaming-registration`, `rtti-string-registration`, `compiler-overload-binding`
+and `compiler-helper-precedence`.
 The runtime checks actual streaming, an event loaded from DFM, string class lookup
-and selected overload returns before/after an edit. Negative controls still compile
-but respectively fail streaming or choose different overloads. Evidence and input/
+and selected overload/helper returns before/after an edit. Negative controls still compile
+but respectively fail streaming, choose different overloads or select the other helper
+after import order reversal. Evidence and input/
 binary hashes are written under `artifacts/integration/<platform>/semantic-runtime.json`.
 Only status PASS proves that complete run; RUNNING, FAIL or missing evidence does not.
 These are integration results with the original case IDs, not an invented AST-only
