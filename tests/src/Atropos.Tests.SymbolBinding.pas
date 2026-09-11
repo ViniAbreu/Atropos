@@ -60,11 +60,100 @@ type
     [TestCase('Initialization', 'initialization,3')]
     [TestCase('Finalization', 'finalization,4')]
     procedure InlineLifecycleDeclarationRetainsSection(const APhase: string; AExpected: Integer);
+    [TestCase('Empty', '0')]
+    [TestCase('LargeUnit', '30000')]
+    procedure IndexedDeclarationsKeepExternalNames(ADeclarationCount: Integer);
+    [Test] procedure BindingOwnsItsInputArrays;
+    [Test] procedure IndexedNameMatchingPreservesSameText;
   end;
 
 implementation
 
-uses System.SysUtils, System.IOUtils, Atropos.Adapters.DelphiAST, Atropos.Core.Analysis;
+uses System.SysUtils, System.IOUtils, Atropos.Adapters.DelphiAST, Atropos.Core.Analysis,
+  Atropos.Core.LocalBinding;
+
+procedure TSymbolBindingTests.IndexedNameMatchingPreservesSameText;
+const Names: array[0..7] of string = ('Name', 'NAME', 'name',
+  'S'#$00ED'mbolo', 'S'#$00CD'MBOLO', #$03C3, #$03A3, 'Other');
+var LFacts: TUnitSymbolFacts; LBinding: TLocalSymbolBinding; LeftName, RightName: string;
+begin
+  LFacts := Default(TUnitSymbolFacts);
+  SetLength(LFacts.Scopes, 1);
+  LFacts.Scopes[0].ParentId := -1;
+  LFacts.Scopes[0].OwnerId := -1;
+  SetLength(LFacts.Declarations, 1);
+  LFacts.Declarations[0].CanShadow := True;
+  SetLength(LFacts.References, 1);
+  LFacts.References[0].InInterface := True;
+  for LeftName in Names do
+    for RightName in Names do
+    begin
+      LFacts.Declarations[0].Name := LeftName;
+      LFacts.References[0].Name := RightName;
+      LBinding := TLocalSymbolBinding.Create(LFacts);
+      try
+        Assert.AreEqual<NativeInt>(Ord(not SameText(LeftName, RightName)),
+          Length(LBinding.Identifiers(True)), LeftName + ' / ' + RightName);
+      finally
+        LBinding.Free;
+      end;
+    end;
+end;
+
+procedure TSymbolBindingTests.IndexedDeclarationsKeepExternalNames(ADeclarationCount: Integer);
+var LFacts: TUnitSymbolFacts; LBinding: TLocalSymbolBinding; I: Integer; LNames: TArray<string>;
+begin
+  LFacts := Default(TUnitSymbolFacts);
+  SetLength(LFacts.Scopes, 1);
+  LFacts.Scopes[0].ParentId := -1;
+  LFacts.Scopes[0].OwnerId := -1;
+  SetLength(LFacts.Declarations, ADeclarationCount);
+  SetLength(LFacts.References, ADeclarationCount + 2);
+  for I := 0 to ADeclarationCount - 1 do
+  begin
+    LFacts.Declarations[I].Name := 'S' + #$00ED + 'mbolo' + IntToStr(I);
+    LFacts.Declarations[I].CanShadow := True;
+    LFacts.References[I].Name := 'S' + #$00ED + 'MBOLO' + IntToStr(I);
+    LFacts.References[I].InInterface := True;
+  end;
+  LFacts.References[ADeclarationCount].Name := 'ExternalName';
+  LFacts.References[ADeclarationCount].InInterface := True;
+  LFacts.References[ADeclarationCount + 1].Name := 'externalname';
+  LFacts.References[ADeclarationCount + 1].InInterface := True;
+  LBinding := TLocalSymbolBinding.Create(LFacts);
+  try
+    LNames := LBinding.Identifiers(True);
+    Assert.AreEqual<NativeInt>(2, Length(LNames));
+    Assert.AreEqual('ExternalName', LNames[0]);
+    Assert.AreEqual('externalname', LNames[1]);
+  finally
+    LBinding.Free;
+  end;
+end;
+
+procedure TSymbolBindingTests.BindingOwnsItsInputArrays;
+var LFacts: TUnitSymbolFacts; LBinding: TLocalSymbolBinding;
+begin
+  LFacts := Default(TUnitSymbolFacts);
+  SetLength(LFacts.Scopes, 1);
+  LFacts.Scopes[0].ParentId := -1;
+  LFacts.Scopes[0].OwnerId := -1;
+  SetLength(LFacts.Declarations, 1);
+  LFacts.Declarations[0].Name := 'Local';
+  LFacts.Declarations[0].CanShadow := True;
+  SetLength(LFacts.References, 1);
+  LFacts.References[0].Name := 'Original';
+  LFacts.References[0].InInterface := True;
+  LBinding := TLocalSymbolBinding.Create(LFacts);
+  try
+    LFacts.Declarations[0].Name := 'Original';
+    LFacts.References[0].Name := 'Local';
+    LFacts.Scopes[0].ParentId := 0;
+    Assert.AreEqual('Original', LBinding.Identifiers(True)[0]);
+  finally
+    LBinding.Free;
+  end;
+end;
 
 procedure TSymbolBindingTests.Setup;
 begin

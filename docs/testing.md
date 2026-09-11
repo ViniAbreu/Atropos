@@ -352,3 +352,8 @@ SizeOf, arithmetic, local constants and imported constants with both bare and
 qualified names. Alignment expressions remain in the syntax tree so dependency
 analysis can retain their references; a single literal also keeps its alignment
 attribute. Compiler fixtures verify the accepted alignment syntax in Win32 and Win64.
+
+Local declaration lookup is indexed by scope and name, retaining declaration order,
+availability positions, generic arity and conservative overload behavior. SymbolBinding
+regressions cover 30,000 declarations, input-array isolation, and comparison against
+SameText for ASCII and non-ASCII names. External-name ordering remains unchanged.
