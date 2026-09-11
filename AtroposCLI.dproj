@@ -140,6 +140,7 @@
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ImplicitEffects.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas"/>
+        <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.SourceEncoding.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>
         <DCCReference Include="src\Adapters\ReportGenerator\Atropos.Adapters.ReportGenerator.pas"/>
         <DCCReference Include="src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas"/>

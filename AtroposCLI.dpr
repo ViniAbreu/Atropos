@@ -48,6 +48,7 @@ uses
   Atropos.Adapters.ImplicitEffects in 'src\Adapters\DelphiAST\Atropos.Adapters.ImplicitEffects.pas',
   Atropos.Adapters.SyntaxBuilder in 'src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas',
   Atropos.Adapters.FileSystem in 'src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas',
+  Atropos.Adapters.SourceEncoding in 'src\Adapters\FileSystem\Atropos.Adapters.SourceEncoding.pas',
   Atropos.Adapters.FileTransaction in 'src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas',
   Atropos.Adapters.ReportGenerator in 'src\Adapters\ReportGenerator\Atropos.Adapters.ReportGenerator.pas',
   Atropos.Adapters.ExternalUnitResolver in 'src\Adapters\ExternalUnitResolver\Atropos.Adapters.ExternalUnitResolver.pas',

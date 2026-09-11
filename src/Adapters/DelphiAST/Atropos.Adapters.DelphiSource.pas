@@ -20,7 +20,7 @@ type
 
 implementation
 
-uses System.SysUtils, System.Classes, System.IOUtils, System.Hash;
+uses System.SysUtils, System.Classes, System.IOUtils, System.Hash, Atropos.Adapters.SourceEncoding;
 
 class function TDelphiSourceReader.CreateStringPlaceholder(
   const AMatch: TMatch): string;
@@ -62,7 +62,7 @@ var
 begin
   LBytes := TFile.ReadAllBytes(AFilePath);
   LEncoding := nil;
-  LPreambleSize := TEncoding.GetBufferEncoding(LBytes, LEncoding, TEncoding.UTF8);
+  LPreambleSize := TEncoding.GetBufferEncoding(LBytes, LEncoding, TSourceEncoding.Detect(LBytes));
   Result.Text := Normalize(LEncoding.GetString(LBytes, LPreambleSize,
     Length(LBytes) - LPreambleSize));
   LHash := THashSHA2.Create;
