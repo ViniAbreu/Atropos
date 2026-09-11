@@ -74,6 +74,8 @@ begin
   LTree := FParser.ParseFile(ScenarioPath('providers\' + AName + '.pas'));
   FContext.RegisterUnitExports(LTree.GetUnitName, LTree.GetExportedIdentifiers,
     LTree.HasInitializationSection, AIsNative);
+  FContext.RegisterUnitDependencies(LTree.GetUnitName,
+    LTree.GetInterfaceUses + LTree.GetImplementationUses);
 end;
 
 function TAnalysisDecisionTests.AnalyzeScenario(
@@ -168,7 +170,7 @@ begin
   Assert.AreEqual<NativeInt>(0, Length(LResult.UnusedUnits));
   Assert.AreEqual<NativeInt>(0, Length(LResult.UnitsToMoveToImpl));
   Assert.AreEqual(Integer(dsUsed), Integer(LResult.Decisions[0].State));
-  Assert.IsTrue(LResult.Decisions[0].Reason.Contains('initialization'));
+  Assert.IsTrue(LResult.Decisions[0].Reason.Contains('Known lifecycle effects via '));
 end;
 
 procedure TAnalysisDecisionTests.MissingProviderIsReportedAsUnknown;

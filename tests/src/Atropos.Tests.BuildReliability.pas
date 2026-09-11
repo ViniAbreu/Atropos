@@ -107,10 +107,11 @@ type
     function SupportsHeadlessMSBuild(const ADelphiPath: string): Boolean;
   end;
 
-  TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver)
+  TExternalResolverStub = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver)
   public
     ResolveKnownUnits: Boolean;
     Warnings: TArray<string>;
+    function TryGetUnitImports(const AUnitName: string; out AImports: TArray<string>): Boolean;
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, ABasePath: string); virtual;
     function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
@@ -411,6 +412,12 @@ begin
   Result := Warnings;
 end;
 
+function TExternalResolverStub.TryGetUnitImports(const AUnitName: string;
+  out AImports: TArray<string>): Boolean;
+begin
+  AImports := [];
+  Result := ResolveKnownUnits;
+end;
 function TExternalResolverStub.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit, AIsNative: Boolean): Boolean;
 begin
   AExports := [];

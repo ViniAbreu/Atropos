@@ -3,12 +3,13 @@
 interface
 uses
   System.Generics.Collections,
-  Atropos.Core.Ports;
+  Atropos.Core.Ports, Atropos.Adapters.UnitDependencies;
 
 type
-  TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver)
+  TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver)
   private
     FASTParser: IASTParser;
+    FDependencies: TUnitDependencyCache;
     FSearchPaths: TArray<string>;
     FDelphiPath: string;
     FProjectBasePath: string;
@@ -25,6 +26,7 @@ type
     destructor Destroy; override;
     
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, AProjectBasePath: string);
+    function TryGetUnitImports(const AUnitName: string; out AImports: TArray<string>): Boolean;
     function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
@@ -37,6 +39,7 @@ constructor TExternalUnitResolverAdapter.Create(const AASTParser: IASTParser;
   const ALogger: ILogger);
 begin
   FASTParser := AASTParser;
+  FDependencies := TUnitDependencyCache.Create;
   FLogger := ALogger;
   FUnitPathCache := TDictionary<string, string>.Create;
   FWarnings := TList<string>.Create;
@@ -48,6 +51,7 @@ begin
   FSearchPaths := ASearchPaths;
   FDelphiPath := ADelphiPath;
   FProjectBasePath := AProjectBasePath;
+  FDependencies.Clear;
   FUnitPathCache.Clear;
   FWarnings.Clear;
   FIsCacheBuilt := False;
@@ -56,6 +60,7 @@ end;
 destructor TExternalUnitResolverAdapter.Destroy;
 begin
   FWarnings.Free;
+  FDependencies.Free;
   FUnitPathCache.Free;
   inherited;
 end;
@@ -151,6 +156,11 @@ begin
   FIsCacheBuilt := True;
 end;
 
+function TExternalUnitResolverAdapter.TryGetUnitImports(const AUnitName: string;
+  out AImports: TArray<string>): Boolean;
+begin
+  Result := FDependencies.TryGet(AUnitName, AImports);
+end;
 function TExternalUnitResolverAdapter.TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
 var
   LLowerName: string;
@@ -174,6 +184,7 @@ begin
       LSyntaxTree := FASTParser.ParseFile(LFilePath);
       if Assigned(LSyntaxTree) then
       begin
+        FDependencies.Capture(AUnitName, LSyntaxTree);
         AExports := LSyntaxTree.GetExportedIdentifiers;
         AHasInit := LSyntaxTree.HasInitializationSection;
         Result := True;

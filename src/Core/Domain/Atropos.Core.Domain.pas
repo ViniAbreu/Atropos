@@ -3,7 +3,7 @@ unit Atropos.Core.Domain;
 interface
 uses
   System.Generics.Collections,
-  Atropos.Core.Ports, Atropos.Core.Analysis, System.SysUtils;
+  Atropos.Core.Ports, Atropos.Core.Analysis, Atropos.Core.Effects, System.SysUtils;
 
 type
   
@@ -13,6 +13,8 @@ type
     ExportedIdentifiers: TList<string>;
     ExportedHelpers: TObjectDictionary<string, TList<string>>;
     HasInitialization: Boolean;
+    Imports: TArray<string>;
+    ImportsKnown: Boolean;
     IsNative: Boolean;
     constructor Create(const AUnitName: string; AHasInit: Boolean = False; AIsNative: Boolean = False);
     destructor Destroy; override;
@@ -24,6 +26,9 @@ type
     FMissingUnits: TDictionary<string, Boolean>;
     FResolver: IExternalUnitResolver;
     FLogger: ILogger;
+    FEffects: TUnitEffectGraph;
+    function LoadEffectFacts(const AUnitName: string): TUnitEffectFacts;
+    procedure LoadResolverImports(const AUnitName: string);
     function TryResolveQualifiedUnit(const AIdentifier: string;
       out AUnitName, ABaseIdentifier: string): Boolean;
     function FindExportingUnits(const AIdentifier: string;
@@ -39,6 +44,9 @@ type
       const AVisibleUnits, AIdentifiers: TArray<string>): string;
     function HasUnit(const AUnitName: string): Boolean;
     function UnitHasInitialization(const AUnitName: string): Boolean;
+    procedure RegisterUnitDependencies(const AUnitName: string; const AImports: TArray<string>;
+      AKnown: Boolean = True);
+    function AssessUnitEffects(const AUnitName: string): TEffectAssessment;
   end;
 
   TUnitAnalysisResult = record
@@ -73,6 +81,7 @@ constructor TUnitExports.Create(const AUnitName: string; AHasInit: Boolean = Fal
 begin
   UnitName := AUnitName;
   HasInitialization := AHasInit;
+  ImportsKnown := False;
   IsNative := AIsNative;
   ExportedIdentifiers := TList<string>.Create;
   ExportedHelpers := TObjectDictionary<string, TList<string>>.Create([doOwnsValues]);
@@ -87,6 +96,7 @@ end;
 
 constructor TProjectContext.Create(AResolver: IExternalUnitResolver = nil; ALogger: ILogger = nil);
 begin
+  FEffects := TUnitEffectGraph.Create;
   FUnitExports := TObjectDictionary<string, TUnitExports>.Create([doOwnsValues]);
   FMissingUnits := TDictionary<string, Boolean>.Create;
   FResolver := AResolver;
@@ -95,6 +105,7 @@ end;
 
 destructor TProjectContext.Destroy;
 begin
+  FEffects.Free;
   FMissingUnits.Free;
   FUnitExports.Free;
   inherited;
@@ -147,6 +158,7 @@ begin
     if FResolver.TryResolveUnit(AUnitName, LExports, LHasInit, LIsNative) then
     begin
       RegisterUnitExports(AUnitName, LExports, LHasInit, LIsNative);
+      LoadResolverImports(AUnitName);
       Exit(True);
     end;
     
@@ -154,6 +166,42 @@ begin
   end;
 end;
 
+procedure TProjectContext.RegisterUnitDependencies(const AUnitName: string;
+  const AImports: TArray<string>; AKnown: Boolean);
+var LExports: TUnitExports;
+begin
+  LExports := FUnitExports[AUnitName.ToLower];
+  LExports.Imports := Copy(AImports);
+  LExports.ImportsKnown := AKnown;
+end;
+
+procedure TProjectContext.LoadResolverImports(const AUnitName: string);
+var LDependencies: IUnitDependencyResolver; LImports: TArray<string>; LKnown: Boolean;
+begin
+  LKnown := False;
+  if Supports(FResolver, IUnitDependencyResolver, LDependencies) then
+    LKnown := LDependencies.TryGetUnitImports(AUnitName, LImports);
+  RegisterUnitDependencies(AUnitName, LImports, LKnown);
+end;
+
+function TProjectContext.LoadEffectFacts(const AUnitName: string): TUnitEffectFacts;
+var LExports: TUnitExports;
+begin
+  Result := Default(TUnitEffectFacts);
+  if not HasUnit(AUnitName) then
+    Exit;
+  LExports := FUnitExports[AUnitName.ToLower];
+  Result.DirectEffects := LExports.HasInitialization;
+  Result.ImportsKnown := LExports.ImportsKnown;
+  Result.Imports := LExports.Imports;
+end;
+
+function TProjectContext.AssessUnitEffects(const AUnitName: string): TEffectAssessment;
+begin
+  Result := FEffects.Assess(AUnitName,
+    function(const AName: string): TUnitEffectFacts
+    begin Result := LoadEffectFacts(AName) end);
+end;
 function TProjectContext.UnitHasInitialization(const AUnitName: string): Boolean;
 var
   LExports: TUnitExports;
@@ -356,6 +404,7 @@ function TAnalyzeUnitUses.MustPreserve(AContext: TProjectContext;
   ADecisions: TDependencyDecisions): Boolean;
 var
   LReason: string;
+  LEffects: TEffectAssessment;
 begin
   Result := True;
   if not AContext.HasUnit(AUnitName) then
@@ -364,10 +413,17 @@ begin
       daPreserve, 'Source or exports could not be resolved.'));
     Exit;
   end;
-  if AContext.UnitHasInitialization(AUnitName) then
+  LEffects := AContext.AssessUnitEffects(AUnitName);
+  if LEffects.State = esUnknown then
+  begin
+    ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsUnknown,
+      daPreserve, LEffects.Reason));
+    Exit;
+  end;
+  if LEffects.State = esPresent then
   begin
     ADecisions.Add(TDependencyDecision.Create(AUnitName, ASection, dsUsed,
-      daPreserve, 'Known initialization effects require this import.'));
+      daPreserve, LEffects.Reason));
     Exit;
   end;
   LReason := AContext.FindUnitAmbiguity(AUnitName, AVisibleUnits, AIdentifiers);

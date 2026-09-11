@@ -112,8 +112,11 @@ var
 begin
   // Register known exports
   FContext.RegisterUnitExports('System.SysUtils', ['Exception', 'IntToStr']);
+  FContext.RegisterUnitDependencies('System.SysUtils', []);
   FContext.RegisterUnitExports('System.Classes', ['TStringList', 'TComponent']);
+  FContext.RegisterUnitDependencies('System.Classes', []);
   FContext.RegisterUnitExports('Vcl.Forms', ['TForm']);
+  FContext.RegisterUnitDependencies('Vcl.Forms', []);
 
   // Build Mock Tree
   LMockTreeObj := TMockSyntaxTree.Create;
@@ -139,6 +142,7 @@ begin
   // Nenhuma foi "completamente não usada" neste cenário, oh wait, TForm was used.
   // Vamos adicionar uma não usada:
   FContext.RegisterUnitExports('UnusedUnit', ['SomeDummyExport']);
+  FContext.RegisterUnitDependencies('UnusedUnit', []);
   LMockTreeObj.IntfUses := ['System.SysUtils', 'System.Classes', 'Vcl.Forms', 'UnusedUnit'];
   LResult := FAnalyzer.Execute(LMockTree, FContext);
   
@@ -151,6 +155,7 @@ begin
   FContext.RegisterUnitExports('Helper.Unit', [
     '!HELPER:ToText:string',
     'TArray']);
+  FContext.RegisterUnitDependencies('Helper.Unit', []);
 
   Assert.IsTrue(FContext.UnitExportsIdentifier('Helper.Unit', 'ToText', ['string']));
   Assert.IsTrue(FContext.UnitExportsIdentifier('Helper.Unit', 'System.TArray<string>', []));
@@ -160,7 +165,9 @@ end;
 procedure TDomainTests.InitializationUnitsArePreservedIncludingNative;
 begin
   FContext.RegisterUnitExports('SideEffect.Unit', [], True, False);
+  FContext.RegisterUnitDependencies('SideEffect.Unit', []);
   FContext.RegisterUnitExports('Native.Unit', [], True, True);
+  FContext.RegisterUnitDependencies('Native.Unit', []);
 
   Assert.IsTrue(FContext.UnitHasInitialization('SideEffect.Unit'));
   Assert.IsTrue(FContext.UnitHasInitialization('Native.Unit'));
@@ -174,6 +181,7 @@ var
 begin
   FContext.RegisterUnitExports('System.SysUtils', [
     '!HELPER:ToString:SmallInt']);
+  FContext.RegisterUnitDependencies('System.SysUtils', []);
   LSyntaxTree := TMockSyntaxTree.Create;
   LSyntaxTree.UnitName := 'SegmentosClientes';
   LSyntaxTree.IntfUses := ['System.SysUtils'];
@@ -191,7 +199,9 @@ var
   LResult: TUnitAnalysisResult;
 begin
   FContext.RegisterUnitExports('First.Unit', ['TShared']);
+  FContext.RegisterUnitDependencies('First.Unit', []);
   FContext.RegisterUnitExports('Second.Unit', ['TShared']);
+  FContext.RegisterUnitDependencies('Second.Unit', []);
   LSyntaxTree := TMockSyntaxTree.Create;
   LSyntaxTree.UnitName := 'Consumer.Unit';
   LSyntaxTree.IntfUses := ['Second.Unit', 'First.Unit'];
@@ -210,7 +220,9 @@ var
   LResult: TUnitAnalysisResult;
 begin
   FContext.RegisterUnitExports('First.Unit', ['TShared']);
+  FContext.RegisterUnitDependencies('First.Unit', []);
   FContext.RegisterUnitExports('Second.Unit', ['TShared']);
+  FContext.RegisterUnitDependencies('Second.Unit', []);
   LSyntaxTree := TMockSyntaxTree.Create;
   LSyntaxTree.UnitName := 'Consumer.Unit';
   LSyntaxTree.IntfUses := ['Second.Unit', 'First.Unit'];
@@ -227,7 +239,9 @@ var
   LResult: TUnitAnalysisResult;
 begin
   FContext.RegisterUnitExports('Used.Unit', ['TUnique']);
+  FContext.RegisterUnitDependencies('Used.Unit', []);
   FContext.RegisterUnitExports('Unused.Unit', ['TOther']);
+  FContext.RegisterUnitDependencies('Unused.Unit', []);
   LSyntaxTree := TMockSyntaxTree.Create;
   LSyntaxTree.UnitName := 'Consumer.Unit';
   LSyntaxTree.IntfUses := ['Used.Unit', 'Unused.Unit'];

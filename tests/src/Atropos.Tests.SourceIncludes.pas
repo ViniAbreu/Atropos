@@ -174,6 +174,7 @@ begin
   LAnalyzer := TAnalyzeUnitUses.Create;
   try
     LContext.RegisterUnitExports('Provider', []);
+    LContext.RegisterUnitDependencies('Provider', []);
     LResult := LAnalyzer.Execute(LTree, LContext);
     Assert.AreEqual<NativeInt>(0, Length(LResult.UnusedUnits));
     Assert.AreEqual<NativeInt>(0, Length(LResult.UnitsToMoveToImpl));
