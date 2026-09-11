@@ -97,6 +97,14 @@ Attribute references preserve both exact and Attribute-suffixed providers as unk
 until constructor selection and inheritance are resolved. Ordinary references do
 not gain the suffix. This does not implement full nominal type or overload binding.
 
+Symbol declarations also carry their source section and declared visibility.
+Explicit private/strict private/protected/strict protected/public/published tags
+remain distinct. Parameters and lexical locals are local; unit declarations use
+unit visibility together with their interface/implementation section. Implicit
+member access and out-of-line method implementation access remain unknown rather
+than guessing defaults or inherited access. These facts describe declarations;
+they do not add a new accessibility resolver or authorize additional edits.
+
 Implicit lifecycle facts are separate from import completeness. Known managed-record
 global storage sets the compatibility lifecycle flag; unresolved global/typed/class
 storage and class-constructor activation produce unknown effect metadata. Resolver

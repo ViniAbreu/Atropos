@@ -102,6 +102,9 @@ type
 
   TLocalSymbolKind = (skVariable, skParameter, skType, skTypeParameter,
     skRoutine, skField, skConstant);
+  TSymbolSection = (ssUnknown, ssInterface, ssImplementation, ssInitialization, ssFinalization);
+  TSymbolVisibility = (svUnknown, svUnit, svLocal, svPrivate, svStrictPrivate,
+    svProtected, svStrictProtected, svPublic, svPublished);
   TSymbolScope = record
     ParentId, OwnerId: Integer;
   end;
@@ -110,6 +113,8 @@ type
     ScopeId, AvailableFrom, GenericArity: Integer;
     NormalizedLine, NormalizedColumn: Integer;
     Kind: TLocalSymbolKind;
+    Section: TSymbolSection;
+    Visibility: TSymbolVisibility;
     CanShadow: Boolean;
   end;
   TSymbolReference = record

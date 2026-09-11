@@ -30,6 +30,9 @@ type
     function QualifiedName(ANode: TSyntaxNode): string;
     function MethodOwner(ANode: TSyntaxNode): Integer;
     function GenericArity(ANode: TSyntaxNode): Integer;
+    function DeclarationSection(ANode: TSyntaxNode): TSymbolSection;
+    function DeclarationVisibility(ANode: TSyntaxNode;
+      AKind: TLocalSymbolKind): TSymbolVisibility;
     procedure References(ANode: TSyntaxNode; const AVisit: TSymbolVisit);
     function EnterScope(ANode: TSyntaxNode; const AVisit: TSymbolVisit): TSymbolVisit;
     procedure Visit(ANode: TSyntaxNode; AVisit: TSymbolVisit);
@@ -81,6 +84,48 @@ begin
     Result := Length(LParameters.ChildNodes);
 end;
 
+function TSymbolFactExtractor.DeclarationSection(ANode: TSyntaxNode): TSymbolSection;
+begin
+  while Assigned(ANode) do
+  begin
+    case ANode.Typ of
+      ntInterface: Exit(ssInterface);
+      ntImplementation: Exit(ssImplementation);
+      ntInitialization: Exit(ssInitialization);
+      ntFinalization: Exit(ssFinalization);
+    end;
+    ANode := ANode.ParentNode;
+  end;
+  Result := ssUnknown;
+end;
+
+function TSymbolFactExtractor.DeclarationVisibility(ANode: TSyntaxNode;
+  AKind: TLocalSymbolKind): TSymbolVisibility;
+var LParent: TSyntaxNode;
+begin
+  if AKind in [skParameter, skTypeParameter] then
+    Exit(svLocal);
+  if (AKind = skRoutine) and ANode.GetAttribute(anName).Contains('.') then
+    Exit(svUnknown); // Out-of-line implementation does not repeat access visibility.
+  LParent := ANode.ParentNode;
+  while Assigned(LParent) do
+  begin
+    case LParent.Typ of
+      ntPrivate: Exit(svPrivate);
+      ntStrictPrivate: Exit(svStrictPrivate);
+      ntProtected: Exit(svProtected);
+      ntStrictProtected: Exit(svStrictProtected);
+      ntPublic: Exit(svPublic);
+      ntPublished: Exit(svPublished);
+      ntMethod, ntAnonymousMethod, ntStatements: Exit(svLocal);
+      ntTypeDecl: Exit(svUnknown); // Implicit member access depends on type/directives.
+      ntInterface, ntImplementation: Exit(svUnit);
+    end;
+    LParent := LParent.ParentNode;
+  end;
+  Result := svUnknown;
+end;
+
 function TSymbolFactExtractor.AddDeclaration(ANode: TSyntaxNode; const AName: string;
   AScope: Integer; AKind: TLocalSymbolKind): Integer;
 var LItem: TSymbolDeclaration;
@@ -92,6 +137,8 @@ begin
   LItem.Name := AName;
   LItem.ScopeId := AScope;
   LItem.Kind := AKind;
+  LItem.Section := DeclarationSection(ANode);
+  LItem.Visibility := DeclarationVisibility(ANode, AKind);
   LItem.AvailableFrom := FPosition;
   LItem.GenericArity := GenericArity(ANode);
   LItem.CanShadow := not ANode.HasAttribute(anOverload);

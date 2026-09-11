@@ -11,6 +11,9 @@ type
     FDirectory, FSource: string;
     FParser: IASTParser;
     function Analyze(const ABody: string): TUnitAnalysisResult;
+    function ReadFacts(const ABody: string): TUnitSymbolFacts;
+    function FindDeclaration(const AFacts: TUnitSymbolFacts; const AName: string;
+      ASection: TSymbolSection): TSymbolDeclaration;
   public
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
@@ -46,6 +49,17 @@ type
     [TestCase('TypeDeclaration', '2')]
     [TestCase('ClassMethod', '3')]
     procedure DeclarationStartInIncludeKeepsSource(AScenario: Integer);
+    [TestCase('Private', 'private,3')]
+    [TestCase('StrictPrivate', 'strict private,4')]
+    [TestCase('Protected', 'protected,5')]
+    [TestCase('StrictProtected', 'strict protected,6')]
+    [TestCase('Public', 'public,7')]
+    [TestCase('Published', 'published,8')]
+    procedure DeclarationsRetainExplicitVisibility(const AVisibility: string; AExpected: Integer);
+    [Test] procedure ImplicitAndOutOfLineAccessStayUnknown;
+    [TestCase('Initialization', 'initialization,3')]
+    [TestCase('Finalization', 'finalization,4')]
+    procedure InlineLifecycleDeclarationRetainsSection(const APhase: string; AExpected: Integer);
   end;
 
 implementation
@@ -199,6 +213,66 @@ begin
       LFound := True;
     end;
   Assert.IsTrue(LFound);
+end;
+
+function TSymbolBindingTests.ReadFacts(const ABody: string): TUnitSymbolFacts;
+var LTree: IUnitSyntaxTree; LPort: IUnitSymbolFacts;
+begin
+  TFile.WriteAllText(FSource, 'unit Consumer; interface ' + ABody + ' end.', TEncoding.UTF8);
+  LTree := FParser.ParseFile(FSource);
+  Assert.IsTrue(Supports(LTree, IUnitSymbolFacts, LPort));
+  Result := LPort.GetSymbolFacts;
+end;
+
+function TSymbolBindingTests.FindDeclaration(const AFacts: TUnitSymbolFacts;
+  const AName: string; ASection: TSymbolSection): TSymbolDeclaration;
+var LDeclaration: TSymbolDeclaration;
+begin
+  for LDeclaration in AFacts.Declarations do
+    if (LDeclaration.Name = AName) and (LDeclaration.Section = ASection) then
+      Exit(LDeclaration);
+  Result := Default(TSymbolDeclaration);
+  Assert.Fail('Missing declaration: ' + AName);
+end;
+
+procedure TSymbolBindingTests.DeclarationsRetainExplicitVisibility(
+  const AVisibility: string; AExpected: Integer);
+var LFacts: TUnitSymbolFacts; LDeclaration: TSymbolDeclaration;
+begin
+  LFacts := ReadFacts('{$M+} type TContainer = class ' + AVisibility +
+    ' procedure Visible(Input: Integer); end; implementation ' +
+    'procedure TContainer.Visible(Input: Integer); var Local: Integer; begin end;');
+  LDeclaration := FindDeclaration(LFacts, 'Visible', ssInterface);
+  Assert.AreEqual<Integer>(AExpected, Ord(LDeclaration.Visibility));
+  Assert.AreEqual(FSource, LDeclaration.SourcePath);
+  Assert.IsTrue(LDeclaration.NormalizedColumn > 0);
+  Assert.AreEqual(Ord(svUnit), Ord(FindDeclaration(LFacts, 'TContainer', ssInterface).Visibility));
+  Assert.AreEqual(Ord(svLocal), Ord(FindDeclaration(LFacts, 'Input', ssInterface).Visibility));
+  Assert.AreEqual(Ord(svLocal), Ord(FindDeclaration(LFacts, 'Input', ssImplementation).Visibility));
+  Assert.AreEqual(Ord(svLocal), Ord(FindDeclaration(LFacts, 'Local', ssImplementation).Visibility));
+  Assert.AreEqual(Ord(svUnknown), Ord(FindDeclaration(LFacts, 'TContainer.Visible', ssImplementation).Visibility));
+end;
+
+procedure TSymbolBindingTests.ImplicitAndOutOfLineAccessStayUnknown;
+var LFacts: TUnitSymbolFacts;
+begin
+  LFacts := ReadFacts('type TContainer = class procedure Implicit; end; ' +
+    'implementation procedure TContainer.Implicit; begin end; const InternalValue = 1;');
+  Assert.AreEqual(Ord(svUnknown), Ord(FindDeclaration(LFacts, 'Implicit', ssInterface).Visibility));
+  Assert.AreEqual(Ord(svUnknown), Ord(FindDeclaration(LFacts, 'TContainer.Implicit', ssImplementation).Visibility));
+  Assert.AreEqual(Ord(svUnit), Ord(FindDeclaration(LFacts, 'InternalValue', ssImplementation).Visibility));
+end;
+
+procedure TSymbolBindingTests.InlineLifecycleDeclarationRetainsSection(
+  const APhase: string; AExpected: Integer);
+var LFacts: TUnitSymbolFacts; LDeclaration: TSymbolDeclaration; LPrefix: string;
+begin
+  LPrefix := 'implementation ';
+  if APhase = 'finalization' then
+    LPrefix := LPrefix + 'initialization ';
+  LFacts := ReadFacts(LPrefix + APhase + ' begin var LocalValue := 1; end;');
+  LDeclaration := FindDeclaration(LFacts, 'LocalValue', TSymbolSection(AExpected));
+  Assert.AreEqual(Ord(svLocal), Ord(LDeclaration.Visibility));
 end;
 
 initialization
