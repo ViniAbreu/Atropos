@@ -36,7 +36,7 @@ type
   public
     constructor Create(AResolver: TSourceIncludeResolver;
       const ADefined: TFunc<string, Boolean>; const ACompilerVersion: string;
-      const AOptions: TArray<TCompilerOption>);
+      const AOptions: TArray<TCompilerOption>; const ANumbers: TArray<TCompilerOption> = nil);
     destructor Destroy; override;
     function Prepare(const ASource, AFilePath: string): string;
     function GetIncludeFileContent(const ParentFileName, IncludeName: string;
@@ -50,7 +50,7 @@ uses System.Character;
 
 constructor TConditionalSource.Create(AResolver: TSourceIncludeResolver;
   const ADefined: TFunc<string, Boolean>; const ACompilerVersion: string;
-  const AOptions: TArray<TCompilerOption>);
+  const AOptions: TArray<TCompilerOption>; const ANumbers: TArray<TCompilerOption>);
 var LOption: TCompilerOption; LLookup: TFunc<string, Boolean>;
 begin
   inherited Create;
@@ -63,7 +63,7 @@ begin
   FIncludes := TDictionary<string, TPreparedInclude>.Create;
   LLookup := function(AName: string): Boolean
     begin Result := Self.Defined(AName); end;
-  FExpression := TConditionalExpression.Create(LLookup, ACompilerVersion);
+  FExpression := TConditionalExpression.Create(LLookup, ACompilerVersion, ANumbers);
   for LOption in AOptions do
     SetSwitch(SwitchName(LOption.Name), LOption.Value);
 end;
@@ -244,6 +244,8 @@ begin
     begin
       LOutput.Append(Copy(ASource, LPosition, LToken.StartOffset - LPosition));
       LPart := LToken.Text;
+      if Active and (LToken.Kind = stIdentifier) then
+        FExpression.ObserveIdentifier(LToken.Text);
       if not Active then LPart := Blank(LPart);
       if LToken.Kind = stDirective then LPart := Directive(LToken.Text, AFilePath);
       LOutput.Append(LPart);

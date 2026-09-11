@@ -43,6 +43,7 @@ type
     Defines: TArray<string>;
     CompilerVersion: string;
     DefaultSwitches: TArray<TCompilerOption>;
+    NumericValues: TArray<TCompilerOption>;
   end;
 
   TTargetAnalysisServices = record

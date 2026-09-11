@@ -44,6 +44,9 @@ type
     [TestCase('Default32', 'Win32')]
     [TestCase('Default64', 'Win64')]
     procedure CompilerSwitchDefaultsReachParser(const APlatform: string);
+    [TestCase('Numeric32', 'Win32,10,4')]
+    [TestCase('Numeric64', 'Win64,8,8')]
+    procedure CompilerNumericFactsSelectTargetTypes(const APlatform: string; AExtended, APointer: Integer);
     [Test] procedure ExplicitGuiOptionDoesNotLeakConsoleSymbol;
     [Test] procedure TargetDisagreementPreservesImport;
     [Test] procedure CommonActionsSurviveIntersection;
@@ -304,6 +307,26 @@ begin
   for LOption in LSymbols.DefaultSwitches do
     Assert.Contains<string>(LTree.GetExportedIdentifiers,
       'T' + LOption.Value.Substring(0, 1) + LOption.Value.Substring(1).ToLower + LOption.Name);
+end;
+procedure TTargetAnalysisTests.CompilerNumericFactsSelectTargetTypes(
+  const APlatform: string; AExtended, APointer: Integer);
+var LReader: TCompilerSymbolReader; LSymbols: TCompilerSymbols;
+  LContext: TProjectCompilationContext; LParser: IASTParser; LTree: IUnitSyntaxTree;
+begin
+  LContext := Context(APlatform);
+  LReader := TCompilerSymbolReader.Create(TWin32BuildProcessRunner.Create, nil);
+  try
+    LSymbols := LReader.Read(LContext, FDelphiPath);
+  finally
+    LReader.Free;
+  end;
+  LParser := TDelphiASTAdapter.Create(LContext, LSymbols);
+  LTree := LParser.ParseFile(WriteSource('Consumer.pas',
+    'unit Consumer; interface {$IF (SizeOf(Extended) = ' + AExtended.ToString +
+    ') AND (SizeOf(System.Pointer) = ' + APointer.ToString +
+    ') AND (RTLVersion = CompilerVersion)}type TCorrect = Integer;' +
+    '{$ELSE}type TWrong = Integer;{$ENDIF} implementation end.'));
+  Assert.AreEqual('TCorrect', LTree.GetExportedIdentifiers[0]);
 end;
 procedure TTargetAnalysisTests.ExplicitGuiOptionDoesNotLeakConsoleSymbol;
 var

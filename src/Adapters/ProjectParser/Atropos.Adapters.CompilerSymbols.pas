@@ -15,6 +15,9 @@ type
       const ADelphiPath, ADirectory, ASourcePath: string): string;
     function ParseOutput(const AOutput: string): TCompilerSymbols;
     function ReadSwitches(const AOutput: string): TArray<TCompilerOption>;
+    function NumericProbe: string;
+    function TypeSizeProbe(const AName: string): string;
+    function ReadNumbers(const AOutput, AVersion: string): TArray<TCompilerOption>;
   public
     constructor Create(const ARunner: IBuildProcessRunner;
       const ACancel: TCancellationCheck);
@@ -56,7 +59,7 @@ begin
     Result := Result + '{$IFOPT ' + LSymbol + '+}' +
       '{$MESSAGE HINT ''ATROPOS_SWITCH:' + LSymbol + ':ON''}{$ELSE}' +
       '{$MESSAGE HINT ''ATROPOS_SWITCH:' + LSymbol + ':OFF''}{$ENDIF}' + sLineBreak;
-  Result := Result + 'begin end.';
+  Result := Result + NumericProbe + 'begin end.';
 end;
 
 function TCompilerSymbolReader.ApplicationSwitch(
@@ -116,6 +119,7 @@ begin
     raise EInvalidOperation.Create('Compiler probe did not identify its language version.');
   Result.CompilerVersion := LMatch.Groups[1].Value;
   Result.DefaultSwitches := ReadSwitches(AOutput);
+  Result.NumericValues := ReadNumbers(AOutput, Result.CompilerVersion);
   LNames := TList<string>.Create;
   try
     for LMatch in TRegEx.Matches(AOutput, 'ATROPOS_DEFINE:([A-Z0-9_]+)') do
@@ -130,6 +134,50 @@ begin
     Result.Defines := LNames.ToArray;
   finally
     LNames.Free;
+  end;
+end;
+
+function TCompilerSymbolReader.TypeSizeProbe(const AName: string): string;
+var LSize: Integer;
+begin
+  Result := '';
+  for LSize in [1, 2, 4, 8, 10, 16] do
+    Result := Result + '{$IF SizeOf(System.' + AName + ') = ' + IntToStr(LSize) +
+      '}{$MESSAGE HINT ''ATROPOS_NUMBER:SIZEOF.' + UpperCase(AName) + ':' +
+      IntToStr(LSize) + '''}{$ENDIF}' + sLineBreak;
+end;
+
+function TCompilerSymbolReader.NumericProbe: string;
+var LName: string;
+begin
+  Result := '{$IF RTLVersion = CompilerVersion}' +
+    '{$MESSAGE HINT ''ATROPOS_RTL_MATCHES_COMPILER''}{$ENDIF}' + sLineBreak;
+  for LName in ('Byte;ShortInt;SmallInt;Word;Integer;Cardinal;LongInt;LongWord;' +
+    'Int64;UInt64;NativeInt;NativeUInt;Pointer;Single;Double;Extended;Currency;' +
+    'Boolean;ByteBool;WordBool;LongBool;AnsiChar;WideChar;Char;TMethod').Split([';']) do
+    Result := Result + TypeSizeProbe(LName);
+end;
+
+function TCompilerSymbolReader.ReadNumbers(const AOutput, AVersion: string): TArray<TCompilerOption>;
+var LValues: TList<TCompilerOption>; LMatch: TMatch; LOption: TCompilerOption;
+begin
+  LValues := TList<TCompilerOption>.Create;
+  try
+    for LMatch in TRegEx.Matches(AOutput, 'ATROPOS_NUMBER:([A-Z0-9_.]+):(\d+)') do
+    begin
+      LOption.Name := LMatch.Groups[1].Value;
+      LOption.Value := LMatch.Groups[2].Value;
+      LValues.Add(LOption);
+    end;
+    if AOutput.Contains('ATROPOS_RTL_MATCHES_COMPILER') then
+    begin
+      LOption.Name := 'RTLVERSION';
+      LOption.Value := AVersion;
+      LValues.Add(LOption);
+    end;
+    Result := LValues.ToArray;
+  finally
+    LValues.Free;
   end;
 end;
 

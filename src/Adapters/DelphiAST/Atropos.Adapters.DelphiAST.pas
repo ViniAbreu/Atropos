@@ -68,6 +68,7 @@ type
     FDefines, FContextReasons: TArray<string>;
     FCompilerVersion: string;
     FOptions: TArray<TCompilerOption>;
+    FNumbers: TArray<TCompilerOption>;
     function CreateSourceStream(const AFilePath: string;
       out AConstraints: TArray<string>; out AHash: string): TStringStream;
     function SyntaxKey(const AFilePath, AHash: string;
@@ -118,6 +119,7 @@ begin
   FDefines := ASymbols.Defines + AContext.Defines;
   FCompilerVersion := ASymbols.CompilerVersion;
   FOptions := ASymbols.DefaultSwitches + AContext.Options;
+  FNumbers := Copy(ASymbols.NumericValues);
   if Length(AContext.DeferredProperties) > 0 then
     FContextReasons := ['Build targets can change compiler settings: ' +
       string.Join(', ', AContext.DeferredProperties)];
@@ -229,7 +231,7 @@ begin
         LLexer := LBuilder.Lexer.Lexer;
         LPrepared := TConditionalSource.Create(LIncludes,
           function(AName: string): Boolean
-          begin Result := LLexer.IsDefined(AName) end, LVersion, FOptions);
+          begin Result := LLexer.IsDefined(AName) end, LVersion, FOptions, FNumbers);
         LIncludeHandler := LPrepared;
         LBuilder.IncludeHandler := LIncludeHandler;
         LText := LPrepared.Prepare(LSourceStream.DataString, AFilePath);
