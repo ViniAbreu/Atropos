@@ -100,6 +100,34 @@ type
     function GetMemberReferences: TArray<TMemberReference>;
   end;
 
+  TLocalSymbolKind = (skVariable, skParameter, skType, skTypeParameter,
+    skRoutine, skField, skConstant);
+  TSymbolScope = record
+    ParentId, OwnerId: Integer;
+  end;
+  TSymbolDeclaration = record
+    Name, SourcePath: string;
+    ScopeId, AvailableFrom, GenericArity: Integer;
+    NormalizedLine, NormalizedColumn: Integer;
+    Kind: TLocalSymbolKind;
+    CanShadow: Boolean;
+  end;
+  TSymbolReference = record
+    Name, SourcePath: string;
+    ScopeId, Position, GenericArity: Integer;
+    NormalizedLine, NormalizedColumn: Integer;
+    InInterface, Uncertain: Boolean;
+  end;
+  TUnitSymbolFacts = record
+    Scopes: TArray<TSymbolScope>;
+    Declarations: TArray<TSymbolDeclaration>;
+    References: TArray<TSymbolReference>;
+  end;
+  IUnitSymbolFacts = interface
+    ['{E4ED32B2-043A-40BF-8798-E7D823A3B603}']
+    function GetSymbolFacts: TUnitSymbolFacts;
+  end;
+
   IUnitSourceDependencies = interface
     ['{7EBA76D2-050F-48CD-82F7-955CBAB1DCC5}']
     function GetSourceDependencies: TArray<TSourceDependency>;
