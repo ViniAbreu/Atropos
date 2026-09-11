@@ -63,12 +63,17 @@ type
   private
     FIncludePaths: TArray<string>;
     FSnapshot: TSourceSnapshot;
+    FParsedTrees: TDictionary<string, IUnitSyntaxTree>;
     FExplicitContext: Boolean;
     FDefines, FContextReasons: TArray<string>;
     FCompilerVersion: string;
     FOptions: TArray<TCompilerOption>;
     function CreateSourceStream(const AFilePath: string;
-      out AConstraints: TArray<string>): TStringStream;
+      out AConstraints: TArray<string>; out AHash: string): TStringStream;
+    function SyntaxKey(const AFilePath, AHash: string;
+      const ADependencies: TArray<TSourceDependency>): string;
+    function BuildSyntax(ABuilder: TPasSyntaxTreeBuilder; AStream: TStream;
+      const AFilePath: string): TSyntaxNode;
   public
     constructor Create; overload;
     constructor Create(const AIncludePaths: TArray<string>); overload;
@@ -127,12 +132,16 @@ end;
 
 destructor TDelphiASTAdapter.Destroy;
 begin
+  FParsedTrees.Free;
   FSnapshot.Free;
   inherited;
 end;
 
 procedure TDelphiASTAdapter.BeginAnalysis;
 begin
+  if not Assigned(FParsedTrees) then
+    FParsedTrees := TDictionary<string, IUnitSyntaxTree>.Create;
+  FParsedTrees.Clear;
   FSnapshot.BeginAnalysis;
 end;
 
@@ -142,13 +151,14 @@ begin
 end;
 
 function TDelphiASTAdapter.CreateSourceStream(const AFilePath: string;
-  out AConstraints: TArray<string>): TStringStream;
+  out AConstraints: TArray<string>; out AHash: string): TStringStream;
 var
   LSource: TDelphiSourceContent;
   LScanner: TConditionalImportScanner;
 begin
   AConstraints := [];
   LSource := TDelphiSourceReader.Read(AFilePath);
+  AHash := LSource.ContentHash;
   FSnapshot.RecordSource(AFilePath, LSource.ContentHash);
   if FExplicitContext then
   begin
@@ -162,6 +172,24 @@ begin
   Result := TStringStream.Create(LSource.Text, TEncoding.UTF8);
 end;
 
+function TDelphiASTAdapter.SyntaxKey(const AFilePath, AHash: string;
+  const ADependencies: TArray<TSourceDependency>): string;
+var LDependency: TSourceDependency;
+begin
+  Result := AFilePath + #0 + AHash;
+  for LDependency in ADependencies do
+    Result := Result + #0 + LDependency.ParentPath + #0 +
+      LDependency.FilePath + #0 + LDependency.ContentHash;
+end;
+
+function TDelphiASTAdapter.BuildSyntax(ABuilder: TPasSyntaxTreeBuilder;
+  AStream: TStream; const AFilePath: string): TSyntaxNode;
+var LScope: IInterface;
+begin
+  LScope := TExecutionProfile.Measure('syntax-building', AFilePath);
+  Result := ABuilder.Run(AStream);
+end;
+
 function TDelphiASTAdapter.ParseFile(const AFilePath: string): IUnitSyntaxTree;
 var LProfileScope: IInterface;
   LBuilder: TPasSyntaxTreeBuilder;
@@ -173,7 +201,7 @@ var LProfileScope: IInterface;
   LReasons: TArray<string>;
   LConstraints: TArray<string>;
   LPrepared: TConditionalSource;
-  LText, LVersion: string;
+  LText, LVersion, LHash, LKey: string;
   LLexer: TmwPasLex;
 begin
   LProfileScope := TExecutionProfile.Measure('parsing', AFilePath);
@@ -181,7 +209,7 @@ begin
     raise EASTParserException.CreateFmt('File not found: %s', [AFilePath]);
 
   try
-    LSourceStream := CreateSourceStream(AFilePath, LConstraints);
+    LSourceStream := CreateSourceStream(AFilePath, LConstraints, LHash);
     try
       LBuilder := nil;
       if FExplicitContext then
@@ -205,10 +233,14 @@ begin
         LIncludeHandler := LPrepared;
         LBuilder.IncludeHandler := LIncludeHandler;
         LText := LPrepared.Prepare(LSourceStream.DataString, AFilePath);
+        LKey := SyntaxKey(AFilePath, LHash, LPrepared.GetDependencies);
+        if Assigned(FParsedTrees) then
+          if FParsedTrees.TryGetValue(LKey, Result) then
+            Exit;
         LSourceStream.Size := 0;
         LSourceStream.WriteString(LText);
         LSourceStream.Position := 0;
-        LRoot := LBuilder.Run(LSourceStream);
+        LRoot := BuildSyntax(LBuilder, LSourceStream, AFilePath);
         if LRoot = nil then
           raise EASTParserException.Create('Parser returned nil tree.');
 
@@ -217,6 +249,8 @@ begin
           LReasons := LReasons + TContextSyntaxBuilder(LBuilder).IncompleteReasons;
         Result := TDelphiASTSyntaxTree.Create(AFilePath, LRoot,
           LPrepared.GetDependencies, LReasons, LConstraints);
+        if Assigned(FParsedTrees) then
+          FParsedTrees.AddOrSetValue(LKey, Result);
       finally
         LBuilder.Free;
       end;
@@ -474,4 +508,3 @@ begin
 end;
 
 end.
-

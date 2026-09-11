@@ -58,6 +58,8 @@ begin
     AIncludeName));
   if TFile.Exists(Result) then
     Exit;
+  if Assigned(FSnapshot) then
+    FSnapshot.RecordMissingSource(Result);
   for LPath in FIncludePaths do
   begin
     LDirectory := LPath;
@@ -66,6 +68,8 @@ begin
     Result := TPath.GetFullPath(TPath.Combine(LDirectory, AIncludeName));
     if TFile.Exists(Result) then
       Exit;
+    if Assigned(FSnapshot) then
+      FSnapshot.RecordMissingSource(Result);
   end;
   raise EIncludeError.CreateFmt('Include "%s" requested by "%s" was not found.',
     [AIncludeName, AParentFile]);

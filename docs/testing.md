@@ -286,3 +286,15 @@ duplicate names, owners, arities, routines and non-ASCII characters, and verify 
 array isolation and replacement. Existing source-based tests cover qualified types,
 routine inference, attributes and aliases. Use the unchanged scaled generator to
 compare performance; keep behavioral checks enabled when measuring the index.
+
+The `syntax-building` profile phase measures actual AST construction within the
+broader `parsing` phase, which still includes reading, hashing, conditional source
+preparation and include resolution. AnalysisSnapshot tests require tree identity
+reuse only for unchanged inputs within one analysis, rebuilding for changed root
+or include bytes, and independence across analysis lifetimes. They also exercise
+a new higher-priority include with identical bytes, both during a later read and
+after the last read but before validation. Removing the missing-candidate recording
+causes both include-resolution regression tests to fail. Reverting an observed
+change does not rehabilitate an already invalid snapshot. This reuses syntax, not
+filesystem observations; additional retained AST memory is a tradeoff, and reduced
+construction counts alone do not establish a wall-clock speedup.
