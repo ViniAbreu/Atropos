@@ -172,3 +172,17 @@ Project enumeration and the successful baseline build are controlled test double
 this fixture does not claim to exercise compiler cancellation or process crashes.
 It provides direct application/filesystem evidence for the historical
 `cancellation-transaction` contract without changing the Probe catalog status.
+
+`CacheLifecycle` checks the existing analysis-scoped metadata caches. A changed
+shared include invalidates the active snapshot; after BeginAnalysis and resolver
+Initialize, both consumers expose the new export and no longer expose the removed
+one. A changed provider similarly refreshes export facts, imports and initialization
+status, and Initialize removes previously captured metadata before the next parse.
+The real target factory and compiler process runner create Debug/Release services
+for Win32 and Win64, then interleave lookups of the same conditional provider to
+verify that exports from one configuration never appear in the other.
+
+These tests prove restart freshness and the `cache-context-isolation` contract.
+They do not implement or validate persistent/shared content-keyed caching or automatic
+invalidation inside an active analysis. Such mutations still abort the snapshot;
+source/include persistent-cache scenarios retain their historical BLOCKED status.
