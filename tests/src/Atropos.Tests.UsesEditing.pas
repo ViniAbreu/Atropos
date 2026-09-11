@@ -12,6 +12,8 @@ type
   public
     [Test] procedure RemovesOnlyTheAuthorizedSection;
     [Test] procedure RemovesUnconditionalTailWithoutTouchingDirectives;
+    [Test] procedure CompleteBranchAlternativesPermitUnconditionalEdits;
+    [Test] procedure IndependentConditionalNamesDoNotInventSeparators;
     [Test] procedure OriginalOffsetsIgnoreCommentsAndMultilineStrings;
     [TestCase('LF', '0')]
     [TestCase('CRLF', '1')]
@@ -50,6 +52,32 @@ uses System.SysUtils, System.Classes, System.IOUtils,
   Atropos.Core.Compilation, Atropos.Adapters.DelphiAST,
   Atropos.Adapters.FileSystem, Atropos.Tests.Modifier;
 
+procedure TUsesEditingTests.CompleteBranchAlternativesPermitUnconditionalEdits;
+var LAnalysis: TUnitAnalysisResult; LPlan: TUsesEditPlan; LSource: string;
+begin
+  LSource := 'unit Consumer; interface uses Erase, Keep, ' +
+    '{$IFDEF A}Scope.First{$ELSEIF DEFINED(B)}Scope.Second{$ELSE}Scope.Third{$ENDIF}; implementation end.';
+  LAnalysis := Default(TUnitAnalysisResult);
+  LAnalysis.Decisions := [TDependencyDecision.Create('Erase', usInterface, dsUnused, daRemove, '')];
+  LPlan := Plan(LSource, LAnalysis);
+  Assert.AreEqual(LSource.Replace('Erase, ', ''), LPlan.Updated);
+  LPlan := Plan(LPlan.Updated, LAnalysis);
+  Assert.IsFalse(LPlan.HasChanges);
+  LAnalysis.Decisions := [TDependencyDecision.Create('Scope.First', usInterface, dsUnused, daRemove, '')];
+  LPlan := Plan(LSource, LAnalysis);
+  Assert.AreEqual(LSource, LPlan.Updated, 'Conditional alternatives must stay immutable');
+end;
+
+procedure TUsesEditingTests.IndependentConditionalNamesDoNotInventSeparators;
+var LAnalysis: TUnitAnalysisResult; LPlan: TUsesEditPlan; LSource: string;
+begin
+  LSource := 'unit Consumer; interface uses Erase, Keep, ' +
+    '{$IFDEF A}Scope.First{$ENDIF}{$IFDEF B}Scope.Second{$ENDIF}; implementation end.';
+  LAnalysis := Default(TUnitAnalysisResult);
+  LAnalysis.Decisions := [TDependencyDecision.Create('Erase', usInterface, dsUnused, daRemove, '')];
+  LPlan := Plan(LSource, LAnalysis);
+  Assert.AreEqual(LSource, LPlan.Updated, 'Independent guards cannot replace a missing comma');
+end;
 procedure TUsesEditingTests.PreservedDecisionRetainsItsActualReason(AAmbiguous: Integer);
 var LAnalysis: TUnitAnalysisResult; LPlan: TUsesEditPlan; LState: TDependencyState;
 begin

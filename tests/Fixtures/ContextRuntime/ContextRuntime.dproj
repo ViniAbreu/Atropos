@@ -1,0 +1,32 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{BD7A29B4-B457-4078-8778-E3369C1F7898}</ProjectGuid>
+    <MainSource>ContextRuntime.dpr</MainSource>
+    <Base>true</Base>
+    <Config Condition="'$(Config)'==''">Debug</Config>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+    <AppType>Console</AppType><FrameworkType>None</FrameworkType>
+    <ProjectVersion>20.1</ProjectVersion>
+    <DCC_ConsoleTarget>true</DCC_ConsoleTarget>
+    <DCC_DcuOutput>.artifacts\$(Platform)\$(Config)</DCC_DcuOutput>
+    <DCC_ExeOutput>.artifacts\$(Platform)\$(Config)</DCC_ExeOutput>
+  </PropertyGroup>
+  <Import Project="context.props" />
+  <ItemGroup>
+    <DCCReference Include="Context.Consumer.pas" />
+    <DCCReference Include="Context.DebugOnly.pas" />
+    <DCCReference Include="Context.ReleaseOnly.pas" />
+    <DCCReference Include="chosen\Mapped.pas" />
+    <DCCReference Include="Context.DebugAlias.pas" />
+    <DCCReference Include="Context.ReleaseAlias.pas" />
+    <DCCReference Include="First.NamespaceProvider.pas" />
+    <DCCReference Include="Second.NamespaceProvider.pas" />
+    <DCCReference Include="Context.Platform32.pas" />
+    <DCCReference Include="Context.Platform64.pas" />
+    <DCCReference Include="Context.Unused.pas" />
+    <DelphiCompile Include="ContextRuntime.dpr"><MainSource>MainSource</MainSource></DelphiCompile>
+    <BuildConfiguration Include="Debug"><Key>Debug</Key></BuildConfiguration>
+    <BuildConfiguration Include="Release"><Key>Release</Key></BuildConfiguration>
+  </ItemGroup>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')" />
+</Project>

@@ -1,0 +1,8 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DCC_Define Condition="'$(Config)'=='Debug'">PROJECT_DEBUG;$(DCC_Define)</DCC_Define>
+    <DCC_Namespace>First;Second;System</DCC_Namespace>
+    <DCC_UnitAlias Condition="'$(Config)'=='Debug'">OldDep=Context.DebugAlias;</DCC_UnitAlias>
+    <DCC_UnitAlias Condition="'$(Config)'=='Release'">OldDep=Context.ReleaseAlias;</DCC_UnitAlias>
+  </PropertyGroup>
+</Project>

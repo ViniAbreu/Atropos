@@ -10,7 +10,7 @@ type
     FLexer: TmwPasLex;
     FNames: TList<string>;
     FDepth: Integer;
-    FInsideUses, FConditional: Boolean;
+    FInsideUses, FConditional, FDelimiterRequired, FConditionalPrefix: Boolean;
     FName: string;
     procedure Visit;
     procedure FinishName;
@@ -44,6 +44,8 @@ begin
   if FConditional and not FName.IsEmpty and not FNames.Contains(FName) then
     FNames.Add(FName);
   FName := '';
+  FDelimiterRequired := False;
+  FConditionalPrefix := False;
   FConditional := False;
 end;
 
@@ -60,12 +62,21 @@ begin
   end;
   if not FInsideUses then
     Exit;
+  if (FLexer.TokenID in [ptIfDefDirect, ptIfNDefDirect, ptIfDirect,
+    ptIfOptDirect]) and not FName.IsEmpty then
+    FConditionalPrefix := True;
+  if FConditionalPrefix and (FLexer.TokenID in [ptElseDirect, ptElseIfDirect,
+    ptEndIfDirect, ptIfEndDirect]) then
+    raise EInvalidOperation.Create('Partial conditional unit name requires occurrence-aware editing.');
   if FLexer.TokenID in [ptElseDirect, ptElseIfDirect] then
   begin
-    if FName.Contains('.') then
-      raise EInvalidOperation.Create('Conditional qualified import requires occurrence-aware editing.');
     FinishName;
   end;
+  if (FLexer.TokenID in [ptIfDefDirect, ptIfNDefDirect, ptIfDirect,
+    ptIfOptDirect, ptEndIfDirect, ptIfEndDirect]) and not FName.IsEmpty then
+    FDelimiterRequired := True;
+  if FDelimiterRequired and (FLexer.TokenID in [ptIdentifier, ptPoint]) then
+    raise EInvalidOperation.Create('Partial conditional unit name requires occurrence-aware editing.');
   if FLexer.TokenID in [ptComma, ptSemiColon] then
     FinishName;
   if FLexer.TokenID = ptSemiColon then
@@ -88,6 +99,8 @@ begin
   FInsideUses := False;
   FConditional := False;
   FName := '';
+  FDelimiterRequired := False;
+  FConditionalPrefix := False;
   FNames.Clear;
   FLexer.Origin := ASource;
   while FLexer.TokenID <> ptNull do
