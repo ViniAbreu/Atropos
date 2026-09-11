@@ -8,6 +8,7 @@ type
   TEffectState = (esNone, esPresent, esUnknown);
   TUnitEffectFacts = record
     DirectEffects: Boolean;
+    UnknownEffects: string;
     ImportsKnown: Boolean;
     Imports: TArray<string>;
   end;
@@ -80,6 +81,12 @@ begin
       Result.State := esPresent;
       Result.Reason := 'Known lifecycle effects via ' + LPath + '.';
       Exit;
+    end;
+    if not LFacts.UnknownEffects.IsEmpty then
+    begin
+      Result.State := esUnknown;
+      if Result.Reason.IsEmpty then
+        Result.Reason := LFacts.UnknownEffects + ' Via ' + LPath + '.';
     end;
     if not LFacts.ImportsKnown then
     begin

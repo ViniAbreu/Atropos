@@ -39,6 +39,8 @@ type
     procedure RegisterUnitDependencies(const AUnitName: string; const AImports: TArray<string>;
       AKnown: Boolean = True);
     function AssessUnitEffects(const AUnitName: string): TEffectAssessment;
+    procedure RegisterImplicitEffects(const AUnitName: string;
+      const AEffects: TArray<TImplicitEffect>; AKnown: Boolean = True);
   end;
 
   TUnitAnalysisResult = record
@@ -91,38 +93,14 @@ begin
   inherited;
 end;
 
-procedure TProjectContext.RegisterUnitExports(const AUnitName: string; const AIdentifiers: TArray<string>; AHasInit: Boolean = False; AIsNative: Boolean = False);
-var
-  LExports: TUnitExports;
-  LIdent: string;
-  LParts: TArray<string>;
-  LMethod, LTarget: string;
-  LList: TList<string>;
+procedure TProjectContext.RegisterUnitExports(const AUnitName: string;
+  const AIdentifiers: TArray<string>; AHasInit: Boolean; AIsNative: Boolean);
+var LExports: TUnitExports;
 begin
   LExports := TUnitExports.Create(AUnitName, AHasInit, AIsNative);
-  for LIdent in AIdentifiers do
-  begin
-    if not LIdent.StartsWith('!HELPER:') then
-    begin
-      LExports.ExportedIdentifiers.Add(LIdent.ToLower);
-      Continue;
-    end;
-    LParts := LIdent.Split([':']);
-    if Length(LParts) < 3 then
-      Continue;
-    LMethod := LParts[1].ToLower;
-    LTarget := LParts[2].ToLower;
-    if not LExports.ExportedHelpers.TryGetValue(LMethod, LList) then
-    begin
-      LList := TList<string>.Create;
-      LExports.ExportedHelpers.Add(LMethod, LList);
-    end;
-    if not LList.Contains(LTarget) then
-      LList.Add(LTarget);
-  end;
+  LExports.AddIdentifiers(AIdentifiers);
   FUnitExports.AddOrSetValue(AUnitName.ToLower, LExports);
 end;
-
 function TProjectContext.HasUnit(const AUnitName: string): Boolean;
 var
   LLowerName: string;
@@ -157,11 +135,22 @@ end;
 
 procedure TProjectContext.LoadResolverImports(const AUnitName: string);
 var LDependencies: IUnitDependencyResolver; LImports: TArray<string>; LKnown: Boolean;
+  LResolver: IUnitImplicitEffectResolver; LEffects: TArray<TImplicitEffect>;
 begin
   LKnown := False;
   if Supports(FResolver, IUnitDependencyResolver, LDependencies) then
     LKnown := LDependencies.TryGetUnitImports(AUnitName, LImports);
   RegisterUnitDependencies(AUnitName, LImports, LKnown);
+  LKnown := False;
+  if Supports(FResolver, IUnitImplicitEffectResolver, LResolver) then
+    LKnown := LResolver.TryGetImplicitEffects(AUnitName, LEffects);
+  RegisterImplicitEffects(AUnitName, LEffects, LKnown);
+end;
+
+procedure TProjectContext.RegisterImplicitEffects(const AUnitName: string;
+  const AEffects: TArray<TImplicitEffect>; AKnown: Boolean);
+begin
+  FUnitExports[AUnitName.ToLower].SetImplicitEffects(AEffects, AKnown);
 end;
 
 function TProjectContext.LoadEffectFacts(const AUnitName: string): TUnitEffectFacts;
@@ -172,6 +161,7 @@ begin
     Exit;
   LExports := FUnitExports[AUnitName.ToLower];
   Result.DirectEffects := LExports.HasInitialization;
+  Result.UnknownEffects := LExports.UnknownEffects;
   Result.ImportsKnown := LExports.ImportsKnown;
   Result.Imports := LExports.Imports;
 end;

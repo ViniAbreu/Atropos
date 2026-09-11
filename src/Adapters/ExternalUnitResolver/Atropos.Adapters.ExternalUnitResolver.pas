@@ -1,4 +1,4 @@
-﻿unit Atropos.Adapters.ExternalUnitResolver;
+unit Atropos.Adapters.ExternalUnitResolver;
 
 interface
 uses
@@ -6,7 +6,7 @@ uses
   Atropos.Core.Ports, Atropos.Adapters.UnitDependencies;
 
 type
-  TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver)
+  TExternalUnitResolverAdapter = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver, IUnitImplicitEffectResolver)
   private
     FASTParser: IASTParser;
     FDependencies: TUnitDependencyCache;
@@ -27,6 +27,7 @@ type
     
     procedure Initialize(const ASearchPaths: TArray<string>; const ADelphiPath, AProjectBasePath: string);
     function TryGetUnitImports(const AUnitName: string; out AImports: TArray<string>): Boolean;
+    function TryGetImplicitEffects(const AUnitName: string; out AEffects: TArray<TImplicitEffect>): Boolean;
     function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>; out AHasInit: Boolean; out AIsNative: Boolean): Boolean;
   end;
@@ -154,6 +155,12 @@ begin
   end;
   
   FIsCacheBuilt := True;
+end;
+
+function TExternalUnitResolverAdapter.TryGetImplicitEffects(const AUnitName: string;
+  out AEffects: TArray<TImplicitEffect>): Boolean;
+begin
+  Result := FDependencies.TryGetEffects(AUnitName, AEffects);
 end;
 
 function TExternalUnitResolverAdapter.TryGetUnitImports(const AUnitName: string;

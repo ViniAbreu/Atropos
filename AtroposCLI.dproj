@@ -128,6 +128,7 @@
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.HelperFacts.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.MemberReferences.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SymbolFacts.pas"/>
+        <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.ImplicitEffects.pas"/>
         <DCCReference Include="src\Adapters\DelphiAST\Atropos.Adapters.SyntaxBuilder.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileSystem.pas"/>
         <DCCReference Include="src\Adapters\FileSystem\Atropos.Adapters.FileTransaction.pas"/>

@@ -13,7 +13,7 @@ type
     function ParseFile(const AFilePath: string): IUnitSyntaxTree;
   end;
 
-  TTargetUnitResolver = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver)
+  TTargetUnitResolver = class(TInterfacedObject, IExternalUnitResolver, IUnitDependencyResolver, IUnitImplicitEffectResolver)
   private
     FParser: IASTParser;
     FExternal: IExternalUnitResolver;
@@ -30,6 +30,7 @@ type
     procedure Initialize(const ASearchPaths: TArray<string>;
       const ADelphiPath, ABasePath: string);
     function TryGetUnitImports(const AUnitName: string; out AImports: TArray<string>): Boolean;
+    function TryGetImplicitEffects(const AUnitName: string; out AEffects: TArray<TImplicitEffect>): Boolean;
     function GetWarnings: TArray<string>;
     function TryResolveUnit(const AUnitName: string; out AExports: TArray<string>;
       out AHasInit, AIsNative: Boolean): Boolean;
@@ -115,6 +116,7 @@ var
   LWarningCount: Integer;
   LMapping: TUnitSourceMapping;
   LDependencies: IUnitDependencyResolver;
+  LEffectResolver: IUnitImplicitEffectResolver; LEffects: TArray<TImplicitEffect>;
   LImports: TArray<string>;
 begin
   for LMapping in FContext.SourceMappings do
@@ -146,8 +148,17 @@ begin
   if Result and Supports(FExternal, IUnitDependencyResolver, LDependencies) then
     if LDependencies.TryGetUnitImports(AName, LImports) then
       FDependencies.RegisterImports(AName, LImports);
+  if Result and Supports(FExternal, IUnitImplicitEffectResolver, LEffectResolver) then
+    if LEffectResolver.TryGetImplicitEffects(AName, LEffects) then
+      FDependencies.RegisterEffects(AName, LEffects);
   if not Result and (Length(FExternal.GetWarnings) > LWarningCount) then
     raise EInvalidOperation.Create('Source lookup is incomplete for ' + AName);
+end;
+
+function TTargetUnitResolver.TryGetImplicitEffects(const AUnitName: string;
+  out AEffects: TArray<TImplicitEffect>): Boolean;
+begin
+  Result := FDependencies.TryGetEffects(AUnitName, AEffects);
 end;
 
 function TTargetUnitResolver.TryGetUnitImports(const AUnitName: string;
